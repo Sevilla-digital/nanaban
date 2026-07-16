@@ -3,6 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import { pool } from './db.js';
 import { router as clientes } from './routes/clientes.js';
+import { router as sitio } from './routes/sitio.js';
 
 const app = express();
 
@@ -41,6 +42,7 @@ app.get('/health', async (_req, res) => {
 });
 
 app.use('/api/clientes', clientes);
+app.use('/api/sitio', sitio);
 
 app.use((_req, res) => res.status(404).json({ error: 'Ruta no encontrada' }));
 

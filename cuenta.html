@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi cuenta - Gold Corp</title>
+    <style>
+        :root { --primario: #ffd700; --fondo: #1a1a1a; }
+        * { box-sizing: border-box; }
+        body {
+            font-family: Arial, sans-serif; margin: 0; padding: 0; color: #fff;
+            background: linear-gradient(135deg, var(--fondo) 0%, #2d2d2d 100%);
+            min-height: 100vh;
+        }
+        a { color: var(--primario); }
+        header.barra {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 16px 24px; border-bottom: 1px solid #333;
+        }
+        header.barra .marca { color: var(--primario); font-weight: bold; text-decoration: none; font-size: 1.2em; }
+        .contenedor { max-width: 960px; margin: 0 auto; padding: 32px 20px; }
+        .tarjeta { background: #232323; border: 1px solid #333; border-radius: 10px; padding: 24px; margin-bottom: 20px; }
+        h1 { color: var(--primario); margin-top: 0; }
+        h2 { color: var(--primario); font-size: 1.3em; }
+        label { display: block; margin: 12px 0 4px; color: #ccc; font-size: 0.9em; }
+        input, textarea {
+            width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #444;
+            background: #1a1a1a; color: #fff; font-size: 1em; font-family: inherit;
+        }
+        input[type=color] { height: 44px; padding: 4px; }
+        .btn {
+            background: var(--primario); color: #1a1a1a; padding: 12px 20px; border: none;
+            border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 1em; margin-top: 16px;
+        }
+        .btn:hover { opacity: .9; }
+        .btn.sec { background: transparent; color: var(--primario); border: 1px solid var(--primario); }
+        .btn:disabled { opacity: .5; cursor: default; }
+        .fila { display: flex; gap: 16px; flex-wrap: wrap; }
+        .fila > * { flex: 1; min-width: 180px; }
+        .error { color: #ff6b6b; margin-top: 12px; min-height: 1.2em; }
+        .ok { color: #51cf66; margin-top: 12px; min-height: 1.2em; }
+        .saldo { font-size: 2.6em; color: var(--primario); font-weight: bold; }
+        table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+        th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid #333; font-size: .95em; }
+        th { color: #999; font-weight: normal; font-size: .85em; text-transform: uppercase; }
+        .tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+        .tab { padding: 10px 18px; background: #232323; border: 1px solid #333; border-radius: 6px; cursor: pointer; color: #ccc; }
+        .tab.activa { background: var(--primario); color: #1a1a1a; font-weight: bold; }
+        .oculto { display: none !important; }
+        .pos { color: #51cf66; } .neg { color: #ff6b6b; }
+        .muted { color: #888; font-size: .9em; }
+        .clic { cursor: pointer; }
+        .clic:hover td { background: #2a2a2a; }
+    </style>
+</head>
+<body>
+    <header class="barra">
+        <a class="marca" href="index.html" id="marca">Gold Corp</a>
+        <button class="btn sec oculto" id="btn-salir" style="margin:0">Cerrar sesión</button>
+    </header>
+
+    <div class="contenedor">
+
+        <!-- ================= NO AUTENTICADO ================= -->
+        <div id="vista-auth">
+            <div class="tabs">
+                <div class="tab activa" id="tab-login">Iniciar sesión</div>
+                <div class="tab" id="tab-registro">Registrarse</div>
+            </div>
+
+            <div class="tarjeta" id="panel-login">
+                <h1>Iniciar sesión</h1>
+                <form id="form-login">
+                    <label>Teléfono</label>
+                    <input name="telefono" type="tel" autocomplete="username" placeholder="600 11 22 33" required>
+                    <label>Contraseña</label>
+                    <input name="password" type="password" autocomplete="current-password" required>
+                    <div class="error" id="error-login"></div>
+                    <button class="btn" type="submit">Entrar</button>
+                </form>
+            </div>
+
+            <div class="tarjeta oculto" id="panel-registro">
+                <h1>Crear cuenta</h1>
+                <form id="form-registro">
+                    <div class="fila">
+                        <div><label>Nombre</label><input name="nombre" required minlength="2"></div>
+                        <div><label>Apellido</label><input name="apellido" required minlength="2"></div>
+                    </div>
+                    <label>Teléfono</label>
+                    <input name="telefono" type="tel" autocomplete="username" placeholder="600 11 22 33" required>
+                    <label>Contraseña (mínimo 8 caracteres)</label>
+                    <input name="password" type="password" autocomplete="new-password" required minlength="8">
+                    <div class="error" id="error-registro"></div>
+                    <button class="btn" type="submit">Registrarme</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- ================= CLIENTE ================= -->
+        <div id="vista-cliente" class="oculto">
+            <div class="tarjeta">
+                <div class="muted" id="cliente-saludo"></div>
+                <div class="muted">Saldo disponible</div>
+                <div class="saldo" id="cliente-saldo">—</div>
+            </div>
+            <div class="tarjeta">
+                <h2>Mis inversiones</h2>
+                <div id="cliente-inversiones"><p class="muted">No tienes inversiones todavía.</p></div>
+            </div>
+            <div class="tarjeta">
+                <h2>Movimientos</h2>
+                <div id="cliente-movimientos"><p class="muted">Sin movimientos.</p></div>
+            </div>
+        </div>
+
+        <!-- ================= ADMIN ================= -->
+        <div id="vista-admin" class="oculto">
+            <h1>Panel de administración</h1>
+            <div class="tabs">
+                <div class="tab activa" id="tab-clientes">Clientes</div>
+                <div class="tab" id="tab-config">Configuración del sitio</div>
+            </div>
+
+            <!-- Clientes -->
+            <div id="panel-clientes">
+                <div class="tarjeta">
+                    <input id="buscar" placeholder="Buscar por nombre, apellido o teléfono…">
+                    <div id="lista-clientes"><p class="muted">Cargando…</p></div>
+                </div>
+
+                <div class="tarjeta oculto" id="detalle-cliente">
+                    <button class="btn sec" id="cerrar-detalle" style="margin-top:0">← Volver a la lista</button>
+                    <h2 id="detalle-nombre"></h2>
+                    <div class="muted" id="detalle-tel"></div>
+                    <div class="saldo" id="detalle-saldo">—</div>
+
+                    <h2>Registrar movimiento</h2>
+                    <form id="form-movimiento">
+                        <div class="fila">
+                            <div>
+                                <label>Tipo</label>
+                                <select name="tipo" id="mov-tipo" style="width:100%;padding:10px;border-radius:6px;border:1px solid #444;background:#1a1a1a;color:#fff;font-size:1em">
+                                    <option value="deposito">Depósito (+)</option>
+                                    <option value="retiro">Retiro (−)</option>
+                                    <option value="compra_oro">Compra de oro (−)</option>
+                                    <option value="venta_oro">Venta de oro (+)</option>
+                                    <option value="ajuste">Ajuste</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label>Importe en € (positivo)</label>
+                                <input name="importe" type="text" inputmode="decimal" placeholder="1500.50" required>
+                            </div>
+                        </div>
+                        <label>Descripción</label>
+                        <input name="descripcion" required placeholder="Concepto del movimiento">
+                        <div class="muted">Los retiros y compras se restan del saldo automáticamente.</div>
+                        <div class="error" id="error-movimiento"></div>
+                        <div class="ok" id="ok-movimiento"></div>
+                        <button class="btn" type="submit">Registrar movimiento</button>
+                    </form>
+
+                    <h2>Inversiones</h2>
+                    <div id="detalle-inversiones"></div>
+                    <h2>Movimientos</h2>
+                    <div id="detalle-movimientos"></div>
+                </div>
+            </div>
+
+            <!-- Configuración del sitio -->
+            <div id="panel-config" class="oculto">
+                <div class="tarjeta">
+                    <h2>Apariencia y textos de la web pública</h2>
+                    <p class="muted">Lo que cambies aquí se ve en goldcorp.online en la próxima visita.</p>
+                    <form id="form-config">
+                        <label>Nombre del sitio</label>
+                        <input name="nombre_sitio" required>
+                        <label>Eslogan</label>
+                        <input name="eslogan">
+                        <label>Texto de cabecera (bajo el eslogan)</label>
+                        <textarea name="texto_header" rows="3"></textarea>
+                        <label>Texto del pie de página</label>
+                        <textarea name="texto_footer" rows="2"></textarea>
+                        <label>URL del logo (dirección de una imagen en internet)</label>
+                        <input name="logo_url" type="url" placeholder="https://…/logo.png">
+                        <div class="fila">
+                            <div><label>Color principal</label><input name="color_primario" type="color"></div>
+                            <div><label>Color de fondo</label><input name="color_fondo" type="color"></div>
+                        </div>
+                        <div class="error" id="error-config"></div>
+                        <div class="ok" id="ok-config"></div>
+                        <button class="btn" type="submit">Guardar cambios</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { api, sesion, euros, fecha } from './js/api.js';
+
+        const $ = (id) => document.getElementById(id);
+        const mostrar = (id, si) => $(id).classList.toggle('oculto', !si);
+
+        // Aplica el color de marca guardado, para que la cuenta combine con la web.
+        api('/api/sitio').then((c) => {
+            if (c.color_primario) document.documentElement.style.setProperty('--primario', c.color_primario);
+            if (c.color_fondo) document.documentElement.style.setProperty('--fondo', c.color_fondo);
+            if (c.nombre_sitio) $('marca').textContent = c.nombre_sitio;
+        }).catch(() => {});
+
+        // Crea una fila de tabla con celdas de texto (textContent = sin riesgo de HTML).
+        function fila(celdas, onClick) {
+            const tr = document.createElement('tr');
+            for (const c of celdas) {
+                const td = document.createElement('td');
+                if (c && typeof c === 'object') { td.textContent = c.texto; if (c.clase) td.className = c.clase; }
+                else td.textContent = c ?? '';
+                tr.appendChild(td);
+            }
+            if (onClick) { tr.classList.add('clic'); tr.onclick = onClick; }
+            return tr;
+        }
+
+        function tablaMovimientos(destino, movimientos) {
+            const cont = $(destino);
+            cont.innerHTML = '';
+            if (!movimientos?.length) { cont.innerHTML = '<p class="muted">Sin movimientos.</p>'; return; }
+            const tabla = document.createElement('table');
+            tabla.innerHTML = '<thead><tr><th>Fecha</th><th>Tipo</th><th>Descripción</th><th>Importe</th></tr></thead>';
+            const tbody = document.createElement('tbody');
+            for (const m of movimientos) {
+                const neg = Number(m.importe_eur) < 0;
+                tbody.appendChild(fila([
+                    fecha(m.creado_en),
+                    m.tipo.replace('_', ' '),
+                    m.descripcion,
+                    { texto: euros(m.importe_eur), clase: neg ? 'neg' : 'pos' },
+                ]));
+            }
+            tabla.appendChild(tbody);
+            cont.appendChild(tabla);
+        }
+
+        function tablaInversiones(destino, inversiones) {
+            const cont = $(destino);
+            cont.innerHTML = '';
+            if (!inversiones?.length) { cont.innerHTML = '<p class="muted">No hay inversiones.</p>'; return; }
+            const tabla = document.createElement('table');
+            tabla.innerHTML = '<thead><tr><th>Fecha</th><th>Oro (g)</th><th>Importe</th><th>Estado</th></tr></thead>';
+            const tbody = document.createElement('tbody');
+            for (const i of inversiones) {
+                tbody.appendChild(fila([fecha(i.abierta_en), i.gramos_oro, euros(i.importe_eur), i.estado]));
+            }
+            tabla.appendChild(tbody);
+            cont.appendChild(tabla);
+        }
+
+        // ---------- Alternar login / registro ----------
+        $('tab-login').onclick = () => {
+            $('tab-login').classList.add('activa'); $('tab-registro').classList.remove('activa');
+            mostrar('panel-login', true); mostrar('panel-registro', false);
+        };
+        $('tab-registro').onclick = () => {
+            $('tab-registro').classList.add('activa'); $('tab-login').classList.remove('activa');
+            mostrar('panel-registro', true); mostrar('panel-login', false);
+        };
+
+        // ---------- Registro ----------
+        $('form-registro').onsubmit = async (e) => {
+            e.preventDefault();
+            $('error-registro').textContent = '';
+            const f = e.target;
+            const btn = f.querySelector('button');
+            btn.disabled = true; btn.textContent = 'Creando…';
+            try {
+                const r = await api('/api/clientes/registro', {
+                    metodo: 'POST',
+                    cuerpo: {
+                        nombre: f.nombre.value, apellido: f.apellido.value,
+                        telefono: f.telefono.value, password: f.password.value,
+                    },
+                });
+                sesion.guardar(r.token, { ...r.cliente, esAdmin: r.cliente.es_admin === true });
+                arrancar();
+            } catch (err) {
+                $('error-registro').textContent = err.message;
+            } finally {
+                btn.disabled = false; btn.textContent = 'Registrarme';
+            }
+        };
+
+        // ---------- Login ----------
+        $('form-login').onsubmit = async (e) => {
+            e.preventDefault();
+            $('error-login').textContent = '';
+            const f = e.target;
+            const btn = f.querySelector('button');
+            btn.disabled = true; btn.textContent = 'Entrando…';
+            try {
+                const r = await api('/api/clientes/login', {
+                    metodo: 'POST',
+                    cuerpo: { telefono: f.telefono.value, password: f.password.value },
+                });
+                sesion.guardar(r.token, r.cliente);
+                arrancar();
+            } catch (err) {
+                $('error-login').textContent = err.message;
+            } finally {
+                btn.disabled = false; btn.textContent = 'Entrar';
+            }
+        };
+
+        // ---------- Cerrar sesión ----------
+        $('btn-salir').onclick = () => { sesion.cerrar(); location.reload(); };
+
+        // ---------- Vista de cliente ----------
+        async function cargarCliente() {
+            const yo = await api('/api/clientes/me', { auth: true });
+            $('cliente-saludo').textContent = `Hola, ${yo.nombre} ${yo.apellido || ''}`.trim();
+            $('cliente-saldo').textContent = euros(yo.saldo_eur);
+            tablaInversiones('cliente-inversiones', yo.inversiones);
+            const mov = await api('/api/clientes/me/movimientos', { auth: true });
+            tablaMovimientos('cliente-movimientos', mov.movimientos);
+        }
+
+        // ---------- Vista de admin ----------
+        let clienteAbierto = null;
+
+        $('tab-clientes').onclick = () => {
+            $('tab-clientes').classList.add('activa'); $('tab-config').classList.remove('activa');
+            mostrar('panel-clientes', true); mostrar('panel-config', false);
+        };
+        $('tab-config').onclick = () => {
+            $('tab-config').classList.add('activa'); $('tab-clientes').classList.remove('activa');
+            mostrar('panel-config', true); mostrar('panel-clientes', false);
+            cargarConfig();
+        };
+
+        let debounce;
+        $('buscar').oninput = (e) => { clearTimeout(debounce); debounce = setTimeout(() => listarClientes(e.target.value), 300); };
+
+        async function listarClientes(buscar = '') {
+            const cont = $('lista-clientes');
+            try {
+                const q = buscar ? `?buscar=${encodeURIComponent(buscar)}` : '';
+                const { clientes } = await api('/api/clientes' + q, { auth: true });
+                cont.innerHTML = '';
+                if (!clientes.length) { cont.innerHTML = '<p class="muted">No hay clientes.</p>'; return; }
+                const tabla = document.createElement('table');
+                tabla.innerHTML = '<thead><tr><th>Cliente</th><th>Teléfono</th><th>Saldo</th></tr></thead>';
+                const tbody = document.createElement('tbody');
+                for (const c of clientes) {
+                    const nombre = `${c.nombre} ${c.apellido || ''}`.trim() + (c.es_admin ? ' ⭐' : '');
+                    tbody.appendChild(fila([nombre, c.telefono, euros(c.saldo_eur)], () => abrirCliente(c.id)));
+                }
+                tabla.appendChild(tbody);
+                cont.appendChild(tabla);
+            } catch (err) {
+                cont.innerHTML = `<p class="error">${err.message}</p>`;
+            }
+        }
+
+        async function abrirCliente(id) {
+            clienteAbierto = id;
+            const c = await api('/api/clientes/' + id, { auth: true });
+            $('detalle-nombre').textContent = `${c.nombre} ${c.apellido || ''}`.trim();
+            $('detalle-tel').textContent = c.telefono;
+            $('detalle-saldo').textContent = euros(c.saldo_eur);
+            tablaInversiones('detalle-inversiones', c.inversiones);
+            tablaMovimientos('detalle-movimientos', c.movimientos);
+            $('error-movimiento').textContent = ''; $('ok-movimiento').textContent = '';
+            mostrar('detalle-cliente', true);
+            mostrar('lista-clientes', false);
+            $('buscar').classList.add('oculto');
+        }
+
+        $('cerrar-detalle').onclick = () => {
+            mostrar('detalle-cliente', false);
+            mostrar('lista-clientes', true);
+            $('buscar').classList.remove('oculto');
+            listarClientes($('buscar').value);
+        };
+
+        // Registrar movimiento: el backend espera el importe con signo. Retiro y compra
+        // restan, asi que enviamos el importe en negativo; el resto en positivo.
+        $('form-movimiento').onsubmit = async (e) => {
+            e.preventDefault();
+            $('error-movimiento').textContent = ''; $('ok-movimiento').textContent = '';
+            const f = e.target;
+            const tipo = f.tipo.value;
+            const magnitud = f.importe.value.trim().replace(',', '.');
+            if (!/^\d{1,15}(\.\d{1,2})?$/.test(magnitud) || Number(magnitud) === 0) {
+                $('error-movimiento').textContent = 'Introduce un importe positivo, p. ej. 1500.50';
+                return;
+            }
+            const resta = tipo === 'retiro' || tipo === 'compra_oro';
+            const importeEur = (resta ? '-' : '') + magnitud;
+            const btn = f.querySelector('button');
+            btn.disabled = true;
+            try {
+                await api('/api/clientes/movimientos', {
+                    metodo: 'POST', auth: true,
+                    cuerpo: { clienteId: clienteAbierto, tipo, importeEur, descripcion: f.descripcion.value },
+                });
+                $('ok-movimiento').textContent = 'Movimiento registrado.';
+                f.reset();
+                abrirCliente(clienteAbierto);
+            } catch (err) {
+                $('error-movimiento').textContent = err.message;
+            } finally {
+                btn.disabled = false;
+            }
+        };
+
+        // Configuración del sitio
+        async function cargarConfig() {
+            try {
+                const c = await api('/api/sitio');
+                const f = $('form-config');
+                f.nombre_sitio.value = c.nombre_sitio || '';
+                f.eslogan.value = c.eslogan || '';
+                f.texto_header.value = c.texto_header || '';
+                f.texto_footer.value = c.texto_footer || '';
+                f.logo_url.value = c.logo_url || '';
+                f.color_primario.value = c.color_primario || '#ffd700';
+                f.color_fondo.value = c.color_fondo || '#1a1a1a';
+            } catch (err) {
+                $('error-config').textContent = err.message;
+            }
+        }
+
+        $('form-config').onsubmit = async (e) => {
+            e.preventDefault();
+            $('error-config').textContent = ''; $('ok-config').textContent = '';
+            const f = e.target;
+            const cuerpo = {
+                nombre_sitio: f.nombre_sitio.value,
+                eslogan: f.eslogan.value,
+                texto_header: f.texto_header.value,
+                texto_footer: f.texto_footer.value,
+                logo_url: f.logo_url.value,
+                color_primario: f.color_primario.value,
+                color_fondo: f.color_fondo.value,
+            };
+            const btn = f.querySelector('button');
+            btn.disabled = true;
+            try {
+                const c = await api('/api/sitio', { metodo: 'PUT', auth: true, cuerpo });
+                document.documentElement.style.setProperty('--primario', c.color_primario);
+                document.documentElement.style.setProperty('--fondo', c.color_fondo);
+                $('ok-config').textContent = 'Guardado. Se verá en la web pública.';
+            } catch (err) {
+                $('error-config').textContent = err.message;
+            } finally {
+                btn.disabled = false;
+            }
+        };
+
+        // ---------- Decide qué vista mostrar ----------
+        async function arrancar() {
+            const autenticado = !!sesion.token;
+            mostrar('vista-auth', !autenticado);
+            mostrar('btn-salir', autenticado);
+            mostrar('vista-cliente', false);
+            mostrar('vista-admin', false);
+            if (!autenticado) return;
+
+            try {
+                if (sesion.esAdmin) {
+                    mostrar('vista-admin', true);
+                    listarClientes();
+                } else {
+                    mostrar('vista-cliente', true);
+                    await cargarCliente();
+                }
+            } catch (err) {
+                // Token caducado u otro fallo: api() ya limpia la sesion en un 401.
+                if (!sesion.token) { arrancar(); return; }
+                alert(err.message);
+            }
+        }
+
+        arrancar();
+    </script>
+</body>
+</html>

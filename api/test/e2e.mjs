@@ -61,12 +61,22 @@ check('GET /health responde 200', h.status === 200, `${h.status} ${JSON.stringif
 
 // registro
 const r1 = await post('/api/clientes/registro', {
-  nombre: 'Ana Torres',
+  nombre: 'Ana',
+  apellido: 'Torres',
   telefono: '600 11 22 33',
   password: 'unacontrasenalarga',
 });
 const reg = await r1.json();
 check('registro con telefono con espacios -> 201', r1.status === 201, String(r1.status));
+check('el registro guarda nombre y apellido', reg.cliente?.nombre === 'Ana' && reg.cliente?.apellido === 'Torres', `${reg.cliente?.nombre} ${reg.cliente?.apellido}`);
+
+// registro sin apellido -> 400
+const rSinApellido = await post('/api/clientes/registro', {
+  nombre: 'Solo',
+  telefono: '611222333',
+  password: 'unacontrasenalarga',
+});
+check('registro sin apellido -> 400', rSinApellido.status === 400, String(rSinApellido.status));
 check('el telefono se normaliza a E.164', reg.cliente?.telefono === '+34600112233', reg.cliente?.telefono);
 check('devuelve token', typeof reg.token === 'string' && reg.token.length > 20);
 check('NO devuelve el hash de la contrasena', !JSON.stringify(reg).includes('scrypt'));
@@ -74,6 +84,7 @@ check('NO devuelve el hash de la contrasena', !JSON.stringify(reg).includes('scr
 // duplicado (mismo numero, otro formato)
 const r2 = await post('/api/clientes/registro', {
   nombre: 'Impostor',
+  apellido: 'Falso',
   telefono: '+34600112233',
   password: 'otracontrasena',
 });
@@ -147,6 +158,72 @@ check('saldo intacto tras retiro rechazado', String((await r13.json()).saldo_eur
 // movimientos
 const r14 = await get('/api/clientes/me/movimientos', tokenAdmin);
 check('lista de movimientos tiene 1 entrada', (await r14.json()).movimientos.length === 1);
+
+// admin: listado de clientes
+const rLista = await get('/api/clientes', tokenAdmin);
+const lista = await rLista.json();
+check('admin lista clientes -> 200', rLista.status === 200, String(rLista.status));
+check('el listado incluye a Ana con su saldo', lista.clientes?.some((c) => c.nombre === 'Ana' && String(c.saldo_eur) === '1500.50'));
+
+// admin: buscar por telefono
+const rBusca = await get('/api/clientes?buscar=600112233', tokenAdmin);
+check('admin busca por telefono', (await rBusca.json()).clientes?.length === 1);
+
+// admin: detalle de un cliente concreto
+const rDetalle = await get(`/api/clientes/${reg.cliente.id}`, tokenAdmin);
+const detalle = await rDetalle.json();
+check('admin ve el detalle de un cliente -> 200', rDetalle.status === 200, String(rDetalle.status));
+check('el detalle trae saldo y movimientos', String(detalle.saldo_eur) === '1500.50' && detalle.movimientos.length === 1);
+
+// un cliente normal NO puede listar clientes
+const rClienteLista = await get('/api/clientes', token);
+check('cliente normal no lista clientes -> 403', rClienteLista.status === 403, String(rClienteLista.status));
+
+// --- Configuracion del sitio ---
+
+// publica: cualquiera la lee, trae los valores por defecto
+const rSitio = await get('/api/sitio');
+const sitio = await rSitio.json();
+check('GET /api/sitio publico -> 200', rSitio.status === 200, String(rSitio.status));
+check('trae nombre del sitio por defecto', sitio.nombre_sitio === 'Gold Corp Financial', sitio.nombre_sitio);
+
+// un cliente normal NO puede editarla
+const rEditNoAdmin = await fetch(`${BASE}/api/sitio`, {
+  method: 'PUT',
+  headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+  body: JSON.stringify({ nombre_sitio: 'Hackeado' }),
+});
+check('cliente normal no edita el sitio -> 403', rEditNoAdmin.status === 403, String(rEditNoAdmin.status));
+
+// admin edita solo algunos campos
+const rEdit = await fetch(`${BASE}/api/sitio`, {
+  method: 'PUT',
+  headers: { 'content-type': 'application/json', authorization: `Bearer ${tokenAdmin}` },
+  body: JSON.stringify({ nombre_sitio: 'Gold Corp SL', eslogan: 'Tu oro, seguro', color_primario: '#ffcc00' }),
+});
+const editado = await rEdit.json();
+check('admin edita el sitio -> 200', rEdit.status === 200, String(rEdit.status));
+check('el cambio se guarda', editado.nombre_sitio === 'Gold Corp SL' && editado.color_primario === '#ffcc00', editado.nombre_sitio);
+
+// y el cambio es visible publicamente
+const rSitio2 = await get('/api/sitio');
+check('el cambio se ve en el endpoint publico', (await rSitio2.json()).nombre_sitio === 'Gold Corp SL');
+
+// color con formato invalido -> 400
+const rColorMal = await fetch(`${BASE}/api/sitio`, {
+  method: 'PUT',
+  headers: { 'content-type': 'application/json', authorization: `Bearer ${tokenAdmin}` },
+  body: JSON.stringify({ color_primario: 'rojo' }),
+});
+check('color invalido -> 400', rColorMal.status === 400, String(rColorMal.status));
+
+// campo desconocido rechazado (strict)
+const rCampoRaro = await fetch(`${BASE}/api/sitio`, {
+  method: 'PUT',
+  headers: { 'content-type': 'application/json', authorization: `Bearer ${tokenAdmin}` },
+  body: JSON.stringify({ es_admin: true }),
+});
+check('campo desconocido rechazado -> 400', rCampoRaro.status === 400, String(rCampoRaro.status));
 
 // inyeccion SQL
 const r15 = await post('/api/clientes/login', {

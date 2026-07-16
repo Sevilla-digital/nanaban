@@ -1,15 +1,22 @@
 -- Esquema de clientes de Gold Corp.
 -- Idempotente: se puede ejecutar varias veces sin romper nada.
 
+-- El telefono es el identificador con el que entra el cliente: es el unico dato
+-- del registro que no se repite (los nombres si).
 CREATE TABLE IF NOT EXISTS clientes (
   id             BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   nombre         TEXT        NOT NULL CHECK (length(trim(nombre)) BETWEEN 2 AND 120),
+  apellido       TEXT        NOT NULL DEFAULT '',
   telefono       TEXT        NOT NULL UNIQUE,
   password_hash  TEXT        NOT NULL,
   es_admin       BOOLEAN     NOT NULL DEFAULT FALSE,
   activo         BOOLEAN     NOT NULL DEFAULT TRUE,
   creado_en      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- La tabla ya existia en Render sin apellido. El DEFAULT '' esta solo para que
+-- anadir la columna no falle; que el apellido venga relleno lo exige la API.
+ALTER TABLE clientes ADD COLUMN IF NOT EXISTS apellido TEXT NOT NULL DEFAULT '';
 
 -- Una inversion es una posicion abierta por el cliente.
 CREATE TABLE IF NOT EXISTS inversiones (
@@ -55,3 +62,20 @@ CREATE OR REPLACE VIEW saldos AS
   FROM clientes c
   LEFT JOIN movimientos m ON m.cliente_id = c.id
   GROUP BY c.id;
+
+-- Configuracion editable del sitio: lo que el admin cambia desde el panel y la web
+-- publica lee al cargar. Una sola fila (id fijo = 1), asi no hay que decidir "cual".
+CREATE TABLE IF NOT EXISTS configuracion_sitio (
+  id              SMALLINT    PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+  nombre_sitio    TEXT        NOT NULL DEFAULT 'Gold Corp Financial',
+  eslogan         TEXT        NOT NULL DEFAULT 'Inversion en Oro - Segura y Rentable',
+  texto_header    TEXT        NOT NULL DEFAULT '',
+  texto_footer    TEXT        NOT NULL DEFAULT '',
+  logo_url        TEXT        NOT NULL DEFAULT '',
+  color_primario  TEXT        NOT NULL DEFAULT '#ffd700',
+  color_fondo     TEXT        NOT NULL DEFAULT '#1a1a1a',
+  actualizado_en  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Garantiza que la fila unica exista siempre, sin duplicarla en re-ejecuciones.
+INSERT INTO configuracion_sitio (id) VALUES (1) ON CONFLICT (id) DO NOTHING;

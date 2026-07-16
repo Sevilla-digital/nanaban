@@ -31,6 +31,7 @@ const credenciales = z.object({
 
 const registro = credenciales.extend({
   nombre: z.string().trim().min(2).max(120),
+  apellido: z.string().trim().min(2).max(120),
 });
 
 router.post('/registro', limiteAuth, async (req, res, next) => {
@@ -45,11 +46,11 @@ router.post('/registro', limiteAuth, async (req, res, next) => {
 
     const hash = await hashPassword(datos.data.password);
     const { rows } = await query(
-      `INSERT INTO clientes (nombre, telefono, password_hash)
-       VALUES ($1, $2, $3)
+      `INSERT INTO clientes (nombre, apellido, telefono, password_hash)
+       VALUES ($1, $2, $3, $4)
        ON CONFLICT (telefono) DO NOTHING
-       RETURNING id, nombre, telefono, es_admin, creado_en`,
-      [datos.data.nombre, telefono, hash]
+       RETURNING id, nombre, apellido, telefono, es_admin, creado_en`,
+      [datos.data.nombre, datos.data.apellido, telefono, hash]
     );
 
     if (rows.length === 0) {
@@ -86,7 +87,12 @@ router.post('/login', limiteAuth, async (req, res, next) => {
 
     res.json({
       token: firmarToken(cliente),
-      cliente: { id: cliente.id, nombre: cliente.nombre, telefono: cliente.telefono },
+      cliente: {
+        id: cliente.id,
+        nombre: cliente.nombre,
+        telefono: cliente.telefono,
+        esAdmin: cliente.es_admin,
+      },
     });
   } catch (err) {
     next(err);
@@ -97,7 +103,7 @@ router.post('/login', limiteAuth, async (req, res, next) => {
 router.get('/me', requiereAuth, async (req, res, next) => {
   try {
     const { rows } = await query(
-      `SELECT c.id, c.nombre, c.telefono, c.creado_en, s.saldo_eur
+      `SELECT c.id, c.nombre, c.apellido, c.telefono, c.es_admin, c.creado_en, s.saldo_eur
        FROM clientes c
        JOIN saldos s ON s.cliente_id = c.id
        WHERE c.id = $1`,
@@ -128,6 +134,64 @@ router.get('/me/movimientos', requiereAuth, async (req, res, next) => {
       [req.cliente.id, limite]
     );
     res.json({ movimientos: rows });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/** Listado de clientes con su saldo. Solo admin. Para el panel de gestion. */
+router.get('/', requiereAuth, requiereAdmin, async (req, res, next) => {
+  try {
+    const busqueda = String(req.query.buscar ?? '').trim();
+    const limite = Math.min(Number(req.query.limite) || 100, 500);
+    const { rows } = await query(
+      `SELECT c.id, c.nombre, c.apellido, c.telefono, c.es_admin, c.activo,
+              c.creado_en, s.saldo_eur
+       FROM clientes c
+       JOIN saldos s ON s.cliente_id = c.id
+       WHERE ($1 = '' OR c.nombre ILIKE '%'||$1||'%' OR c.apellido ILIKE '%'||$1||'%'
+              OR c.telefono ILIKE '%'||$1||'%')
+       ORDER BY c.creado_en DESC
+       LIMIT $2`,
+      [busqueda, limite]
+    );
+    res.json({ clientes: rows });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/** Detalle de un cliente cualquiera: perfil, saldo, inversiones y movimientos. Solo admin. */
+router.get('/:id', requiereAuth, requiereAdmin, async (req, res, next) => {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: 'Id invalido' });
+
+    const { rows } = await query(
+      `SELECT c.id, c.nombre, c.apellido, c.telefono, c.es_admin, c.activo,
+              c.creado_en, s.saldo_eur
+       FROM clientes c
+       JOIN saldos s ON s.cliente_id = c.id
+       WHERE c.id = $1`,
+      [id]
+    );
+    if (rows.length === 0) return res.status(404).json({ error: 'Cliente no encontrado' });
+
+    // Dos lecturas independientes, pero secuenciales a proposito: es un endpoint de
+    // admin puntual, la latencia extra es un round-trip, y asi no dependemos de que
+    // haya varias conexiones libres en el pool.
+    const inversiones = await query(
+      `SELECT id, gramos_oro, importe_eur, estado, abierta_en, cerrada_en
+       FROM inversiones WHERE cliente_id = $1 ORDER BY abierta_en DESC`,
+      [id]
+    );
+    const movimientos = await query(
+      `SELECT id, tipo, importe_eur, descripcion, inversion_id, creado_en
+       FROM movimientos WHERE cliente_id = $1 ORDER BY creado_en DESC, id DESC LIMIT 200`,
+      [id]
+    );
+
+    res.json({ ...rows[0], inversiones: inversiones.rows, movimientos: movimientos.rows });
   } catch (err) {
     next(err);
   }

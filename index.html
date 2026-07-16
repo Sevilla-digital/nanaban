@@ -5,33 +5,119 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gold Corp - Inversión en Oro</title>
     <style>
+        :root {
+            --primario: #ffd700;
+            --fondo: #1a1a1a;
+        }
+        * { box-sizing: border-box; }
         body {
             font-family: Arial, sans-serif;
             margin: 0;
-            padding: 20px;
-            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            padding: 0;
+            background: linear-gradient(135deg, var(--fondo) 0%, #2d2d2d 100%);
             color: #fff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
+        header.barra {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 24px;
+            gap: 16px;
+        }
+        .marca { display: flex; align-items: center; gap: 12px; }
+        .marca img { height: 40px; width: auto; }
+        .marca span { font-weight: bold; color: var(--primario); font-size: 1.2em; }
+        .btn {
+            display: inline-block;
+            background: var(--primario);
+            color: #1a1a1a;
+            padding: 12px 24px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: bold;
+            border: none;
+            cursor: pointer;
+            font-size: 1em;
+        }
+        .btn:hover { opacity: 0.9; }
+        main {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             text-align: center;
+            padding: 40px 20px;
         }
-        h1 {
-            color: #ffd700;
-            font-size: 3em;
+        .hero { max-width: 800px; }
+        h1 { color: var(--primario); font-size: 3em; margin: 0 0 16px; }
+        .eslogan { font-size: 1.4em; color: #ccc; margin: 0 0 24px; }
+        .texto-header { font-size: 1.1em; color: #aaa; line-height: 1.6; margin: 0 auto 32px; max-width: 640px; white-space: pre-line; }
+        footer {
+            padding: 24px;
+            text-align: center;
+            color: #888;
+            font-size: 0.9em;
+            border-top: 1px solid #333;
+            white-space: pre-line;
         }
-        p {
-            font-size: 1.2em;
-            color: #ccc;
+        @media (max-width: 600px) {
+            h1 { font-size: 2em; }
+            header.barra { flex-direction: column; }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>🏆 Gold Corp Financial</h1>
-        <p>Inversión en Oro - Segura y Rentable</p>
-        <p>Página en construcción...</p>
-    </div>
+    <header class="barra">
+        <div class="marca">
+            <img id="logo" alt="" hidden>
+            <span id="marca-nombre">Gold Corp Financial</span>
+        </div>
+        <a class="btn" href="cuenta.html">Acceder / Registrarse</a>
+    </header>
+
+    <main>
+        <div class="hero">
+            <h1 id="titulo">🏆 Gold Corp Financial</h1>
+            <p class="eslogan" id="eslogan">Inversión en Oro - Segura y Rentable</p>
+            <p class="texto-header" id="texto-header"></p>
+            <a class="btn" href="cuenta.html">Empieza ahora</a>
+        </div>
+    </main>
+
+    <footer id="footer"></footer>
+
+    <script type="module">
+        import { api } from './js/api.js';
+
+        // La pagina ya se ve con los valores por defecto de arriba. Si la API responde,
+        // los sustituimos por la configuracion que haya guardado el admin. Si la API
+        // esta dormida o falla, el visitante nunca ve una pagina rota.
+        try {
+            const c = await api('/api/sitio');
+            const root = document.documentElement.style;
+            if (c.color_primario) root.setProperty('--primario', c.color_primario);
+            if (c.color_fondo) root.setProperty('--fondo', c.color_fondo);
+
+            // textContent (no innerHTML): el contenido viene de la BD y no debe poder
+            // inyectar HTML en la pagina publica.
+            if (c.nombre_sitio) {
+                document.getElementById('marca-nombre').textContent = c.nombre_sitio;
+                document.getElementById('titulo').textContent = c.nombre_sitio;
+                document.title = c.nombre_sitio + ' - Inversión en Oro';
+            }
+            if (c.eslogan) document.getElementById('eslogan').textContent = c.eslogan;
+            document.getElementById('texto-header').textContent = c.texto_header || '';
+            document.getElementById('footer').textContent =
+                c.texto_footer || `© ${new Date().getFullYear()} ${c.nombre_sitio || 'Gold Corp'}`;
+
+            const logo = document.getElementById('logo');
+            if (c.logo_url) { logo.src = c.logo_url; logo.hidden = false; }
+        } catch {
+            document.getElementById('footer').textContent = `© ${new Date().getFullYear()} Gold Corp`;
+        }
+    </script>
 </body>
 </html>
