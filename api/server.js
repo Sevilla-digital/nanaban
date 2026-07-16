@@ -6,6 +6,7 @@ import { router as clientes } from './routes/clientes.js';
 import { router as sitio } from './routes/sitio.js';
 import { router as inversiones } from './routes/inversiones.js';
 import { router as pagos } from './routes/pagos.js';
+import { iniciarCron } from './cron.js';
 
 const app = express();
 
@@ -63,6 +64,9 @@ app.use((err, _req, res, _next) => {
 const puerto = process.env.PORT || 3000;
 const servidor = app.listen(puerto, () => {
   console.log(`API de Gold Corp escuchando en el puerto ${puerto}`);
+  
+  // Iniciar la tarea programada (cron)
+  iniciarCron();
 });
 
 // Render envia SIGTERM al desplegar: cerramos limpio para no cortar peticiones vivas.
