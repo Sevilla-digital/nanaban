@@ -10,7 +10,22 @@ export const router = Router();
 const MIN_RECARGA = 10;
 
 const CAMPOS_METODO = `id, tipo, etiqueta, titular, numero_cuenta, moneda, red,
-                       direccion, notas, activo, orden`;
+                       direccion, comision, notas, activo, orden`;
+
+// Comprobantes: tipos admitidos y tamaño maximo (5 MB ya decodificado).
+const MIMES_COMPROBANTE = new Set(['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'application/pdf']);
+const MAX_COMPROBANTE = 5 * 1024 * 1024;
+
+/** Extrae mime y bytes de un data URL "data:<mime>;base64,<datos>". */
+function parseDataUrl(s) {
+  const m = /^data:([\w/+.-]+);base64,([A-Za-z0-9+/=]+)$/.exec(String(s || ''));
+  if (!m) return null;
+  try {
+    return { mime: m[1].toLowerCase(), buffer: Buffer.from(m[2], 'base64') };
+  } catch {
+    return null;
+  }
+}
 
 // =================== Metodos de pago ===================
 
@@ -55,6 +70,8 @@ const cripto = z.object({
   etiqueta: z.string().trim().min(1).max(120), // p. ej. "USDT"
   red: z.string().trim().min(1).max(60), // p. ej. "TRC20"
   direccion: z.string().trim().min(6).max(200),
+  // Comision de red en dolares. El cliente la envia ademas del monto.
+  comision: z.string().regex(/^\d{1,6}(\.\d{1,2})?$/, 'Comision con formato "0.50"').optional().default('0.50'),
   notas: z.string().trim().max(500).optional().default(''),
   activo: z.boolean().optional().default(true),
   orden: z.number().int().min(0).max(9999).optional().default(0),
@@ -62,7 +79,7 @@ const cripto = z.object({
 
 const metodo = z.discriminatedUnion('tipo', [banco, cripto]);
 
-// Aplana el objeto validado a los 10 valores de la fila, con null en los campos
+// Aplana el objeto validado a los 11 valores de la fila, con null en los campos
 // que no aplican al tipo. Un unico sitio donde decidir eso.
 const valoresMetodo = (d) => [
   d.tipo,
@@ -72,6 +89,7 @@ const valoresMetodo = (d) => [
   d.tipo === 'banco' ? d.moneda : null,
   d.tipo === 'cripto' ? d.red : null,
   d.tipo === 'cripto' ? d.direccion : null,
+  d.tipo === 'cripto' ? d.comision : '0',
   d.notas,
   d.activo,
   d.orden,
@@ -85,8 +103,8 @@ router.post('/metodos', requiereAuth, requiereAdmin, async (req, res, next) => {
     }
     const { rows } = await query(
       `INSERT INTO metodos_pago
-         (tipo, etiqueta, titular, numero_cuenta, moneda, red, direccion, notas, activo, orden)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+         (tipo, etiqueta, titular, numero_cuenta, moneda, red, direccion, comision, notas, activo, orden)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
        RETURNING ${CAMPOS_METODO}`,
       valoresMetodo(datos.data)
     );
@@ -107,8 +125,8 @@ router.put('/metodos/:id', requiereAuth, requiereAdmin, async (req, res, next) =
     const { rows } = await query(
       `UPDATE metodos_pago SET
          tipo=$1, etiqueta=$2, titular=$3, numero_cuenta=$4, moneda=$5,
-         red=$6, direccion=$7, notas=$8, activo=$9, orden=$10, actualizado_en=now()
-       WHERE id=$11 RETURNING ${CAMPOS_METODO}`,
+         red=$6, direccion=$7, comision=$8, notas=$9, activo=$10, orden=$11, actualizado_en=now()
+       WHERE id=$12 RETURNING ${CAMPOS_METODO}`,
       [...valoresMetodo(datos.data), id]
     );
     if (rows.length === 0) return res.status(404).json({ error: 'Metodo no encontrado' });
@@ -145,6 +163,8 @@ const nuevaRecarga = z.object({
   metodoId: z.coerce.number().int().positive(),
   monto: z.string().regex(/^\d{1,15}(\.\d{1,2})?$/, 'Monto con formato "100.00"'),
   referencia: z.string().trim().max(200).optional().default(''),
+  // Data URL del comprobante. Obligatorio para banco, ignorado para cripto.
+  comprobante: z.string().max(8_000_000).optional(),
 });
 
 /** Cliente: registra una solicitud de recarga ("ya realice el pago"). */
@@ -167,16 +187,33 @@ router.post('/recargas', requiereAuth, limiteRecargas, async (req, res, next) =>
     );
     if (m.rows.length === 0) return res.status(400).json({ error: 'Método de pago no disponible' });
     const met = m.rows[0];
+
+    // Banco: exige comprobante de pago. Cripto: no (se verificara con la exchange).
+    let comprobante = null;
+    let comprobanteMime = null;
+    if (met.tipo === 'banco') {
+      const archivo = parseDataUrl(datos.data.comprobante);
+      if (!archivo) return res.status(400).json({ error: 'Sube tu comprobante de pago (imagen o PDF).' });
+      if (!MIMES_COMPROBANTE.has(archivo.mime)) {
+        return res.status(400).json({ error: 'Formato no admitido. Usa imagen (PNG/JPG/WEBP) o PDF.' });
+      }
+      if (archivo.buffer.length > MAX_COMPROBANTE) {
+        return res.status(400).json({ error: 'El comprobante supera los 5 MB.' });
+      }
+      comprobante = archivo.buffer;
+      comprobanteMime = archivo.mime;
+    }
+
     const desc =
       met.tipo === 'banco'
         ? `${met.etiqueta} · ${met.numero_cuenta} (${met.moneda})`
-        : `${met.etiqueta} · ${met.red} · ${met.direccion}`;
+        : `${met.etiqueta} · ${met.red} · ${met.direccion} · comisión $${met.comision}`;
 
     const { rows } = await query(
-      `INSERT INTO recargas (cliente_id, monto, metodo_id, metodo_desc, referencia)
-       VALUES ($1, $2::numeric, $3, $4, $5)
+      `INSERT INTO recargas (cliente_id, monto, metodo_id, metodo_desc, referencia, comprobante, comprobante_mime)
+       VALUES ($1, $2::numeric, $3, $4, $5, $6, $7)
        RETURNING id, monto, metodo_desc, estado, creada_en`,
-      [req.cliente.id, monto, metodoId, desc, referencia]
+      [req.cliente.id, monto, metodoId, desc, referencia, comprobante, comprobanteMime]
     );
     res.status(201).json(rows[0]);
   } catch (err) {
@@ -196,6 +233,7 @@ router.get('/recargas', requiereAuth, requiereAdmin, async (req, res, next) => {
     }
     const { rows } = await query(
       `SELECT r.id, r.monto, r.metodo_desc, r.referencia, r.estado, r.creada_en, r.atendida_en,
+              (r.comprobante IS NOT NULL) AS tiene_comprobante,
               c.id AS cliente_id, c.nombre, c.apellido, c.usuario
        FROM recargas r
        JOIN clientes c ON c.id = r.cliente_id
@@ -205,6 +243,26 @@ router.get('/recargas', requiereAuth, requiereAdmin, async (req, res, next) => {
       params
     );
     res.json({ recargas: rows });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/** Admin: descarga el comprobante de pago de una recarga (imagen o PDF). */
+router.get('/recargas/:id/comprobante', requiereAuth, requiereAdmin, async (req, res, next) => {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: 'Id invalido' });
+    const { rows } = await query(
+      'SELECT comprobante, comprobante_mime FROM recargas WHERE id = $1',
+      [id]
+    );
+    if (rows.length === 0 || !rows[0].comprobante) {
+      return res.status(404).json({ error: 'Esta recarga no tiene comprobante' });
+    }
+    res.setHeader('Content-Type', rows[0].comprobante_mime || 'application/octet-stream');
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.send(rows[0].comprobante);
   } catch (err) {
     next(err);
   }

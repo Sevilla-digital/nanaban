@@ -31,6 +31,10 @@ app.use(
   })
 );
 
+// El comprobante de recarga viaja como data URL dentro del JSON, asi que esa ruta
+// necesita un limite mayor. El primer parser que consume el body marca req._body,
+// y el global de 100kb lo salta. El resto de la API se queda en 100kb.
+app.use('/api/pagos/recargas', express.json({ limit: '7mb' }));
 app.use(express.json({ limit: '100kb' }));
 
 app.get('/health', async (_req, res) => {

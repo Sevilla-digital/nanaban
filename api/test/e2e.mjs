@@ -315,13 +315,14 @@ const rBanco = await post('/api/pagos/metodos', {
 const banco = await rBanco.json();
 check('admin crea metodo banco -> 201', rBanco.status === 201, String(rBanco.status));
 
-// admin crea una cripto
+// admin crea una cripto (sin comision explicita -> por defecto 0.50)
 const rCripto = await post('/api/pagos/metodos', {
   tipo: 'cripto', etiqueta: 'USDT', red: 'TRC20',
   direccion: 'TXYZ1234567890abcdefghij',
 }, tokenAdmin);
 const cripto = await rCripto.json();
 check('admin crea metodo cripto -> 201', rCripto.status === 201, String(rCripto.status));
+check('la cripto toma la comision por defecto 0.50', String(cripto.comision) === '0.50', String(cripto.comision));
 
 // banco sin numero de cuenta -> 400
 const rBancoMal = await post('/api/pagos/metodos', {
@@ -355,11 +356,36 @@ check('recarga por debajo de $10 -> 400', rMin.status === 400, String(rMin.statu
 const rContraInactivo = await post('/api/pagos/recargas', { metodoId: inactivo.id, monto: '50' }, tokenRita);
 check('recarga contra metodo inactivo -> 400', rContraInactivo.status === 400, String(rContraInactivo.status));
 
-// recarga valida -> 201
-const rRecarga = await post('/api/pagos/recargas', { metodoId: banco.id, monto: '50.00' }, tokenRita);
+// recarga cripto valida (no necesita comprobante) -> 201
+const rRecarga = await post('/api/pagos/recargas', { metodoId: cripto.id, monto: '50.00' }, tokenRita);
 const recarga = await rRecarga.json();
-check('recarga valida -> 201', rRecarga.status === 201, String(rRecarga.status));
-check('la recarga guarda la descripcion del metodo', /Lafise/.test(recarga.metodo_desc), recarga.metodo_desc);
+check('recarga cripto valida -> 201', rRecarga.status === 201, String(rRecarga.status));
+check('la descripcion cripto incluye la comision', /comisión \$0\.50/.test(recarga.metodo_desc), recarga.metodo_desc);
+
+// recarga bancaria SIN comprobante -> 400
+const rBancoSinComp = await post('/api/pagos/recargas', { metodoId: banco.id, monto: '30.00' }, tokenRita);
+check('recarga bancaria sin comprobante -> 400', rBancoSinComp.status === 400, String(rBancoSinComp.status));
+
+// recarga bancaria con comprobante (PNG 1x1) -> 201
+const PNG_1PX = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+const rBancoComp = await post('/api/pagos/recargas', { metodoId: banco.id, monto: '30.00', comprobante: PNG_1PX }, tokenRita);
+const recargaBanco = await rBancoComp.json();
+check('recarga bancaria con comprobante -> 201', rBancoComp.status === 201, String(rBancoComp.status));
+
+// comprobante con formato no admitido -> 400
+const rMimeMal = await post('/api/pagos/recargas', {
+  metodoId: banco.id, monto: '30.00', comprobante: 'data:text/plain;base64,aGVsbG8=',
+}, tokenRita);
+check('comprobante de formato no admitido -> 400', rMimeMal.status === 400, String(rMimeMal.status));
+
+// admin descarga el comprobante -> 200 image/png
+const rVerComp = await get(`/api/pagos/recargas/${recargaBanco.id}/comprobante`, tokenAdmin);
+check('admin ve el comprobante -> 200', rVerComp.status === 200, String(rVerComp.status));
+check('el comprobante llega como PNG', (rVerComp.headers.get('content-type') || '').includes('image/png'), rVerComp.headers.get('content-type'));
+
+// una recarga cripto no tiene comprobante -> 404
+const rSinComp = await get(`/api/pagos/recargas/${recarga.id}/comprobante`, tokenAdmin);
+check('recarga cripto sin comprobante -> 404', rSinComp.status === 404, String(rSinComp.status));
 
 // admin ve la recarga pendiente
 const rPend = await get('/api/pagos/recargas?estado=pendiente', tokenAdmin);

@@ -1031,6 +1031,12 @@
 
             <div id="modal-datos"></div>
 
+            <div id="modal-comprobante" class="oculto" style="margin-top:16px">
+                <label for="comprobante-file">Comprobante de pago (imagen o PDF)</label>
+                <input id="comprobante-file" type="file" accept="image/png,image/jpeg,image/webp,application/pdf">
+                <div class="muted" style="margin-top:6px">Obligatorio para transferencias bancarias. Máximo 5 MB.</div>
+            </div>
+
             <p class="aviso">Realiza el pago exacto por el monto indicado dentro del tiempo. Cuando lo
                hayas hecho, pulsa el botón para registrar tu recarga; el equipo la confirmará al
                verificar los fondos.</p>
@@ -1137,6 +1143,8 @@
                             <input name="red" placeholder="p. ej. TRC20">
                             <label>Dirección de la billetera</label>
                             <input name="direccion" placeholder="Dirección donde recibes el pago">
+                            <label>Comisión de red en USD (el cliente la envía de más)</label>
+                            <input name="comision" inputmode="decimal" placeholder="0.50" value="0.50">
                         </div>
 
                         <label>Notas para el cliente (opcional)</label>
@@ -1144,6 +1152,7 @@
                         <div class="error" id="error-metodo"></div>
                         <div class="ok" id="ok-metodo"></div>
                         <button class="btn" type="submit">Añadir método</button>
+                        <button class="btn sec oculto" type="button" id="cancelar-edicion" style="margin-left:8px">Cancelar</button>
                     </form>
                 </div>
                 <div class="tarjeta">
@@ -1185,7 +1194,7 @@
         // La ?v= debe subir cada vez que cambie js/api.js: fuerza al navegador a
         // pedir el modulo nuevo en vez de servir uno viejo de la cache. Sin esto,
         // un HTML nuevo con un js/api.js cacheado viejo rompe todos los botones.
-        import { api, sesion, dinero, fecha } from './js/api.js?v=2';
+        import { api, apiBlob, sesion, dinero, fecha } from './js/api.js?v=3';
 
         const $ = (id) => document.getElementById(id);
         const mostrar = (id, si) => $(id).classList.toggle('oculto', !si);
@@ -1477,6 +1486,11 @@
         const DURACION_RECARGA = 5 * 60; // segundos que da el temporizador para pagar
         let cronoInterval = null;
         let recargaEnCurso = null; // { metodo, monto }
+        let comprobanteDataUrl = null; // data URL del comprobante (solo banco)
+
+        // Suma dos importes en dolares sin errores de coma flotante (trabaja en centavos).
+        const sumarDolares = (a, b) =>
+            ((Math.round(Number(a) * 100) + Math.round(Number(b) * 100)) / 100).toFixed(2);
 
         $('abrir-recarga').onclick = () => {
             mostrar('vista-cliente', false);
@@ -1554,19 +1568,27 @@
             $('error-recarga').textContent = '';
             recargaEnCurso = { metodo, monto };
 
-            $('modal-titulo').textContent =
-                metodo.tipo === 'banco' ? 'Transferencia bancaria' : 'Depósito en cripto';
-            $('modal-sub').textContent = `Envía exactamente ${dinero(monto)} a estos datos:`;
+            const esBanco = metodo.tipo === 'banco';
+            $('modal-titulo').textContent = esBanco ? 'Transferencia bancaria' : 'Depósito en cripto';
+
+            // En cripto el cliente envía monto + comisión de red; se le acredita el monto.
+            const comision = esBanco ? '0' : (metodo.comision ?? '0');
+            const total = sumarDolares(monto, comision);
+            $('modal-sub').textContent = `Envía exactamente ${dinero(esBanco ? monto : total)} a estos datos:`;
 
             const datos = $('modal-datos');
             datos.innerHTML = '';
-            const filas = metodo.tipo === 'banco'
+            const filas = esBanco
                 ? [['Banco', metodo.etiqueta, false], ['Titular', metodo.titular, false],
-                   ['Cuenta', metodo.numero_cuenta, true], ['Moneda', metodo.moneda, false]]
+                   ['Cuenta', metodo.numero_cuenta, true], ['Moneda', metodo.moneda, false],
+                   ...(metodo.notas ? [['Nota', metodo.notas, false]] : []),
+                   ['Monto', dinero(monto), true]]
                 : [['Moneda', metodo.etiqueta, false], ['Red', metodo.red, false],
-                   ['Dirección', metodo.direccion, true]];
-            if (metodo.notas) filas.push(['Nota', metodo.notas, false]);
-            filas.push(['Monto', dinero(monto), true]);
+                   ['Dirección', metodo.direccion, true],
+                   ...(metodo.notas ? [['Nota', metodo.notas, false]] : []),
+                   ['Monto a acreditar', dinero(monto), false],
+                   ['Comisión de red', dinero(comision), false],
+                   ['Total a enviar', dinero(total), true]];
 
             for (const [k, v, copiable] of filas) {
                 const fila = el('div', 'dato-pago');
@@ -1588,13 +1610,37 @@
                 datos.appendChild(fila);
             }
 
+            // Comprobante: obligatorio en banco, oculto en cripto. Se resetea en cada apertura.
+            comprobanteDataUrl = null;
+            $('comprobante-file').value = '';
+            mostrar('modal-comprobante', esBanco);
+
             $('error-modal').textContent = ''; $('ok-modal').textContent = '';
             const yaPague = $('ya-pague');
-            yaPague.disabled = false; yaPague.textContent = 'Ya realicé el pago';
+            // En banco el botón se habilita cuando el cliente sube el comprobante.
+            yaPague.disabled = esBanco; yaPague.textContent = 'Ya realicé el pago';
             $('cronometro').classList.remove('agotado');
             mostrar('modal-pago', true);
             iniciarCrono();
         }
+
+        // Lee el comprobante elegido, valida tamaño y lo guarda como data URL.
+        $('comprobante-file').onchange = () => {
+            const archivo = $('comprobante-file').files[0];
+            comprobanteDataUrl = null;
+            $('ya-pague').disabled = true;
+            $('error-modal').textContent = '';
+            if (!archivo) return;
+            if (archivo.size > 5 * 1024 * 1024) {
+                $('error-modal').textContent = 'El comprobante supera los 5 MB.';
+                $('comprobante-file').value = '';
+                return;
+            }
+            const lector = new FileReader();
+            lector.onload = () => { comprobanteDataUrl = lector.result; $('ya-pague').disabled = false; };
+            lector.onerror = () => { $('error-modal').textContent = 'No se pudo leer el archivo.'; };
+            lector.readAsDataURL(archivo);
+        };
 
         function iniciarCrono() {
             clearInterval(cronoInterval);
@@ -1637,13 +1683,18 @@
         $('ya-pague').onclick = async () => {
             if (!recargaEnCurso) return;
             $('error-modal').textContent = ''; $('ok-modal').textContent = '';
+            const cuerpo = { metodoId: recargaEnCurso.metodo.id, monto: recargaEnCurso.monto };
+            if (recargaEnCurso.metodo.tipo === 'banco') {
+                if (!comprobanteDataUrl) {
+                    $('error-modal').textContent = 'Sube tu comprobante de pago antes de continuar.';
+                    return;
+                }
+                cuerpo.comprobante = comprobanteDataUrl;
+            }
             const btn = $('ya-pague');
             btn.disabled = true; btn.textContent = 'Registrando…';
             try {
-                await api('/api/pagos/recargas', {
-                    metodo: 'POST', auth: true,
-                    cuerpo: { metodoId: recargaEnCurso.metodo.id, monto: recargaEnCurso.monto },
-                });
+                await api('/api/pagos/recargas', { metodo: 'POST', auth: true, cuerpo });
                 clearInterval(cronoInterval);
                 $('ok-modal').textContent = 'Recarga registrada. Se abonará en cuanto verifiquemos el pago.';
                 btn.textContent = 'Registrado ✓';
@@ -1666,7 +1717,7 @@
         const TABS_ADMIN = [
             { tab: 'tab-clientes', panel: 'panel-clientes' },
             { tab: 'tab-recargas', panel: 'panel-recargas', cargar: () => listarRecargas() },
-            { tab: 'tab-metodos', panel: 'panel-metodos', cargar: () => listarMetodos() },
+            { tab: 'tab-metodos', panel: 'panel-metodos', cargar: () => { salirEdicion(); listarMetodos(); } },
             { tab: 'tab-config', panel: 'panel-config', cargar: () => cargarConfig() },
         ];
         for (const t of TABS_ADMIN) {
@@ -1833,6 +1884,9 @@
                     tr.appendChild(el('td', '', ESTADO_RECARGA[r.estado] ?? r.estado));
                     const acc = document.createElement('td');
                     acc.style.whiteSpace = 'nowrap';
+                    if (r.tiene_comprobante) {
+                        acc.appendChild(botonAccion('Comprobante', 'sec', (e) => verComprobante(r.id, e.target)));
+                    }
                     if (r.estado === 'pendiente') {
                         acc.appendChild(botonAccion('Confirmar', '', (e) => accionRecarga(r.id, 'confirmar', e.target)));
                         acc.appendChild(botonAccion('Rechazar', 'sec', (e) => accionRecarga(r.id, 'rechazar', e.target)));
@@ -1861,12 +1915,65 @@
             }
         }
 
+        // Abre el comprobante en una pestaña nueva. Va con token, asi que se descarga
+        // como blob y se crea una URL temporal (una <img src> no puede autenticar).
+        async function verComprobante(id, btn) {
+            btn.disabled = true;
+            try {
+                const blob = await apiBlob(`/api/pagos/recargas/${id}/comprobante`);
+                const url = URL.createObjectURL(blob);
+                window.open(url, '_blank', 'noopener');
+                setTimeout(() => URL.revokeObjectURL(url), 60000);
+            } catch (err) {
+                alert('No se pudo abrir el comprobante: ' + err.message);
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
         // ---------- Admin: métodos de pago ----------
+        let editandoMetodo = null; // método en edición, o null si se está creando uno nuevo
+
         $('metodo-tipo').onchange = () => {
             const esBanco = $('metodo-tipo').value === 'banco';
             mostrar('campos-banco', esBanco);
             mostrar('campos-cripto', !esBanco);
         };
+
+        function editarMetodo(m) {
+            editandoMetodo = m;
+            const f = $('form-metodo');
+            $('metodo-tipo').value = m.tipo;
+            $('metodo-tipo').dispatchEvent(new Event('change'));
+            $('metodo-tipo').disabled = true; // el tipo no se cambia al editar
+            if (m.tipo === 'banco') {
+                f.etiqueta_banco.value = m.etiqueta || '';
+                f.titular.value = m.titular || '';
+                f.numero_cuenta.value = m.numero_cuenta || '';
+                f.moneda.value = m.moneda || '';
+            } else {
+                f.etiqueta_cripto.value = m.etiqueta || '';
+                f.red.value = m.red || '';
+                f.direccion.value = m.direccion || '';
+                f.comision.value = m.comision ?? '0.50';
+            }
+            f.notas.value = m.notas || '';
+            f.querySelector('button[type=submit]').textContent = 'Guardar cambios';
+            mostrar('cancelar-edicion', true);
+            $('ok-metodo').textContent = ''; $('error-metodo').textContent = '';
+            f.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function salirEdicion() {
+            editandoMetodo = null;
+            const f = $('form-metodo');
+            f.reset();
+            $('metodo-tipo').disabled = false;
+            $('metodo-tipo').dispatchEvent(new Event('change'));
+            f.querySelector('button[type=submit]').textContent = 'Añadir método';
+            mostrar('cancelar-edicion', false);
+        }
+        $('cancelar-edicion').onclick = salirEdicion;
 
         $('form-metodo').onsubmit = async (e) => {
             e.preventDefault();
@@ -1892,17 +1999,24 @@
                 }
                 cuerpo = {
                     tipo, etiqueta: f.etiqueta_cripto.value, red: f.red.value,
-                    direccion: f.direccion.value, notas: f.notas.value,
+                    direccion: f.direccion.value, comision: (f.comision.value.trim() || '0.50'),
+                    notas: f.notas.value,
                 };
             }
 
             const btn = f.querySelector('button[type=submit]');
             btn.disabled = true;
             try {
-                await api('/api/pagos/metodos', { metodo: 'POST', auth: true, cuerpo });
-                $('ok-metodo').textContent = 'Método añadido.';
-                f.reset();
-                $('metodo-tipo').dispatchEvent(new Event('change'));
+                if (editandoMetodo) {
+                    await api(`/api/pagos/metodos/${editandoMetodo.id}`, { metodo: 'PUT', auth: true, cuerpo });
+                    $('ok-metodo').textContent = 'Método actualizado.';
+                    salirEdicion();
+                } else {
+                    await api('/api/pagos/metodos', { metodo: 'POST', auth: true, cuerpo });
+                    $('ok-metodo').textContent = 'Método añadido.';
+                    f.reset();
+                    $('metodo-tipo').dispatchEvent(new Event('change'));
+                }
                 listarMetodos();
             } catch (err) {
                 $('error-metodo').textContent = err.message;
@@ -1912,11 +2026,13 @@
         };
 
         // Reconstruye el cuerpo completo (que exige el PUT) a partir de una fila existente.
+        // Incluye comision en cripto para no perderla al activar/desactivar.
         function cuerpoMetodo(m, cambios = {}) {
             const base = m.tipo === 'banco'
                 ? { tipo: 'banco', etiqueta: m.etiqueta, titular: m.titular,
                     numero_cuenta: m.numero_cuenta, moneda: m.moneda }
-                : { tipo: 'cripto', etiqueta: m.etiqueta, red: m.red, direccion: m.direccion };
+                : { tipo: 'cripto', etiqueta: m.etiqueta, red: m.red, direccion: m.direccion,
+                    comision: String(m.comision ?? '0.50') };
             return { ...base, notas: m.notas || '', activo: m.activo, orden: m.orden || 0, ...cambios };
         }
 
@@ -1936,11 +2052,12 @@
                     tr.appendChild(el('td', '', m.tipo === 'banco' ? 'Banco' : 'Cripto'));
                     const detalle = m.tipo === 'banco'
                         ? `${m.etiqueta} · ${m.numero_cuenta} (${m.moneda})`
-                        : `${m.etiqueta} · ${m.red} · ${m.direccion}`;
+                        : `${m.etiqueta} · ${m.red} · ${m.direccion} · comisión ${dinero(m.comision)}`;
                     tr.appendChild(el('td', '', detalle));
                     tr.appendChild(el('td', m.activo ? 'pos' : 'muted', m.activo ? 'Activo' : 'Inactivo'));
                     const acc = document.createElement('td');
                     acc.style.whiteSpace = 'nowrap';
+                    acc.appendChild(botonAccion('Editar', 'sec', () => editarMetodo(m)));
                     acc.appendChild(botonAccion(m.activo ? 'Desactivar' : 'Activar', 'sec',
                         (e) => cambiarActivo(m, e.target)));
                     acc.appendChild(botonAccion('Borrar', 'sec', (e) => borrarMetodo(m.id, e.target)));

@@ -68,6 +68,21 @@ export async function api(ruta, { metodo = 'GET', cuerpo, auth = false } = {}) {
 }
 
 /**
+ * Descarga binaria autenticada (p. ej. el comprobante de una recarga). Devuelve un
+ * Blob; el llamante crea la object URL. Necesario porque una <img src> normal no
+ * puede mandar la cabecera Authorization.
+ */
+export async function apiBlob(ruta) {
+  const t = sesion.token;
+  const resp = await fetch(API + ruta, {
+    headers: t ? { authorization: `Bearer ${t}` } : {},
+  });
+  if (resp.status === 401) sesion.cerrar();
+  if (!resp.ok) throw new Error(`Error ${resp.status}`);
+  return resp.blob();
+}
+
+/**
  * Formatea un importe (que viaja como string "1500.50") a "$1,500.50".
  * La moneda de la plataforma es el dolar estadounidense (USD).
  */

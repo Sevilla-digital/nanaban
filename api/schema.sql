@@ -121,6 +121,9 @@ CREATE TABLE IF NOT EXISTS metodos_pago (
   -- Campos de cripto.
   red            TEXT,
   direccion      TEXT,
+  -- Comision de red que paga el cliente ADEMAS del monto (solo cripto). El cliente
+  -- envia monto + comision; se le acredita el monto. En banco es 0.
+  comision       NUMERIC(18,2) NOT NULL DEFAULT 0,
   -- Comunes.
   notas          TEXT        NOT NULL DEFAULT '',
   activo         BOOLEAN     NOT NULL DEFAULT TRUE,
@@ -130,6 +133,10 @@ CREATE TABLE IF NOT EXISTS metodos_pago (
 );
 
 CREATE INDEX IF NOT EXISTS idx_metodos_pago ON metodos_pago (tipo, activo, orden, id);
+
+-- Migracion: la comision se añadio despues. En las filas que ya existian (p. ej. la
+-- cripto creada antes) se rellena con 0.50 por defecto, que es lo pactado.
+ALTER TABLE metodos_pago ADD COLUMN IF NOT EXISTS comision NUMERIC(18,2) NOT NULL DEFAULT 0.50;
 
 -- Solicitudes de recarga: cuando el cliente pulsa "ya realice el pago", queda una
 -- fila pendiente que el admin ve y confirma. Al confirmar se crea el deposito.
@@ -144,6 +151,10 @@ CREATE TABLE IF NOT EXISTS recargas (
   referencia     TEXT          NOT NULL DEFAULT '',
   estado         TEXT          NOT NULL DEFAULT 'pendiente'
                                CHECK (estado IN ('pendiente', 'confirmada', 'rechazada')),
+  -- Comprobante de pago (obligatorio en banco, no en cripto). Se guarda el binario
+  -- y su tipo MIME. Cripto se verificara mas adelante contra la API de la exchange.
+  comprobante      BYTEA,
+  comprobante_mime TEXT,
   -- Deposito creado al confirmar. Enlaza la recarga con el movimiento del libro.
   movimiento_id  BIGINT        REFERENCES movimientos(id) ON DELETE RESTRICT,
   atendida_por   BIGINT        REFERENCES clientes(id) ON DELETE RESTRICT,
@@ -153,3 +164,7 @@ CREATE TABLE IF NOT EXISTS recargas (
 
 CREATE INDEX IF NOT EXISTS idx_recargas_estado ON recargas (estado, creada_en DESC);
 CREATE INDEX IF NOT EXISTS idx_recargas_cliente ON recargas (cliente_id, creada_en DESC);
+
+-- Migraciones de las columnas de comprobante (se añadieron despues).
+ALTER TABLE recargas ADD COLUMN IF NOT EXISTS comprobante BYTEA;
+ALTER TABLE recargas ADD COLUMN IF NOT EXISTS comprobante_mime TEXT;
