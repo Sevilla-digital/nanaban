@@ -14,6 +14,14 @@ const nuevaInversionSchema = z.object({
   importe: z.string().regex(/^\d{1,15}(\.\d{1,2})?$/, 'Importe con formato "100.00"'),
 });
 
+const REQUISITOS_MINIMOS = {
+  '10 Kilates': 10,
+  '14 Kilates': 300,
+  '18 Kilates': 1000,
+  '22 Kilates': 1600,
+  '24 Kilates': 3000
+};
+
 /**
  * Cliente: Crea una nueva inversión.
  * 1. Valida que el cliente tenga saldo suficiente.
@@ -36,10 +44,19 @@ router.post('/', requiereAuth, async (req, res, next) => {
       return res.status(400).json({ error: 'El importe debe ser mayor a cero.' });
     }
 
+    const minimo = REQUISITOS_MINIMOS[plan] || 10;
+    if (importeNum < minimo) {
+      return res.status(400).json({ error: `El importe mínimo para el plan ${plan} es de $${minimo}.` });
+    }
+
     const resultado = await withTransaction(async (client) => {
       // 1. Comprobar saldo del cliente
       const { rows: saldos } = await client.query('SELECT saldo FROM saldos WHERE cliente_id = $1', [clienteId]);
       const saldoActual = Number(saldos[0]?.saldo ?? 0);
+
+      if (saldoActual < minimo) {
+        return { error: 400, mensaje: `Para desbloquear este producto necesitas tener en fondo al menos $${minimo}.` };
+      }
 
       if (saldoActual < importeNum) {
         return { error: 400, mensaje: 'Fondos insuficientes para realizar esta inversión.' };

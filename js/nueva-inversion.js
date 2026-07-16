@@ -34,6 +34,14 @@ document.addEventListener('DOMContentLoaded', () => {
     let saldoCliente = 0;
     let planSeleccionado = '';
 
+    const REQUISITOS_MINIMOS = {
+        '10 Kilates': 10,
+        '14 Kilates': 300,
+        '18 Kilates': 1000,
+        '22 Kilates': 1600,
+        '24 Kilates': 3000
+    };
+
     // Cargar datos del cliente
     api('/api/clientes/me', { auth: true })
         .then((cliente) => {
@@ -56,8 +64,21 @@ document.addEventListener('DOMContentLoaded', () => {
         btn.addEventListener('click', (e) => {
             e.preventDefault();
             planSeleccionado = btn.dataset.plan;
+            const minimo = REQUISITOS_MINIMOS[planSeleccionado] || 10;
+            
             modalPlanNombre.textContent = planSeleccionado;
             mostrar('modal-inversion', true);
+            
+            if (saldoCliente < minimo) {
+                mostrarError(`Requisito mínimo: Necesitas un saldo de al menos $${minimo.toLocaleString()} para desbloquear este producto.`);
+                btnConfirmar.disabled = true;
+                inputImporte.disabled = true;
+            } else {
+                mostrarError(null);
+                btnConfirmar.disabled = false;
+                inputImporte.disabled = false;
+                inputImporte.placeholder = `Mínimo $${minimo.toLocaleString()}`;
+            }
         });
     });
 
@@ -77,6 +98,13 @@ document.addEventListener('DOMContentLoaded', () => {
             mostrarError('El importe debe ser un número mayor a cero.');
             return;
         }
+
+        const minimo = REQUISITOS_MINIMOS[planSeleccionado] || 10;
+        if (importe < minimo) {
+            mostrarError(`El importe mínimo para este plan es de $${minimo.toLocaleString()}.`);
+            return;
+        }
+
         if (importe > saldoCliente) {
             mostrarError('No tienes saldo suficiente para realizar esta inversión.');
             return;
