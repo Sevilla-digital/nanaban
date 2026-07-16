@@ -96,6 +96,11 @@
             margin-top: 20px;
             box-shadow: 0 0 15px rgba(212, 175, 55, 0.15);
             transition: filter 0.2s, box-shadow 0.2s, transform 0.1s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            text-decoration: none;
         }
         .btn:hover { filter: brightness(1.08); box-shadow: 0 0 25px rgba(212, 175, 55, 0.3); }
         .btn:active { transform: scale(0.98); }
@@ -311,12 +316,298 @@
         .muted { color: #99907c; font-size: 0.9em; }
         .clic { cursor: pointer; }
         .clic:hover td { background: rgba(212, 175, 55, 0.06); }
+
+        /* ---- Dashboard del cliente ---- */
+        html { scroll-behavior: smooth; }
+        .panel-cliente { display: flex; min-height: 100vh; }
+        .lateral { display: none; }
+        @media (min-width: 768px) {
+            .lateral {
+                display: flex;
+                flex-direction: column;
+                width: 256px;
+                flex-shrink: 0;
+                position: sticky;
+                top: 0;
+                height: 100vh;
+                background: #1e2020;
+                border-right: 1px solid rgba(77, 70, 53, 0.3);
+                padding: 32px 16px;
+            }
+        }
+        .lateral-marca { padding: 0 8px; }
+        .lateral-marca h1 { font-size: 24px; color: var(--primario); letter-spacing: -0.02em; }
+        .lateral-marca p {
+            font-family: Inter, sans-serif;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            color: var(--texto-suave);
+            margin-top: 4px;
+        }
+        .lateral nav { flex: 1; display: flex; flex-direction: column; gap: 8px; margin-top: 56px; }
+        .lateral-enlace {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            color: var(--texto-suave);
+            text-decoration: none;
+            font-family: Inter, sans-serif;
+            font-size: 14px;
+            font-weight: 500;
+            letter-spacing: 0.05em;
+            transition: color 0.2s, background 0.2s;
+        }
+        .lateral-enlace:hover { color: var(--primario); background: #282a2b; }
+        .lateral-enlace.activo {
+            color: var(--primario);
+            background: rgba(212, 175, 55, 0.08);
+            border-right: 2px solid var(--primario);
+        }
+        .lateral-pie { margin-top: auto; padding-top: 32px; display: flex; flex-direction: column; gap: 8px; }
+        .lateral-pie .btn { margin-top: 0; }
+        .salir-lateral {
+            background: none;
+            border: none;
+            color: var(--texto-suave);
+            font-family: Inter, sans-serif;
+            font-size: 14px;
+            font-weight: 500;
+            letter-spacing: 0.05em;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px;
+            transition: color 0.2s;
+        }
+        .salir-lateral:hover { color: var(--error); }
+
+        .cliente-movil {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px;
+            background: var(--fondo);
+            border-bottom: 1px solid rgba(77, 70, 53, 0.3);
+            position: sticky;
+            top: 0;
+            z-index: 40;
+        }
+        @media (min-width: 768px) { .cliente-movil { display: none; } }
+        .cliente-movil h1 { font-size: 20px; color: var(--primario); }
+        .cliente-movil button { background: none; border: none; color: var(--primario); cursor: pointer; padding: 4px; }
+
+        .cliente-main { flex: 1; min-width: 0; }
+        .cliente-main-int {
+            max-width: 1440px;
+            margin: 0 auto;
+            padding: 24px 16px 64px;
+            display: flex;
+            flex-direction: column;
+            gap: 56px;
+        }
+        @media (min-width: 768px) { .cliente-main-int { padding: 64px; gap: 72px; } }
+
+        .rejilla-resumen { display: grid; grid-template-columns: 1fr; gap: 24px; }
+        @media (min-width: 1024px) { .rejilla-resumen { grid-template-columns: 1fr 2fr; } }
+        .tarjeta-perfil {
+            background: var(--tarjeta);
+            border: 1px solid var(--borde);
+            border-radius: 12px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            position: relative;
+            overflow: hidden;
+            transition: box-shadow 0.5s;
+        }
+        .tarjeta-perfil:hover { box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5); }
+        .tarjeta-perfil::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            opacity: 0.05;
+            background: linear-gradient(to bottom right, var(--primario), transparent);
+            pointer-events: none;
+        }
+        .avatar {
+            width: 96px;
+            height: 96px;
+            border-radius: 9999px;
+            background: rgba(212, 175, 55, 0.12);
+            border: 2px solid rgba(212, 175, 55, 0.3);
+            color: var(--primario);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: Montserrat, sans-serif;
+            font-weight: 700;
+            font-size: 32px;
+            z-index: 1;
+        }
+        .tarjeta-perfil h2 { font-size: 24px; margin: 0 0 8px; }
+        .insignia {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-family: Inter, sans-serif;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--primario);
+            padding: 4px 12px;
+            background: rgba(212, 175, 55, 0.1);
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            border-radius: 9999px;
+        }
+        .insignia .punto { width: 6px; height: 6px; border-radius: 9999px; background: var(--primario); }
+
+        .tarjeta-saldo {
+            background: var(--tarjeta);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            border-radius: 12px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 24px;
+            position: relative;
+            overflow: hidden;
+            transition: box-shadow 0.5s;
+        }
+        .tarjeta-saldo:hover { box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5); }
+        .tarjeta-saldo::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 128px;
+            height: 128px;
+            background: rgba(212, 175, 55, 0.05);
+            border-bottom-left-radius: 9999px;
+            pointer-events: none;
+        }
+        .tarjeta-saldo .etiqueta {
+            font-family: Inter, sans-serif;
+            font-size: 14px;
+            font-weight: 500;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--texto-suave);
+            margin-bottom: 8px;
+        }
+        .saldo-grande {
+            font-family: Montserrat, sans-serif;
+            font-weight: 700;
+            font-size: 40px;
+            letter-spacing: -0.02em;
+            color: var(--primario);
+            line-height: 1.1;
+        }
+        @media (min-width: 768px) { .saldo-grande { font-size: 48px; } }
+        .saldo-grande .decimales { font-size: 0.55em; color: var(--texto-suave); }
+        .acciones-saldo { display: flex; flex-wrap: wrap; gap: 16px; z-index: 1; }
+        .acciones-saldo .btn { margin-top: 0; }
+
+        .seccion-cliente .linea {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            border-bottom: 1px solid var(--borde);
+            padding-bottom: 16px;
+            margin-bottom: 24px;
+        }
+        .seccion-cliente .linea h2 { margin: 0; }
+
+        .rejilla-inversiones { display: grid; grid-template-columns: 1fr; gap: 24px; }
+        @media (min-width: 768px) { .rejilla-inversiones { grid-template-columns: repeat(2, 1fr); } }
+        @media (min-width: 1280px) { .rejilla-inversiones { grid-template-columns: repeat(3, 1fr); } }
+        .tarjeta-inversion {
+            background: var(--tarjeta);
+            border: 1px solid var(--borde);
+            border-radius: 12px;
+            padding: 24px;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+        .tarjeta-inversion:hover {
+            border-color: rgba(212, 175, 55, 0.5);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+        }
+        .tarjeta-inversion .cima {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 24px;
+        }
+        .tarjeta-inversion h4 { font-family: Montserrat, sans-serif; font-size: 20px; font-weight: 600; margin: 0; }
+        .tarjeta-inversion .sub {
+            font-family: Inter, sans-serif;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--texto-suave);
+            margin-top: 4px;
+        }
+        .icono-inversion {
+            color: var(--primario);
+            background: rgba(212, 175, 55, 0.1);
+            padding: 8px;
+            border-radius: 9999px;
+        }
+        .tarjeta-inversion .dato {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--borde);
+        }
+        .tarjeta-inversion .dato:last-child { border-bottom: none; }
+        .tarjeta-inversion .dato .etiqueta {
+            font-family: Inter, sans-serif;
+            font-size: 14px;
+            font-weight: 500;
+            letter-spacing: 0.05em;
+            color: var(--texto-suave);
+        }
+
+        .tabla-panel {
+            background: var(--tarjeta);
+            border: 1px solid var(--borde);
+            border-radius: 12px;
+            overflow-x: auto;
+        }
+        .tabla-panel table { min-width: 600px; margin-top: 0; }
+        .tabla-panel th, .tabla-panel td { padding: 16px 24px; }
+        .tabla-panel tr:last-child td { border-bottom: none; }
+        .tabla-panel .der { text-align: right; }
+        .concepto { display: flex; align-items: center; gap: 12px; }
+        .icono-mov {
+            width: 32px;
+            height: 32px;
+            border-radius: 9999px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(212, 175, 55, 0.1);
+            color: var(--primario);
+            flex-shrink: 0;
+        }
+        .icono-mov.neutro { background: #333535; color: var(--texto-suave); }
+        .icono-mov .material-symbols-outlined { font-size: 16px; }
+        .estado-mov { display: flex; align-items: center; gap: 8px; color: var(--texto-suave); }
+        .punto-ok { width: 8px; height: 8px; border-radius: 9999px; background: #4ade80; flex-shrink: 0; }
+        .monto-pos { color: var(--primario); font-weight: 600; }
     </style>
 </head>
 <body>
     <header class="barra oculto" id="barra-top">
         <a class="marca" href="index.html" id="marca">Gold Corp</a>
-        <button class="btn sec" id="btn-salir">Cerrar sesión</button>
+        <button class="btn sec cerrar-sesion" type="button">Cerrar sesión</button>
     </header>
 
     <!-- ================= NO AUTENTICADO ================= -->
@@ -432,24 +723,92 @@
         </div>
     </div>
 
-    <div class="contenedor">
-        <!-- ================= CLIENTE ================= -->
-        <div id="vista-cliente" class="oculto">
-            <div class="tarjeta">
-                <div class="muted" id="cliente-saludo"></div>
-                <div class="muted">Saldo disponible</div>
-                <div class="saldo" id="cliente-saldo">—</div>
-            </div>
-            <div class="tarjeta">
-                <h2 style="margin-top:0">Mis inversiones</h2>
-                <div id="cliente-inversiones"><p class="muted">No tienes inversiones todavía.</p></div>
-            </div>
-            <div class="tarjeta">
-                <h2 style="margin-top:0">Movimientos</h2>
-                <div id="cliente-movimientos"><p class="muted">Sin movimientos.</p></div>
+    <!-- ================= CLIENTE (dashboard) ================= -->
+    <div id="vista-cliente" class="oculto">
+        <div class="panel-cliente">
+            <!-- Barra lateral (solo escritorio) -->
+            <aside class="lateral">
+                <div class="lateral-marca">
+                    <h1 id="marca-lateral">Gold Corp</h1>
+                    <p>Portal de clientes</p>
+                </div>
+                <nav>
+                    <a class="lateral-enlace activo" href="#resumen">
+                        <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1">dashboard</span>
+                        <span>Resumen</span>
+                    </a>
+                    <a class="lateral-enlace" href="#sec-inversiones">
+                        <span class="material-symbols-outlined">account_balance_wallet</span>
+                        <span>Inversiones</span>
+                    </a>
+                    <a class="lateral-enlace" href="#sec-movimientos">
+                        <span class="material-symbols-outlined">receipt_long</span>
+                        <span>Movimientos</span>
+                    </a>
+                </nav>
+                <div class="lateral-pie">
+                    <a class="btn ancho" href="mailto:support@sevilladigitall.com?subject=Nueva inversión">Nueva inversión</a>
+                    <button class="salir-lateral cerrar-sesion" type="button">
+                        <span class="material-symbols-outlined" style="font-size:18px">logout</span>
+                        Cerrar sesión
+                    </button>
+                </div>
+            </aside>
+
+            <div class="cliente-main">
+                <!-- Cabecera (solo móvil) -->
+                <header class="cliente-movil">
+                    <h1 id="marca-movil-cliente">Gold Corp</h1>
+                    <button class="cerrar-sesion" type="button" aria-label="Cerrar sesión">
+                        <span class="material-symbols-outlined">logout</span>
+                    </button>
+                </header>
+
+                <main class="cliente-main-int">
+                    <!-- Perfil y saldo -->
+                    <section class="rejilla-resumen" id="resumen">
+                        <div class="tarjeta-perfil">
+                            <div class="avatar" id="cliente-avatar"></div>
+                            <div style="text-align:center;z-index:1">
+                                <h2 id="cliente-nombre">—</h2>
+                                <span class="insignia"><span class="punto"></span><span id="cliente-usuario"></span></span>
+                            </div>
+                        </div>
+                        <div class="tarjeta-saldo">
+                            <div>
+                                <p class="etiqueta">Saldo disponible</p>
+                                <div class="saldo-grande" id="cliente-saldo">—</div>
+                            </div>
+                            <div class="acciones-saldo">
+                                <a class="btn" href="mailto:support@sevilladigitall.com?subject=Depósito de fondos">
+                                    <span class="material-symbols-outlined" style="font-size:18px">add</span>
+                                    Recargar saldo
+                                </a>
+                                <a class="btn sec" href="mailto:support@sevilladigitall.com?subject=Retiro de fondos">
+                                    <span class="material-symbols-outlined" style="font-size:18px">arrow_outward</span>
+                                    Retirar fondos
+                                </a>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Inversiones -->
+                    <section class="seccion-cliente" id="sec-inversiones">
+                        <header class="linea"><h2>Mis inversiones</h2></header>
+                        <div class="rejilla-inversiones" id="cliente-inversiones"></div>
+                    </section>
+
+                    <!-- Movimientos -->
+                    <section class="seccion-cliente" id="sec-movimientos">
+                        <header class="linea"><h2>Movimientos recientes</h2></header>
+                        <div class="tabla-panel" id="cliente-movimientos"></div>
+                    </section>
+                </main>
             </div>
         </div>
+    </div>
 
+    <div class="contenedor">
         <!-- ================= ADMIN ================= -->
         <div id="vista-admin" class="oculto">
             <h1 style="margin-bottom:20px">Panel de administración</h1>
@@ -567,9 +926,9 @@
             if (c.color_primario) document.documentElement.style.setProperty('--primario', c.color_primario);
             if (c.color_fondo) document.documentElement.style.setProperty('--fondo', c.color_fondo);
             if (c.nombre_sitio) {
-                $('marca').textContent = c.nombre_sitio;
-                $('marca-panel').textContent = c.nombre_sitio;
-                $('marca-movil').textContent = c.nombre_sitio;
+                for (const id of ['marca', 'marca-panel', 'marca-movil', 'marca-lateral', 'marca-movil-cliente']) {
+                    $(id).textContent = c.nombre_sitio;
+                }
                 document.title = 'Portal de Clientes - ' + c.nombre_sitio;
             }
         }).catch(() => {});
@@ -690,17 +1049,139 @@
             }
         };
 
-        // ---------- Cerrar sesión ----------
-        $('btn-salir').onclick = () => { sesion.cerrar(); location.reload(); };
+        // ---------- Cerrar sesión (barra de admin, lateral y móvil) ----------
+        for (const b of document.querySelectorAll('.cerrar-sesion')) {
+            b.onclick = () => { sesion.cerrar(); location.reload(); };
+        }
 
-        // ---------- Vista de cliente ----------
+        // Marca el enlace pulsado de la barra lateral como activo.
+        for (const enlace of document.querySelectorAll('.lateral-enlace')) {
+            enlace.addEventListener('click', () => {
+                document.querySelectorAll('.lateral-enlace').forEach((x) => x.classList.remove('activo'));
+                enlace.classList.add('activo');
+            });
+        }
+
+        // ---------- Vista de cliente (dashboard) ----------
+
+        // Crea un elemento con clase y texto. Texto siempre via textContent: los datos
+        // vienen de la base de datos y no deben poder inyectar HTML.
+        function el(etiqueta, clase = '', texto = '') {
+            const e = document.createElement(etiqueta);
+            if (clase) e.className = clase;
+            if (texto) e.textContent = texto;
+            return e;
+        }
+
+        const iniciales = (nombre, apellido) =>
+            (((nombre || '')[0] || '') + ((apellido || '')[0] || '')).toUpperCase() || '·';
+
+        // Saldo grande con los decimales en pequeño, como en el diseño: $1,245,670[.00]
+        function pintarSaldo(destino, valor) {
+            const texto = dinero(valor);
+            const punto = texto.lastIndexOf('.');
+            destino.textContent = '';
+            if (punto === -1) { destino.textContent = texto; return; }
+            destino.append(texto.slice(0, punto));
+            destino.append(el('span', 'decimales', texto.slice(punto)));
+        }
+
+        const ESTADO_INVERSION = { abierta: 'Abierta', cerrada: 'Cerrada', cancelada: 'Cancelada' };
+
+        function tarjetasInversiones(destino, inversiones) {
+            const cont = $(destino);
+            cont.innerHTML = '';
+            if (!inversiones?.length) {
+                cont.appendChild(el('p', 'muted',
+                    'No tienes inversiones todavía. Habla con tu asesor para abrir la primera.'));
+                return;
+            }
+            for (const i of inversiones) {
+                const tarjeta = el('div', 'tarjeta-inversion');
+
+                const cima = el('div', 'cima');
+                const titulos = el('div');
+                titulos.appendChild(el('h4', '', 'Oro físico'));
+                titulos.appendChild(el('p', 'sub', 'Abierta el ' + fecha(i.abierta_en)));
+                const icono = el('span', 'material-symbols-outlined icono-inversion', 'workspace_premium');
+                cima.append(titulos, icono);
+                tarjeta.appendChild(cima);
+
+                const datos = [
+                    ['Invertido', dinero(i.importe)],
+                    ['Oro', `${i.gramos_oro} g`],
+                    ['Estado', ESTADO_INVERSION[i.estado] ?? i.estado],
+                ];
+                for (const [etiqueta, valor] of datos) {
+                    const fila = el('div', 'dato');
+                    fila.appendChild(el('span', 'etiqueta', etiqueta));
+                    fila.appendChild(el('span', '', valor));
+                    tarjeta.appendChild(fila);
+                }
+                cont.appendChild(tarjeta);
+            }
+        }
+
+        const ICONO_TIPO = {
+            deposito: 'arrow_downward',
+            retiro: 'arrow_upward',
+            compra_oro: 'shopping_cart',
+            venta_oro: 'sell',
+            ajuste: 'tune',
+        };
+
+        function movimientosCliente(destino, movimientos) {
+            const cont = $(destino);
+            cont.innerHTML = '';
+            if (!movimientos?.length) {
+                const vacio = el('p', 'muted', 'Sin movimientos todavía.');
+                vacio.style.padding = '24px';
+                cont.appendChild(vacio);
+                return;
+            }
+            const tabla = document.createElement('table');
+            tabla.innerHTML =
+                '<thead><tr><th>Fecha</th><th>Concepto</th><th>Estado</th><th class="der">Monto</th></tr></thead>';
+            const tbody = document.createElement('tbody');
+            for (const m of movimientos) {
+                const positivo = Number(m.importe) > 0;
+                const tr = document.createElement('tr');
+
+                tr.appendChild(el('td', '', fecha(m.creado_en)));
+
+                const concepto = el('div', 'concepto');
+                const icono = el('span', 'icono-mov' + (positivo ? '' : ' neutro'));
+                icono.appendChild(el('span', 'material-symbols-outlined', ICONO_TIPO[m.tipo] ?? 'receipt'));
+                concepto.append(icono, el('span', '', m.descripcion));
+                const tdConcepto = document.createElement('td');
+                tdConcepto.appendChild(concepto);
+                tr.appendChild(tdConcepto);
+
+                // El libro es append-only: todo movimiento registrado esta completado.
+                const estado = el('div', 'estado-mov');
+                estado.append(el('span', 'punto-ok'), 'Completado');
+                const tdEstado = document.createElement('td');
+                tdEstado.appendChild(estado);
+                tr.appendChild(tdEstado);
+
+                tr.appendChild(el('td', 'der' + (positivo ? ' monto-pos' : ''),
+                    (positivo ? '+' : '') + dinero(m.importe)));
+
+                tbody.appendChild(tr);
+            }
+            tabla.appendChild(tbody);
+            cont.appendChild(tabla);
+        }
+
         async function cargarCliente() {
             const yo = await api('/api/clientes/me', { auth: true });
-            $('cliente-saludo').textContent = `Hola, ${yo.nombre} ${yo.apellido || ''}`.trim();
-            $('cliente-saldo').textContent = dinero(yo.saldo);
-            tablaInversiones('cliente-inversiones', yo.inversiones);
+            $('cliente-nombre').textContent = `${yo.nombre} ${yo.apellido || ''}`.trim();
+            $('cliente-usuario').textContent = '@' + (yo.usuario ?? '');
+            $('cliente-avatar').textContent = iniciales(yo.nombre, yo.apellido);
+            pintarSaldo($('cliente-saldo'), yo.saldo);
+            tarjetasInversiones('cliente-inversiones', yo.inversiones);
             const mov = await api('/api/clientes/me/movimientos', { auth: true });
-            tablaMovimientos('cliente-movimientos', mov.movimientos);
+            movimientosCliente('cliente-movimientos', mov.movimientos);
         }
 
         // ---------- Vista de admin ----------
@@ -840,7 +1321,9 @@
         async function arrancar() {
             const autenticado = !!sesion.token;
             mostrar('vista-auth', !autenticado);
-            mostrar('barra-top', autenticado);
+            // La barra de arriba es solo del panel de admin: el dashboard del cliente
+            // lleva su propia marca y cierre de sesion (lateral y cabecera movil).
+            mostrar('barra-top', autenticado && sesion.esAdmin);
             mostrar('vista-cliente', false);
             mostrar('vista-admin', false);
             if (!autenticado) return;
