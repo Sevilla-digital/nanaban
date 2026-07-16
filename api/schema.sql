@@ -1,0 +1,57 @@
+-- Esquema de clientes de Gold Corp.
+-- Idempotente: se puede ejecutar varias veces sin romper nada.
+
+CREATE TABLE IF NOT EXISTS clientes (
+  id             BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  nombre         TEXT        NOT NULL CHECK (length(trim(nombre)) BETWEEN 2 AND 120),
+  telefono       TEXT        NOT NULL UNIQUE,
+  password_hash  TEXT        NOT NULL,
+  es_admin       BOOLEAN     NOT NULL DEFAULT FALSE,
+  activo         BOOLEAN     NOT NULL DEFAULT TRUE,
+  creado_en      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Una inversion es una posicion abierta por el cliente.
+CREATE TABLE IF NOT EXISTS inversiones (
+  id            BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  cliente_id    BIGINT        NOT NULL REFERENCES clientes(id) ON DELETE RESTRICT,
+  gramos_oro    NUMERIC(14,4) NOT NULL CHECK (gramos_oro > 0),
+  importe_eur   NUMERIC(18,2) NOT NULL CHECK (importe_eur > 0),
+  estado        TEXT          NOT NULL DEFAULT 'abierta'
+                              CHECK (estado IN ('abierta', 'cerrada', 'cancelada')),
+  abierta_en    TIMESTAMPTZ   NOT NULL DEFAULT now(),
+  cerrada_en    TIMESTAMPTZ,
+  CHECK (cerrada_en IS NULL OR cerrada_en >= abierta_en)
+);
+
+CREATE INDEX IF NOT EXISTS idx_inversiones_cliente ON inversiones (cliente_id, abierta_en DESC);
+
+-- Libro de movimientos: fuente de verdad del saldo, solo se anade (nunca UPDATE/DELETE).
+-- El saldo de un cliente es SUM(importe_eur) sobre esta tabla. Asi no hay dos numeros
+-- que puedan desincronizarse entre si.
+CREATE TABLE IF NOT EXISTS movimientos (
+  id            BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  cliente_id    BIGINT        NOT NULL REFERENCES clientes(id) ON DELETE RESTRICT,
+  tipo          TEXT          NOT NULL
+                              CHECK (tipo IN ('deposito', 'retiro', 'compra_oro', 'venta_oro', 'ajuste')),
+  importe_eur   NUMERIC(18,2) NOT NULL CHECK (importe_eur <> 0),
+  descripcion   TEXT          NOT NULL CHECK (length(trim(descripcion)) > 0),
+  inversion_id  BIGINT        REFERENCES inversiones(id) ON DELETE RESTRICT,
+  -- Quien registro el movimiento. Deja rastro para auditoria.
+  creado_por    BIGINT        REFERENCES clientes(id) ON DELETE RESTRICT,
+  creado_en     TIMESTAMPTZ   NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_movimientos_cliente ON movimientos (cliente_id, creado_en DESC);
+
+-- Los movimientos no se editan ni se borran: un libro contable que se puede reescribir
+-- no sirve como prueba de nada.
+CREATE OR REPLACE RULE movimientos_no_update AS ON UPDATE TO movimientos DO INSTEAD NOTHING;
+CREATE OR REPLACE RULE movimientos_no_delete AS ON DELETE TO movimientos DO INSTEAD NOTHING;
+
+CREATE OR REPLACE VIEW saldos AS
+  SELECT c.id AS cliente_id,
+         COALESCE(SUM(m.importe_eur), 0)::NUMERIC(18,2) AS saldo_eur
+  FROM clientes c
+  LEFT JOIN movimientos m ON m.cliente_id = c.id
+  GROUP BY c.id;

@@ -1,0 +1,166 @@
+// Prueba end-to-end real: levanta Postgres (PGlite) por socket, arranca el server
+// de verdad y hace peticiones HTTP reales contra la API.
+import { PGlite } from '@electric-sql/pglite';
+import { PGLiteSocketServer } from '@electric-sql/pglite-socket';
+import { readFile } from 'node:fs/promises';
+import { spawn } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+
+const raizApi = fileURLToPath(new URL('..', import.meta.url));
+
+const db = new PGlite();
+await db.exec(await readFile(new URL('../schema.sql', import.meta.url), 'utf8'));
+const servidorDb = new PGLiteSocketServer({ db, port: 5433, host: '127.0.0.1' });
+await servidorDb.start();
+console.log('Postgres de prueba en 127.0.0.1:5433\n');
+
+const api = spawn(process.execPath, ['server.js'], {
+  cwd: raizApi,
+  env: {
+    ...process.env,
+    DATABASE_URL: 'postgresql://test@127.0.0.1:5433/template1',
+    PGSSL: 'off',
+    JWT_SECRET: 'x'.repeat(64),
+    CORS_ORIGINS: 'https://goldcorp.online',
+    PORT: '3999',
+  },
+  stdio: ['ignore', 'pipe', 'pipe'],
+});
+api.stderr.on('data', (d) => console.error('[api]', String(d).trim()));
+
+const BASE = 'http://127.0.0.1:3999';
+const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
+for (let i = 0; i < 40; i++) {
+  try {
+    const r = await fetch(`${BASE}/health`);
+    if (r.ok) break;
+  } catch {}
+  await esperar(250);
+}
+
+let fallos = 0;
+const check = (nombre, cond, extra = '') => {
+  console.log(`${cond ? 'OK  ' : 'FALLO'} ${nombre}${extra ? ' -> ' + extra : ''}`);
+  if (!cond) fallos++;
+};
+const post = (ruta, body, token) =>
+  fetch(BASE + ruta, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      ...(token ? { authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(body),
+  });
+const get = (ruta, token) =>
+  fetch(BASE + ruta, { headers: token ? { authorization: `Bearer ${token}` } : {} });
+
+// health
+const h = await get('/health');
+check('GET /health responde 200', h.status === 200, `${h.status} ${JSON.stringify(await h.clone().json())}`);
+
+// registro
+const r1 = await post('/api/clientes/registro', {
+  nombre: 'Ana Torres',
+  telefono: '600 11 22 33',
+  password: 'unacontrasenalarga',
+});
+const reg = await r1.json();
+check('registro con telefono con espacios -> 201', r1.status === 201, String(r1.status));
+check('el telefono se normaliza a E.164', reg.cliente?.telefono === '+34600112233', reg.cliente?.telefono);
+check('devuelve token', typeof reg.token === 'string' && reg.token.length > 20);
+check('NO devuelve el hash de la contrasena', !JSON.stringify(reg).includes('scrypt'));
+
+// duplicado (mismo numero, otro formato)
+const r2 = await post('/api/clientes/registro', {
+  nombre: 'Impostor',
+  telefono: '+34600112233',
+  password: 'otracontrasena',
+});
+check('mismo telefono en otro formato -> 409', r2.status === 409, String(r2.status));
+
+// contrasena corta
+const r3 = await post('/api/clientes/registro', { nombre: 'Bob', telefono: '600999888', password: 'corta' });
+check('contrasena corta -> 400', r3.status === 400, String(r3.status));
+
+// login correcto
+const r4 = await post('/api/clientes/login', { telefono: '+34-600-11-22-33', password: 'unacontrasenalarga' });
+const login = await r4.json();
+check('login con guiones en el telefono -> 200', r4.status === 200, String(r4.status));
+const token = login.token;
+
+// login incorrecto
+const r5 = await post('/api/clientes/login', { telefono: '600112233', password: 'equivocada' });
+check('contrasena incorrecta -> 401', r5.status === 401, String(r5.status));
+
+// me
+const r6 = await get('/api/clientes/me', token);
+const me = await r6.json();
+check('GET /me -> 200', r6.status === 200, String(r6.status));
+check('saldo inicial 0.00', String(me.saldo_eur) === '0.00', String(me.saldo_eur));
+
+// sin token
+const r7 = await get('/api/clientes/me');
+check('GET /me sin token -> 401', r7.status === 401, String(r7.status));
+
+// token manipulado
+const r8 = await get('/api/clientes/me', token.slice(0, -3) + 'aaa');
+check('token manipulado -> 401', r8.status === 401, String(r8.status));
+
+// un cliente normal NO puede crear movimientos
+const r9 = await post('/api/clientes/movimientos', {
+  clienteId: reg.cliente.id,
+  tipo: 'deposito',
+  importeEur: '1000000.00',
+  descripcion: 'Me regalo un millon',
+}, token);
+check('cliente normal no puede crear movimientos -> 403', r9.status === 403, String(r9.status));
+
+// ascendemos a admin y repetimos
+await db.query('UPDATE clientes SET es_admin = TRUE WHERE id = $1', [reg.cliente.id]);
+const rAdmin = await post('/api/clientes/login', { telefono: '600112233', password: 'unacontrasenalarga' });
+const tokenAdmin = (await rAdmin.json()).token;
+
+const r10 = await post('/api/clientes/movimientos', {
+  clienteId: reg.cliente.id,
+  tipo: 'deposito',
+  importeEur: '1500.50',
+  descripcion: 'Ingreso inicial',
+}, tokenAdmin);
+check('admin crea deposito -> 201', r10.status === 201, String(r10.status));
+
+const r11 = await get('/api/clientes/me', tokenAdmin);
+check('saldo refleja el deposito', String((await r11.json()).saldo_eur) === '1500.50');
+
+// retiro por encima del saldo
+const r12 = await post('/api/clientes/movimientos', {
+  clienteId: reg.cliente.id,
+  tipo: 'retiro',
+  importeEur: '-99999.00',
+  descripcion: 'Vaciar cuenta',
+}, tokenAdmin);
+check('retiro sin fondos -> 400', r12.status === 400, String(r12.status));
+
+const r13 = await get('/api/clientes/me', tokenAdmin);
+check('saldo intacto tras retiro rechazado', String((await r13.json()).saldo_eur) === '1500.50');
+
+// movimientos
+const r14 = await get('/api/clientes/me/movimientos', tokenAdmin);
+check('lista de movimientos tiene 1 entrada', (await r14.json()).movimientos.length === 1);
+
+// inyeccion SQL
+const r15 = await post('/api/clientes/login', {
+  telefono: "' OR '1'='1",
+  password: "' OR '1'='1",
+});
+check('intento de inyeccion SQL -> 401, sin romper', r15.status === 401, String(r15.status));
+
+// 404
+const r16 = await get('/api/no-existe');
+check('ruta inexistente -> 404', r16.status === 404, String(r16.status));
+
+console.log(fallos === 0 ? '\nTodo correcto.' : `\n${fallos} fallo(s).`);
+api.kill();
+await servidorDb.stop();
+await db.close();
+process.exit(fallos === 0 ? 0 : 1);

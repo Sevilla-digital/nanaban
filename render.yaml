@@ -1,0 +1,28 @@
+databases:
+  - name: goldcorp-db
+    databaseName: goldcorp
+    user: goldcorp
+    plan: free
+    region: frankfurt
+
+services:
+  - type: web
+    name: goldcorp-api
+    runtime: node
+    plan: free
+    region: frankfurt
+    rootDir: api
+    buildCommand: npm ci --omit=dev
+    # El esquema es idempotente, asi que aplicarlo en cada arranque es seguro
+    # y evita tener que acordarse de migrar a mano.
+    startCommand: npm run migrate && npm start
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: goldcorp-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ORIGINS
+        value: https://goldcorp.online,https://www.goldcorp.online

@@ -1,0 +1,7 @@
+# GitHub Pages sirve por defecto todo lo que hay en el repo, y este repo es publico.
+# Sin esto, goldcorp.online/api/server.js devolveria el codigo del backend.
+# El backend se despliega en Render, no en Pages: aqui no pinta nada.
+exclude:
+  - api
+  - render.yaml
+  - .gitignore
