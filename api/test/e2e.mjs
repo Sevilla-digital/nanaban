@@ -22,6 +22,8 @@ const api = spawn(process.execPath, ['server.js'], {
     PGSSL: 'off',
     JWT_SECRET: 'x'.repeat(64),
     CORS_ORIGINS: 'https://goldcorp.online',
+    ADMIN_BOOTSTRAP_TOKEN: 'clave-bootstrap-de-test',
+    AUTH_RATE_LIMIT: '1000',
     PORT: '3999',
   },
   stdio: ['ignore', 'pipe', 'pipe'],
@@ -127,10 +129,22 @@ const r9 = await post('/api/clientes/movimientos', {
 }, token);
 check('cliente normal no puede crear movimientos -> 403', r9.status === 403, String(r9.status));
 
-// ascendemos a admin y repetimos
-await db.query('UPDATE clientes SET es_admin = TRUE WHERE id = $1', [reg.cliente.id]);
+// --- bootstrap-admin: crear el primer admin ---
+// clave incorrecta -> 403
+const rBad = await post('/api/clientes/bootstrap-admin', { telefono: '600112233', clave: 'lo-que-sea' });
+check('bootstrap con clave incorrecta -> 403', rBad.status === 403, String(rBad.status));
+// telefono sin registrar -> 404
+const rNadie = await post('/api/clientes/bootstrap-admin', { telefono: '699999999', clave: 'clave-bootstrap-de-test' });
+check('bootstrap de un telefono inexistente -> 404', rNadie.status === 404, String(rNadie.status));
+// clave correcta -> promueve
+const rBoot = await post('/api/clientes/bootstrap-admin', { telefono: '600112233', clave: 'clave-bootstrap-de-test' });
+check('bootstrap con clave correcta promueve a admin', rBoot.status === 200 && (await rBoot.json()).cliente.es_admin === true, String(rBoot.status));
+
+// desde el login ya debe venir como admin
 const rAdmin = await post('/api/clientes/login', { telefono: '600112233', password: 'unacontrasenalarga' });
-const tokenAdmin = (await rAdmin.json()).token;
+const adminLogin = await rAdmin.json();
+check('el login refleja es_admin tras el bootstrap', adminLogin.cliente.esAdmin === true);
+const tokenAdmin = adminLogin.token;
 
 const r10 = await post('/api/clientes/movimientos', {
   clienteId: reg.cliente.id,

@@ -78,6 +78,24 @@ Auth por token JWT: `Authorization: Bearer <token>`.
   guarda sus propios parametros, asi que se pueden endurecer mas adelante sin
   invalidar los hashes existentes.
 
+## Crear el primer administrador
+
+No se puede crear un admin desde el panel (hace falta ya ser admin para entrar).
+Para el primero se usa un endpoint de arranque que solo funciona si existe la
+variable de entorno `ADMIN_BOOTSTRAP_TOKEN`:
+
+1. En Render: `goldcorp-api` > Environment > anade `ADMIN_BOOTSTRAP_TOKEN` con un
+   valor que elijas tu. Render redespliega.
+2. Registrate en `goldcorp.online/cuenta.html` con tu telefono y contrasena.
+3. Promueve tu cuenta (una sola vez), sustituyendo el telefono y el token:
+   ```bash
+   curl -X POST https://goldcorp-api.onrender.com/api/clientes/bootstrap-admin \
+     -H "content-type: application/json" \
+     -d '{"telefono":"+34600112233","clave":"TU_TOKEN"}'
+   ```
+4. Recarga la web: ya entras al panel de administracion.
+5. **Borra `ADMIN_BOOTSTRAP_TOKEN` en Render** para desactivar el endpoint.
+
 ## Pendiente antes de tener clientes reales
 
 - **Recuperacion de contrasena.** Con solo nombre + telefono, quien la olvida no

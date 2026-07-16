@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
+import { timingSafeEqual } from 'node:crypto';
 import { z } from 'zod';
 import { query, withTransaction } from '../db.js';
 import {
@@ -18,7 +19,9 @@ export const router = Router();
 // y una contrasena debil se revientan en minutos.
 const limiteAuth = rateLimit({
   windowMs: 15 * 60 * 1000,
-  limit: 10,
+  // 10 intentos por IP cada 15 min en produccion. Configurable para los tests, que
+  // hacen muchas llamadas legitimas seguidas desde la misma IP.
+  limit: Number(process.env.AUTH_RATE_LIMIT) || 10,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Demasiados intentos. Prueba de nuevo en 15 minutos.' },
@@ -94,6 +97,43 @@ router.post('/login', limiteAuth, async (req, res, next) => {
         esAdmin: cliente.es_admin,
       },
     });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * Convierte a un cliente ya registrado en administrador, una sola vez, para crear
+ * el primer admin (no se puede desde el panel porque aun no hay ningun admin).
+ *
+ * Se activa solo si existe la variable de entorno ADMIN_BOOTSTRAP_TOKEN, y exige
+ * ese mismo valor como 'clave'. Sin la variable, el endpoint no existe (404).
+ * En cuanto tengas tu admin, borra la variable en Render y esto queda desactivado.
+ */
+router.post('/bootstrap-admin', limiteAuth, async (req, res, next) => {
+  try {
+    const secreto = process.env.ADMIN_BOOTSTRAP_TOKEN;
+    if (!secreto) return res.status(404).json({ error: 'Ruta no encontrada' });
+
+    const clave = String(req.body?.clave ?? '');
+    const a = Buffer.from(clave);
+    const b = Buffer.from(secreto);
+    // timingSafeEqual exige misma longitud; si difieren, no coincide y punto.
+    const coincide = a.length === b.length && timingSafeEqual(a, b);
+    if (!coincide) return res.status(403).json({ error: 'Clave de arranque incorrecta' });
+
+    const telefono = normalizarTelefono(req.body?.telefono);
+    if (!telefono) return res.status(400).json({ error: 'Telefono no valido' });
+
+    const { rows } = await query(
+      `UPDATE clientes SET es_admin = TRUE WHERE telefono = $1
+       RETURNING id, nombre, apellido, telefono, es_admin`,
+      [telefono]
+    );
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'No hay ningun cliente con ese telefono. Registrate primero.' });
+    }
+    res.json({ ok: true, cliente: rows[0] });
   } catch (err) {
     next(err);
   }
