@@ -159,6 +159,21 @@ check('intento de inyeccion SQL -> 401, sin romper', r15.status === 401, String(
 const r16 = await get('/api/no-existe');
 check('ruta inexistente -> 404', r16.status === 404, String(r16.status));
 
+// CORS: el origen permitido recibe la cabecera
+const r17 = await fetch(`${BASE}/health`, { headers: { Origin: 'https://goldcorp.online' } });
+check(
+  'CORS permite goldcorp.online',
+  r17.headers.get('access-control-allow-origin') === 'https://goldcorp.online',
+  String(r17.headers.get('access-control-allow-origin'))
+);
+
+// CORS: el origen no permitido NO recibe cabecera, pero tampoco provoca un 500.
+// Un origen rechazado no es un error del servidor: si devuelve 500, cualquier bot
+// que mande un Origin llena los logs de errores falsos.
+const r18 = await fetch(`${BASE}/health`, { headers: { Origin: 'https://sitio-malicioso.com' } });
+check('CORS no da cabecera a un origen ajeno', r18.headers.get('access-control-allow-origin') === null);
+check('origen ajeno no provoca 500', r18.status === 200, String(r18.status));
+
 console.log(fallos === 0 ? '\nTodo correcto.' : `\n${fallos} fallo(s).`);
 api.kill();
 await servidorDb.stop();

@@ -21,7 +21,10 @@ app.use(
     origin(origen, cb) {
       // Sin cabecera Origin = peticion no-navegador (curl, health check): se permite.
       if (!origen || origenes.includes(origen)) return cb(null, true);
-      cb(new Error(`Origen no permitido: ${origen}`));
+      // Origen no permitido: respondemos sin la cabecera CORS y el navegador lo bloquea.
+      // No lanzamos un Error: eso lo convertiria en un 500 y llenaria los logs de
+      // errores falsos con cada bot que mande un Origin cualquiera.
+      cb(null, false);
     },
   })
 );
