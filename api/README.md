@@ -56,6 +56,7 @@ HTTP de verdad. No necesita base de datos ni red.
 | POST   | `/api/clientes/login`         | publico      |
 | GET    | `/api/clientes/me`            | cliente      |
 | GET    | `/api/clientes/me/movimientos`| cliente      |
+| POST   | `/api/inversiones`            | cliente      |
 | POST   | `/api/clientes/movimientos`   | **solo admin** |
 | GET    | `/api/pagos/metodos`          | cliente      |
 | GET    | `/api/pagos/metodos/gestion`  | **solo admin** |

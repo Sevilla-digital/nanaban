@@ -33,11 +33,13 @@ CREATE TABLE IF NOT EXISTS inversiones (
   cliente_id    BIGINT        NOT NULL REFERENCES clientes(id) ON DELETE RESTRICT,
   gramos_oro    NUMERIC(14,4) NOT NULL CHECK (gramos_oro > 0),
   importe       NUMERIC(18,2) NOT NULL CHECK (importe > 0),
+  plan          TEXT          NOT NULL,
   estado        TEXT          NOT NULL DEFAULT 'abierta'
                               CHECK (estado IN ('abierta', 'cerrada', 'cancelada')),
   abierta_en    TIMESTAMPTZ   NOT NULL DEFAULT now(),
   cerrada_en    TIMESTAMPTZ,
-  CHECK (cerrada_en IS NULL OR cerrada_en >= abierta_en)
+  CHECK (cerrada_en IS NULL OR cerrada_en >= abierta_en),
+  CHECK (plan IN ('10 Kilates', '14 Kilates', '18 Kilates', '22 Kilates', '24 Kilates'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_inversiones_cliente ON inversiones (cliente_id, abierta_en DESC);
@@ -74,6 +76,9 @@ BEGIN
     ALTER TABLE inversiones RENAME COLUMN importe_eur TO importe;
   END IF;
 END $$;
+
+-- Migracion para añadir el plan a inversiones existentes (si las hubiera).
+ALTER TABLE inversiones ADD COLUMN IF NOT EXISTS plan TEXT;
 
 -- Los movimientos no se editan ni se borran: un libro contable que se puede reescribir
 -- no sirve como prueba de nada.
