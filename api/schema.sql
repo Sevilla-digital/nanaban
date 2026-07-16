@@ -1,12 +1,15 @@
 -- Esquema de clientes de Gold Corp.
 -- Idempotente: se puede ejecutar varias veces sin romper nada.
 
--- El telefono es el identificador con el que entra el cliente: es el unico dato
--- del registro que no se repite (los nombres si).
+-- El cliente inicia sesion con su nombre de usuario. El telefono sigue siendo
+-- unico (una cuenta por numero), pero es un dato de contacto, no la credencial.
 CREATE TABLE IF NOT EXISTS clientes (
   id             BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   nombre         TEXT        NOT NULL CHECK (length(trim(nombre)) BETWEEN 2 AND 120),
   apellido       TEXT        NOT NULL DEFAULT '',
+  -- Se guarda en minusculas (lo normaliza la API). Nullable porque las cuentas
+  -- creadas antes de existir esta columna no tienen usuario.
+  usuario        TEXT,
   telefono       TEXT        NOT NULL UNIQUE,
   password_hash  TEXT        NOT NULL,
   es_admin       BOOLEAN     NOT NULL DEFAULT FALSE,
@@ -14,9 +17,14 @@ CREATE TABLE IF NOT EXISTS clientes (
   creado_en      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- La tabla ya existia en Render sin apellido. El DEFAULT '' esta solo para que
--- anadir la columna no falle; que el apellido venga relleno lo exige la API.
+-- La tabla ya existia en Render sin estas columnas; los ALTER son las migraciones.
 ALTER TABLE clientes ADD COLUMN IF NOT EXISTS apellido TEXT NOT NULL DEFAULT '';
+ALTER TABLE clientes ADD COLUMN IF NOT EXISTS usuario TEXT;
+
+-- La unicidad del usuario vive SOLO en este indice (no en la columna) para que
+-- el nombre del constraint sea el mismo en instalaciones nuevas y migradas:
+-- la API distingue por ese nombre que UNIQUE fallo al registrar.
+CREATE UNIQUE INDEX IF NOT EXISTS clientes_usuario_key ON clientes (usuario);
 
 -- Una inversion es una posicion abierta por el cliente.
 CREATE TABLE IF NOT EXISTS inversiones (

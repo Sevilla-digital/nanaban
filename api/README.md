@@ -86,7 +86,8 @@ variable de entorno `ADMIN_BOOTSTRAP_TOKEN`:
 
 1. En Render: `goldcorp-api` > Environment > anade `ADMIN_BOOTSTRAP_TOKEN` con un
    valor que elijas tu. Render redespliega.
-2. Registrate en `goldcorp.online/cuenta.html` con tu telefono y contrasena.
+2. Registrate en `goldcorp.online/cuenta.html` (nombre, apellido, usuario,
+   telefono con su pais y contrasena).
 3. Promueve tu cuenta (una sola vez), sustituyendo el telefono y el token:
    ```bash
    curl -X POST https://goldcorp-api.onrender.com/api/clientes/bootstrap-admin \
@@ -98,8 +99,9 @@ variable de entorno `ADMIN_BOOTSTRAP_TOKEN`:
 
 ## Pendiente antes de tener clientes reales
 
-- **Recuperacion de contrasena.** Con solo nombre + telefono, quien la olvida no
-  tiene como recuperarla. Lo natural es verificacion por SMS (Twilio o similar).
+- **Recuperacion de contrasena.** El cliente entra con usuario + contrasena; si la
+  olvida no hay via de recuperacion. Lo natural es verificacion por SMS al telefono
+  registrado (Twilio o similar).
 - **Verificacion del telefono en el registro.** Ahora mismo cualquiera puede
   registrar un numero que no es suyo.
 - **Backups** de la base de datos (no incluidos en el plan free).

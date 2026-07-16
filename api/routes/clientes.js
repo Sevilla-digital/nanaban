@@ -27,14 +27,22 @@ const limiteAuth = rateLimit({
   message: { error: 'Demasiados intentos. Prueba de nuevo en 15 minutos.' },
 });
 
-const credenciales = z.object({
-  telefono: z.string().min(6).max(20),
-  password: z.string().min(8, 'La contrasena debe tener al menos 8 caracteres').max(200),
+const login = z.object({
+  usuario: z.string().trim().min(1).max(60),
+  password: z.string().min(1).max(200),
 });
 
-const registro = credenciales.extend({
+const registro = z.object({
   nombre: z.string().trim().min(2).max(120),
   apellido: z.string().trim().min(2).max(120),
+  usuario: z
+    .string()
+    .trim()
+    .min(3, 'El usuario debe tener al menos 3 caracteres')
+    .max(30)
+    .regex(/^[a-zA-Z0-9._-]+$/, 'Solo letras, numeros y . _ - (sin espacios)'),
+  telefono: z.string().min(6).max(20),
+  password: z.string().min(8, 'La contrasena debe tener al menos 8 caracteres').max(200),
 });
 
 router.post('/registro', limiteAuth, async (req, res, next) => {
@@ -47,45 +55,47 @@ router.post('/registro', limiteAuth, async (req, res, next) => {
     const telefono = normalizarTelefono(datos.data.telefono);
     if (!telefono) return res.status(400).json({ error: 'Numero de telefono no valido' });
 
+    // Minusculas siempre: "Ana" y "ana" son el mismo usuario.
+    const usuario = datos.data.usuario.toLowerCase();
     const hash = await hashPassword(datos.data.password);
     const { rows } = await query(
-      `INSERT INTO clientes (nombre, apellido, telefono, password_hash)
-       VALUES ($1, $2, $3, $4)
-       ON CONFLICT (telefono) DO NOTHING
-       RETURNING id, nombre, apellido, telefono, es_admin, creado_en`,
-      [datos.data.nombre, datos.data.apellido, telefono, hash]
+      `INSERT INTO clientes (nombre, apellido, usuario, telefono, password_hash)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING id, nombre, apellido, usuario, telefono, es_admin, creado_en`,
+      [datos.data.nombre, datos.data.apellido, usuario, telefono, hash]
     );
-
-    if (rows.length === 0) {
-      return res.status(409).json({ error: 'Ese telefono ya esta registrado' });
-    }
 
     res.status(201).json({ token: firmarToken(rows[0]), cliente: rows[0] });
   } catch (err) {
+    // 23505 = violacion de UNIQUE. El nombre del constraint dice cual de los dos.
+    if (err.code === '23505') {
+      const mensaje =
+        err.constraint === 'clientes_usuario_key'
+          ? 'Ese nombre de usuario ya existe'
+          : 'Ese telefono ya esta registrado';
+      return res.status(409).json({ error: mensaje });
+    }
     next(err);
   }
 });
 
 router.post('/login', limiteAuth, async (req, res, next) => {
   try {
-    const datos = credenciales.safeParse(req.body);
+    const datos = login.safeParse(req.body);
     if (!datos.success) return res.status(400).json({ error: 'Datos invalidos' });
 
-    const telefono = normalizarTelefono(datos.data.telefono);
-    if (!telefono) return res.status(401).json({ error: 'Telefono o contrasena incorrectos' });
-
     const { rows } = await query(
-      `SELECT id, nombre, telefono, password_hash, es_admin, activo
-       FROM clientes WHERE telefono = $1`,
-      [telefono]
+      `SELECT id, nombre, apellido, usuario, telefono, password_hash, es_admin, activo
+       FROM clientes WHERE usuario = $1`,
+      [datos.data.usuario.toLowerCase()]
     );
     const cliente = rows[0];
 
     // Comparamos siempre contra un hash aunque el cliente no exista, para que el tiempo
-    // de respuesta no revele que telefonos estan registrados.
+    // de respuesta no revele que usuarios estan registrados.
     const ok = await verificarPassword(datos.data.password, cliente?.password_hash ?? HASH_SENUELO);
 
-    if (!cliente || !ok) return res.status(401).json({ error: 'Telefono o contrasena incorrectos' });
+    if (!cliente || !ok) return res.status(401).json({ error: 'Usuario o contrasena incorrectos' });
     if (!cliente.activo) return res.status(403).json({ error: 'Cuenta desactivada' });
 
     res.json({
@@ -93,6 +103,8 @@ router.post('/login', limiteAuth, async (req, res, next) => {
       cliente: {
         id: cliente.id,
         nombre: cliente.nombre,
+        apellido: cliente.apellido,
+        usuario: cliente.usuario,
         telefono: cliente.telefono,
         esAdmin: cliente.es_admin,
       },
@@ -143,7 +155,7 @@ router.post('/bootstrap-admin', limiteAuth, async (req, res, next) => {
 router.get('/me', requiereAuth, async (req, res, next) => {
   try {
     const { rows } = await query(
-      `SELECT c.id, c.nombre, c.apellido, c.telefono, c.es_admin, c.creado_en, s.saldo_eur
+      `SELECT c.id, c.nombre, c.apellido, c.usuario, c.telefono, c.es_admin, c.creado_en, s.saldo_eur
        FROM clientes c
        JOIN saldos s ON s.cliente_id = c.id
        WHERE c.id = $1`,
@@ -185,12 +197,12 @@ router.get('/', requiereAuth, requiereAdmin, async (req, res, next) => {
     const busqueda = String(req.query.buscar ?? '').trim();
     const limite = Math.min(Number(req.query.limite) || 100, 500);
     const { rows } = await query(
-      `SELECT c.id, c.nombre, c.apellido, c.telefono, c.es_admin, c.activo,
+      `SELECT c.id, c.nombre, c.apellido, c.usuario, c.telefono, c.es_admin, c.activo,
               c.creado_en, s.saldo_eur
        FROM clientes c
        JOIN saldos s ON s.cliente_id = c.id
        WHERE ($1 = '' OR c.nombre ILIKE '%'||$1||'%' OR c.apellido ILIKE '%'||$1||'%'
-              OR c.telefono ILIKE '%'||$1||'%')
+              OR c.usuario ILIKE '%'||$1||'%' OR c.telefono ILIKE '%'||$1||'%')
        ORDER BY c.creado_en DESC
        LIMIT $2`,
       [busqueda, limite]
@@ -208,7 +220,7 @@ router.get('/:id', requiereAuth, requiereAdmin, async (req, res, next) => {
     if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: 'Id invalido' });
 
     const { rows } = await query(
-      `SELECT c.id, c.nombre, c.apellido, c.telefono, c.es_admin, c.activo,
+      `SELECT c.id, c.nombre, c.apellido, c.usuario, c.telefono, c.es_admin, c.activo,
               c.creado_en, s.saldo_eur
        FROM clientes c
        JOIN saldos s ON s.cliente_id = c.id

@@ -71,8 +71,8 @@
             <div class="tarjeta" id="panel-login">
                 <h1>Iniciar sesión</h1>
                 <form id="form-login">
-                    <label>Teléfono</label>
-                    <input name="telefono" type="tel" autocomplete="username" placeholder="600 11 22 33" required>
+                    <label>Usuario</label>
+                    <input name="usuario" autocomplete="username" placeholder="tu usuario" required>
                     <label>Contraseña</label>
                     <input name="password" type="password" autocomplete="current-password" required>
                     <div class="error" id="error-login"></div>
@@ -87,8 +87,15 @@
                         <div><label>Nombre</label><input name="nombre" required minlength="2"></div>
                         <div><label>Apellido</label><input name="apellido" required minlength="2"></div>
                     </div>
+                    <label>Usuario (con él iniciarás sesión)</label>
+                    <input name="usuario" autocomplete="username" required minlength="3" maxlength="30"
+                           pattern="[A-Za-z0-9._\-]+" title="Solo letras, números y . _ - (sin espacios)"
+                           placeholder="p. ej. ana.torres">
                     <label>Teléfono</label>
-                    <input name="telefono" type="tel" autocomplete="username" placeholder="600 11 22 33" required>
+                    <div class="fila">
+                        <select name="pais" id="sel-pais" style="flex:0 0 220px;min-width:160px;padding:10px;border-radius:6px;border:1px solid #444;background:#1a1a1a;color:#fff;font-size:1em"></select>
+                        <input name="telefono" type="tel" placeholder="600 11 22 33" required style="flex:1">
+                    </div>
                     <label>Contraseña (mínimo 8 caracteres)</label>
                     <input name="password" type="password" autocomplete="new-password" required minlength="8">
                     <div class="error" id="error-registro"></div>
@@ -125,7 +132,7 @@
             <!-- Clientes -->
             <div id="panel-clientes">
                 <div class="tarjeta">
-                    <input id="buscar" placeholder="Buscar por nombre, apellido o teléfono…">
+                    <input id="buscar" placeholder="Buscar por nombre, usuario o teléfono…">
                     <div id="lista-clientes"><p class="muted">Cargando…</p></div>
                 </div>
 
@@ -203,6 +210,26 @@
         const $ = (id) => document.getElementById(id);
         const mostrar = (id, si) => $(id).classList.toggle('oculto', !si);
 
+        // Prefijos telefonicos. España primero por defecto; el resto alfabetico.
+        const PAISES = [
+            ['🇪🇸 España', '+34'],
+            ['🇩🇪 Alemania', '+49'], ['🇦🇩 Andorra', '+376'], ['🇦🇷 Argentina', '+54'],
+            ['🇧🇴 Bolivia', '+591'], ['🇧🇷 Brasil', '+55'], ['🇨🇱 Chile', '+56'],
+            ['🇨🇴 Colombia', '+57'], ['🇨🇷 Costa Rica', '+506'], ['🇨🇺 Cuba', '+53'],
+            ['🇪🇨 Ecuador', '+593'], ['🇸🇻 El Salvador', '+503'], ['🇺🇸 EE. UU. / Canadá', '+1'],
+            ['🇫🇷 Francia', '+33'], ['🇬🇹 Guatemala', '+502'], ['🇭🇳 Honduras', '+504'],
+            ['🇮🇹 Italia', '+39'], ['🇲🇦 Marruecos', '+212'], ['🇲🇽 México', '+52'],
+            ['🇳🇮 Nicaragua', '+505'], ['🇵🇦 Panamá', '+507'], ['🇵🇾 Paraguay', '+595'],
+            ['🇵🇪 Perú', '+51'], ['🇵🇹 Portugal', '+351'], ['🇬🇧 Reino Unido', '+44'],
+            ['🇺🇾 Uruguay', '+598'], ['🇻🇪 Venezuela', '+58'],
+        ];
+        for (const [nombre, prefijo] of PAISES) {
+            const op = document.createElement('option');
+            op.value = prefijo;
+            op.textContent = `${nombre} (${prefijo})`;
+            $('sel-pais').appendChild(op);
+        }
+
         // Aplica el color de marca guardado, para que la cuenta combine con la web.
         api('/api/sitio').then((c) => {
             if (c.color_primario) document.documentElement.style.setProperty('--primario', c.color_primario);
@@ -275,11 +302,15 @@
             const btn = f.querySelector('button');
             btn.disabled = true; btn.textContent = 'Creando…';
             try {
+                // El telefono viaja completo en formato internacional: prefijo del
+                // pais elegido + numero local (solo digitos).
                 const r = await api('/api/clientes/registro', {
                     metodo: 'POST',
                     cuerpo: {
                         nombre: f.nombre.value, apellido: f.apellido.value,
-                        telefono: f.telefono.value, password: f.password.value,
+                        usuario: f.usuario.value,
+                        telefono: f.pais.value + f.telefono.value.replace(/\D/g, ''),
+                        password: f.password.value,
                     },
                 });
                 sesion.guardar(r.token, { ...r.cliente, esAdmin: r.cliente.es_admin === true });
@@ -301,7 +332,7 @@
             try {
                 const r = await api('/api/clientes/login', {
                     metodo: 'POST',
-                    cuerpo: { telefono: f.telefono.value, password: f.password.value },
+                    cuerpo: { usuario: f.usuario.value, password: f.password.value },
                 });
                 sesion.guardar(r.token, r.cliente);
                 arrancar();
@@ -349,11 +380,11 @@
                 cont.innerHTML = '';
                 if (!clientes.length) { cont.innerHTML = '<p class="muted">No hay clientes.</p>'; return; }
                 const tabla = document.createElement('table');
-                tabla.innerHTML = '<thead><tr><th>Cliente</th><th>Teléfono</th><th>Saldo</th></tr></thead>';
+                tabla.innerHTML = '<thead><tr><th>Cliente</th><th>Usuario</th><th>Teléfono</th><th>Saldo</th></tr></thead>';
                 const tbody = document.createElement('tbody');
                 for (const c of clientes) {
                     const nombre = `${c.nombre} ${c.apellido || ''}`.trim() + (c.es_admin ? ' ⭐' : '');
-                    tbody.appendChild(fila([nombre, c.telefono, euros(c.saldo_eur)], () => abrirCliente(c.id)));
+                    tbody.appendChild(fila([nombre, c.usuario || '—', c.telefono, euros(c.saldo_eur)], () => abrirCliente(c.id)));
                 }
                 tabla.appendChild(tbody);
                 cont.appendChild(tabla);
@@ -366,7 +397,7 @@
             clienteAbierto = id;
             const c = await api('/api/clientes/' + id, { auth: true });
             $('detalle-nombre').textContent = `${c.nombre} ${c.apellido || ''}`.trim();
-            $('detalle-tel').textContent = c.telefono;
+            $('detalle-tel').textContent = [c.usuario, c.telefono].filter(Boolean).join(' · ');
             $('detalle-saldo').textContent = euros(c.saldo_eur);
             tablaInversiones('detalle-inversiones', c.inversiones);
             tablaMovimientos('detalle-movimientos', c.movimientos);

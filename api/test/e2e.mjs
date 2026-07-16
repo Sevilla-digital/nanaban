@@ -65,46 +65,98 @@ check('GET /health responde 200', h.status === 200, `${h.status} ${JSON.stringif
 const r1 = await post('/api/clientes/registro', {
   nombre: 'Ana',
   apellido: 'Torres',
+  usuario: 'Ana.Torres',
   telefono: '600 11 22 33',
   password: 'unacontrasenalarga',
 });
 const reg = await r1.json();
 check('registro con telefono con espacios -> 201', r1.status === 201, String(r1.status));
 check('el registro guarda nombre y apellido', reg.cliente?.nombre === 'Ana' && reg.cliente?.apellido === 'Torres', `${reg.cliente?.nombre} ${reg.cliente?.apellido}`);
+check('el usuario se guarda en minusculas', reg.cliente?.usuario === 'ana.torres', reg.cliente?.usuario);
 
 // registro sin apellido -> 400
 const rSinApellido = await post('/api/clientes/registro', {
   nombre: 'Solo',
+  usuario: 'solo1',
   telefono: '611222333',
   password: 'unacontrasenalarga',
 });
 check('registro sin apellido -> 400', rSinApellido.status === 400, String(rSinApellido.status));
+
+// registro sin usuario -> 400
+const rSinUsuario = await post('/api/clientes/registro', {
+  nombre: 'Sin',
+  apellido: 'Usuario',
+  telefono: '611222334',
+  password: 'unacontrasenalarga',
+});
+check('registro sin usuario -> 400', rSinUsuario.status === 400, String(rSinUsuario.status));
+
+// usuario con espacios -> 400
+const rUsuarioMal = await post('/api/clientes/registro', {
+  nombre: 'Mal',
+  apellido: 'Usuario',
+  usuario: 'ana torres',
+  telefono: '611222335',
+  password: 'unacontrasenalarga',
+});
+check('usuario con espacios -> 400', rUsuarioMal.status === 400, String(rUsuarioMal.status));
 check('el telefono se normaliza a E.164', reg.cliente?.telefono === '+34600112233', reg.cliente?.telefono);
 check('devuelve token', typeof reg.token === 'string' && reg.token.length > 20);
 check('NO devuelve el hash de la contrasena', !JSON.stringify(reg).includes('scrypt'));
 
-// duplicado (mismo numero, otro formato)
+// duplicado (mismo numero, otro formato, distinto usuario)
 const r2 = await post('/api/clientes/registro', {
   nombre: 'Impostor',
   apellido: 'Falso',
+  usuario: 'impostor',
   telefono: '+34600112233',
   password: 'otracontrasena',
 });
 check('mismo telefono en otro formato -> 409', r2.status === 409, String(r2.status));
+check('el 409 dice que es el telefono', (await r2.json()).error.includes('telefono'));
+
+// mismo usuario (en otra capitalizacion), distinto telefono -> 409
+const r2b = await post('/api/clientes/registro', {
+  nombre: 'Clon',
+  apellido: 'DeAna',
+  usuario: 'ANA.TORRES',
+  telefono: '+525512345678',
+  password: 'otracontrasena',
+});
+check('mismo usuario con mayusculas -> 409', r2b.status === 409, String(r2b.status));
+check('el 409 dice que es el usuario', (await r2b.json()).error.includes('usuario'));
+
+// telefono internacional (Mexico) valido -> 201
+const rMx = await post('/api/clientes/registro', {
+  nombre: 'Luis',
+  apellido: 'Gomez',
+  usuario: 'luis.mx',
+  telefono: '+52 55 1234 5678',
+  password: 'unacontrasenalarga',
+});
+check('registro con telefono mexicano -> 201', rMx.status === 201, String(rMx.status));
+check('conserva el prefijo +52', (await rMx.json()).cliente?.telefono === '+525512345678');
 
 // contrasena corta
-const r3 = await post('/api/clientes/registro', { nombre: 'Bob', telefono: '600999888', password: 'corta' });
+const r3 = await post('/api/clientes/registro', {
+  nombre: 'Bob', apellido: 'Corto', usuario: 'bob', telefono: '600999888', password: 'corta',
+});
 check('contrasena corta -> 400', r3.status === 400, String(r3.status));
 
-// login correcto
-const r4 = await post('/api/clientes/login', { telefono: '+34-600-11-22-33', password: 'unacontrasenalarga' });
+// login correcto por usuario, ignorando mayusculas
+const r4 = await post('/api/clientes/login', { usuario: 'ANA.torres', password: 'unacontrasenalarga' });
 const login = await r4.json();
-check('login con guiones en el telefono -> 200', r4.status === 200, String(r4.status));
+check('login por usuario (mayusculas) -> 200', r4.status === 200, String(r4.status));
 const token = login.token;
 
 // login incorrecto
-const r5 = await post('/api/clientes/login', { telefono: '600112233', password: 'equivocada' });
+const r5 = await post('/api/clientes/login', { usuario: 'ana.torres', password: 'equivocada' });
 check('contrasena incorrecta -> 401', r5.status === 401, String(r5.status));
+
+// usuario inexistente -> 401 (mismo mensaje, no revela si existe)
+const r5b = await post('/api/clientes/login', { usuario: 'nadie', password: 'loquesea123' });
+check('usuario inexistente -> 401', r5b.status === 401, String(r5b.status));
 
 // me
 const r6 = await get('/api/clientes/me', token);
@@ -141,7 +193,7 @@ const rBoot = await post('/api/clientes/bootstrap-admin', { telefono: '600112233
 check('bootstrap con clave correcta promueve a admin', rBoot.status === 200 && (await rBoot.json()).cliente.es_admin === true, String(rBoot.status));
 
 // desde el login ya debe venir como admin
-const rAdmin = await post('/api/clientes/login', { telefono: '600112233', password: 'unacontrasenalarga' });
+const rAdmin = await post('/api/clientes/login', { usuario: 'ana.torres', password: 'unacontrasenalarga' });
 const adminLogin = await rAdmin.json();
 check('el login refleja es_admin tras el bootstrap', adminLogin.cliente.esAdmin === true);
 const tokenAdmin = adminLogin.token;
@@ -241,7 +293,7 @@ check('campo desconocido rechazado -> 400', rCampoRaro.status === 400, String(rC
 
 // inyeccion SQL
 const r15 = await post('/api/clientes/login', {
-  telefono: "' OR '1'='1",
+  usuario: "' OR '1'='1",
   password: "' OR '1'='1",
 });
 check('intento de inyeccion SQL -> 401, sin romper', r15.status === 401, String(r15.status));
