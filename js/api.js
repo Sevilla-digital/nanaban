@@ -17,7 +17,7 @@ export const sesion = {
     }
   },
   get esAdmin() {
-    return this.cliente?.esAdmin === true;
+    return this.cliente?.esAdmin === true || this.cliente?.es_admin === true;
   },
   guardar(token, cliente) {
     localStorage.setItem(TOKEN_KEY, token);
