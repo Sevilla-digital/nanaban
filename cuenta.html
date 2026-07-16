@@ -3,107 +3,436 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mi cuenta - Gold Corp</title>
+    <title>Portal de Clientes - Gold Corp</title>
+    <link href="https://fonts.googleapis.com" rel="preconnect">
+    <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Montserrat:wght@600;700&family=Source+Serif+4:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=block" rel="stylesheet">
     <style>
-        :root { --primario: #ffd700; --fondo: #1a1a1a; }
-        * { box-sizing: border-box; }
+        /* Diseño adaptado de Stitch a CSS plano, igual que la landing. Los colores
+           del panel de admin entran por --primario y --fondo. */
+        :root {
+            --primario: #f2ca50;
+            --fondo: #121414;
+            --tarjeta: #1a1c1c;
+            --campo: #0c0f0f;
+            --texto: #e2e2e2;
+            --texto-suave: #d0c5af;
+            --borde: #2a2a2a;
+            --error: #ffb4ab;
+            --ok: #51cf66;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: Arial, sans-serif; margin: 0; padding: 0; color: #fff;
-            background: linear-gradient(135deg, var(--fondo) 0%, #2d2d2d 100%);
+            background: var(--fondo);
+            color: var(--texto);
+            font-family: 'Source Serif 4', Georgia, serif;
+            font-size: 16px;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
             min-height: 100vh;
         }
         a { color: var(--primario); }
-        header.barra {
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 16px 24px; border-bottom: 1px solid #333;
+        .material-symbols-outlined {
+            font-family: 'Material Symbols Outlined';
+            font-weight: normal;
+            font-style: normal;
+            display: inline-block;
+            line-height: 1;
+            letter-spacing: normal;
+            white-space: nowrap;
+            direction: ltr;
+            -webkit-font-feature-settings: 'liga';
+            font-feature-settings: 'liga';
         }
-        header.barra .marca { color: var(--primario); font-weight: bold; text-decoration: none; font-size: 1.2em; }
-        .contenedor { max-width: 960px; margin: 0 auto; padding: 32px 20px; }
-        .tarjeta { background: #232323; border: 1px solid #333; border-radius: 10px; padding: 24px; margin-bottom: 20px; }
-        h1 { color: var(--primario); margin-top: 0; }
-        h2 { color: var(--primario); font-size: 1.3em; }
-        label { display: block; margin: 12px 0 4px; color: #ccc; font-size: 0.9em; }
-        input, textarea {
-            width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #444;
-            background: #1a1a1a; color: #fff; font-size: 1em; font-family: inherit;
+        h1, h2 {
+            font-family: Montserrat, sans-serif;
+            color: var(--texto);
+            line-height: 1.2;
         }
-        input[type=color] { height: 44px; padding: 4px; }
+        h1 { font-size: 28px; font-weight: 600; }
+        h2 { font-size: 20px; font-weight: 600; margin-top: 24px; }
+        label {
+            display: block;
+            margin: 16px 0 6px;
+            font-family: Inter, sans-serif;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--texto-suave);
+        }
+        input, textarea, select {
+            width: 100%;
+            padding: 12px;
+            border-radius: 4px;
+            border: 1px solid var(--borde);
+            background: var(--campo);
+            color: var(--texto);
+            font-size: 1em;
+            font-family: 'Source Serif 4', Georgia, serif;
+            transition: border-color 0.2s;
+        }
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: var(--primario);
+            box-shadow: 0 0 0 1px var(--primario);
+        }
+        input[type=color] { height: 46px; padding: 4px; }
+        input::placeholder { color: rgba(208, 197, 175, 0.5); }
+
         .btn {
-            background: var(--primario); color: #1a1a1a; padding: 12px 20px; border: none;
-            border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 1em; margin-top: 16px;
+            font-family: Inter, sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            background: var(--primario);
+            color: #121212;
+            padding: 13px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 20px;
+            box-shadow: 0 0 15px rgba(212, 175, 55, 0.15);
+            transition: filter 0.2s, box-shadow 0.2s, transform 0.1s;
         }
-        .btn:hover { opacity: .9; }
-        .btn.sec { background: transparent; color: var(--primario); border: 1px solid var(--primario); }
-        .btn:disabled { opacity: .5; cursor: default; }
+        .btn:hover { filter: brightness(1.08); box-shadow: 0 0 25px rgba(212, 175, 55, 0.3); }
+        .btn:active { transform: scale(0.98); }
+        .btn:disabled { opacity: 0.5; cursor: default; }
+        .btn.sec {
+            background: transparent;
+            color: var(--primario);
+            border: 1px solid var(--primario);
+            box-shadow: none;
+        }
+        .btn.ancho { width: 100%; }
+
+        /* ---- Vista de acceso: pantalla partida ---- */
+        .auth { display: flex; min-height: 100vh; }
+        .auth-visual { display: none; }
+        @media (min-width: 768px) {
+            .auth-visual {
+                display: flex;
+                width: 50%;
+                position: relative;
+                flex-direction: column;
+                justify-content: center;
+                padding: 96px;
+                overflow: hidden;
+            }
+        }
+        .auth-visual img {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .auth-visual::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to top, rgba(18, 20, 20, 0.9), rgba(18, 20, 20, 0.4)),
+                        rgba(18, 20, 20, 0.4);
+        }
+        .auth-visual-texto { position: relative; z-index: 10; }
+        .auth-visual-texto h1 {
+            font-size: 48px;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            color: var(--primario);
+            line-height: 1.1;
+        }
+        .auth-visual-texto p {
+            font-size: 18px;
+            color: var(--texto-suave);
+            max-width: 28rem;
+            margin-top: 24px;
+        }
+        .auth-form {
+            width: 100%;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+            padding: 96px 24px 48px;
+            background: var(--fondo);
+        }
+        @media (min-width: 768px) { .auth-form { width: 50%; padding: 96px 48px; } }
+        @media (min-width: 1024px) { .auth-form { padding: 96px; } }
+        .volver {
+            position: absolute;
+            top: 32px;
+            left: 24px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-family: Inter, sans-serif;
+            font-size: 14px;
+            font-weight: 500;
+            letter-spacing: 0.05em;
+            color: var(--texto-suave);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        @media (min-width: 768px) { .volver { top: 48px; left: 48px; } }
+        .volver:hover { color: var(--primario); }
+        .auth-caja { width: 100%; max-width: 28rem; margin: 0 auto; }
+        .marca-movil { text-align: center; margin-bottom: 40px; }
+        @media (min-width: 768px) { .marca-movil { display: none; } }
+        .marca-movil h1 {
+            font-size: 24px;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            color: var(--primario);
+            margin-bottom: 8px;
+        }
+        .marca-movil p {
+            font-family: Inter, sans-serif;
+            font-size: 14px;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--texto-suave);
+        }
+        .auth-cabecera { margin-bottom: 32px; }
+        .auth-cabecera p { color: var(--texto-suave); margin-top: 8px; }
+
+        /* Campos con icono a la izquierda */
+        .campo { position: relative; }
+        .campo > .material-symbols-outlined {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 20px;
+            color: var(--texto-suave);
+            pointer-events: none;
+        }
+        .campo input { padding-left: 42px; }
+        .campo input[type=password], .campo input.con-ojo { padding-right: 42px; }
+        .ver-pass {
+            position: absolute;
+            right: 4px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--texto-suave);
+            cursor: pointer;
+            padding: 8px;
+            display: flex;
+        }
+        .ver-pass:hover { color: var(--primario); }
+        .ver-pass .material-symbols-outlined { font-size: 20px; }
+
+        .auth-pie {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            gap: 12px;
+            margin-top: 28px;
+            padding-top: 24px;
+            border-top: 1px solid rgba(77, 70, 53, 0.3);
+        }
+        .auth-pie a {
+            font-family: Inter, sans-serif;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--texto-suave);
+            text-decoration: none;
+            text-underline-offset: 4px;
+        }
+        .auth-pie a:hover { color: var(--primario); text-decoration: underline; }
+
+        /* ---- Barra y paneles (cliente y admin) ---- */
+        header.barra {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--borde);
+            gap: 16px;
+        }
+        header.barra .marca {
+            font-family: Montserrat, sans-serif;
+            color: var(--primario);
+            font-weight: 700;
+            text-decoration: none;
+            font-size: 1.2em;
+        }
+        header.barra .btn { margin: 0; padding: 10px 18px; }
+        .contenedor { max-width: 960px; margin: 0 auto; padding: 32px 20px; }
+        .tarjeta {
+            background: var(--tarjeta);
+            border: 1px solid var(--borde);
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 20px;
+        }
         .fila { display: flex; gap: 16px; flex-wrap: wrap; }
         .fila > * { flex: 1; min-width: 180px; }
-        .error { color: #ff6b6b; margin-top: 12px; min-height: 1.2em; }
-        .ok { color: #51cf66; margin-top: 12px; min-height: 1.2em; }
-        .saldo { font-size: 2.6em; color: var(--primario); font-weight: bold; }
+        .error { color: var(--error); margin-top: 12px; min-height: 1.2em; }
+        .ok { color: var(--ok); margin-top: 12px; min-height: 1.2em; }
+        .saldo {
+            font-family: Montserrat, sans-serif;
+            font-size: 2.6em;
+            color: var(--primario);
+            font-weight: 700;
+        }
         table { width: 100%; border-collapse: collapse; margin-top: 12px; }
-        th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid #333; font-size: .95em; }
-        th { color: #999; font-weight: normal; font-size: .85em; text-transform: uppercase; }
+        th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--borde); font-size: 0.95em; }
+        th {
+            font-family: Inter, sans-serif;
+            color: #99907c;
+            font-weight: 600;
+            font-size: 0.75em;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
         .tabs { display: flex; gap: 8px; margin-bottom: 20px; }
-        .tab { padding: 10px 18px; background: #232323; border: 1px solid #333; border-radius: 6px; cursor: pointer; color: #ccc; }
-        .tab.activa { background: var(--primario); color: #1a1a1a; font-weight: bold; }
+        .tab {
+            font-family: Inter, sans-serif;
+            font-size: 14px;
+            font-weight: 500;
+            letter-spacing: 0.03em;
+            padding: 10px 18px;
+            background: var(--tarjeta);
+            border: 1px solid var(--borde);
+            border-radius: 4px;
+            cursor: pointer;
+            color: var(--texto-suave);
+        }
+        .tab.activa { background: var(--primario); color: #121212; border-color: var(--primario); font-weight: 600; }
         .oculto { display: none !important; }
-        .pos { color: #51cf66; } .neg { color: #ff6b6b; }
-        .muted { color: #888; font-size: .9em; }
+        .pos { color: var(--ok); } .neg { color: var(--error); }
+        .muted { color: #99907c; font-size: 0.9em; }
         .clic { cursor: pointer; }
-        .clic:hover td { background: #2a2a2a; }
+        .clic:hover td { background: rgba(212, 175, 55, 0.06); }
     </style>
 </head>
 <body>
-    <header class="barra">
+    <header class="barra oculto" id="barra-top">
         <a class="marca" href="index.html" id="marca">Gold Corp</a>
-        <button class="btn sec oculto" id="btn-salir" style="margin:0">Cerrar sesión</button>
+        <button class="btn sec" id="btn-salir">Cerrar sesión</button>
     </header>
 
-    <div class="contenedor">
-
-        <!-- ================= NO AUTENTICADO ================= -->
-        <div id="vista-auth">
-            <div class="tabs">
-                <div class="tab activa" id="tab-login">Iniciar sesión</div>
-                <div class="tab" id="tab-registro">Registrarse</div>
+    <!-- ================= NO AUTENTICADO ================= -->
+    <div id="vista-auth">
+        <div class="auth">
+            <!-- Lado visual (solo escritorio) -->
+            <div class="auth-visual">
+                <img alt="Oficina de inversión profesional"
+                     src="https://lh3.googleusercontent.com/aida/AP1WRLvFsn8F60DfGuArRnvrLaX8oJ-IU7DuBW2xo1HIDHwcztHoFbjHMpM31npCd6zJII8pa9O6R2zfg5wzCmltj6r71TIP7nSUO3HA6vLmlF1f8wCotmMQ1Oo5m0LeBWHTDAkX0DAG9W-fE1rwd85jyBLXJebdwcjwm4IyU3SYO8Bn_v-WEfQeEXqclVLhn9II4fFtCl-CD-cLo9zoMN6afwnMhxw-sYAf8CUCUdcwsltEvf4EuBDcWoLqAag">
+                <div class="auth-visual-texto">
+                    <h1 id="marca-panel">Gold Corp Financial</h1>
+                    <p>Bienvenido al Futuro de su Patrimonio</p>
+                </div>
             </div>
 
-            <div class="tarjeta" id="panel-login">
-                <h1>Iniciar sesión</h1>
-                <form id="form-login">
-                    <label>Usuario</label>
-                    <input name="usuario" autocomplete="username" placeholder="tu usuario" required>
-                    <label>Contraseña</label>
-                    <input name="password" type="password" autocomplete="current-password" required>
-                    <div class="error" id="error-login"></div>
-                    <button class="btn" type="submit">Entrar</button>
-                </form>
-            </div>
+            <!-- Lado del formulario -->
+            <div class="auth-form">
+                <a class="volver" href="index.html">
+                    <span class="material-symbols-outlined" style="font-size:20px">arrow_back</span>
+                    <span>Volver al inicio</span>
+                </a>
 
-            <div class="tarjeta oculto" id="panel-registro">
-                <h1>Crear cuenta</h1>
-                <form id="form-registro">
-                    <div class="fila">
-                        <div><label>Nombre</label><input name="nombre" required minlength="2"></div>
-                        <div><label>Apellido</label><input name="apellido" required minlength="2"></div>
+                <div class="auth-caja">
+                    <div class="marca-movil">
+                        <h1 id="marca-movil">Gold Corp Financial</h1>
+                        <p>Portal de Clientes</p>
                     </div>
-                    <label>Usuario (con él iniciarás sesión)</label>
-                    <input name="usuario" autocomplete="username" required minlength="3" maxlength="30"
-                           pattern="[A-Za-z0-9._\-]+" title="Solo letras, números y . _ - (sin espacios)"
-                           placeholder="p. ej. ana.torres">
-                    <label>Teléfono</label>
-                    <div class="fila">
-                        <select name="pais" id="sel-pais" style="flex:0 0 220px;min-width:160px;padding:10px;border-radius:6px;border:1px solid #444;background:#1a1a1a;color:#fff;font-size:1em"></select>
-                        <input name="telefono" type="tel" placeholder="600 11 22 33" required style="flex:1">
+
+                    <!-- Login -->
+                    <div id="panel-login">
+                        <div class="auth-cabecera">
+                            <h1>Iniciar Sesión</h1>
+                            <p>Ingrese sus credenciales para acceder a su portal.</p>
+                        </div>
+                        <form id="form-login">
+                            <label for="login-usuario">Usuario</label>
+                            <div class="campo">
+                                <span class="material-symbols-outlined">person</span>
+                                <input id="login-usuario" name="usuario" autocomplete="username"
+                                       placeholder="Ingrese su usuario" required>
+                            </div>
+                            <label for="login-password">Contraseña</label>
+                            <div class="campo">
+                                <span class="material-symbols-outlined">lock</span>
+                                <input id="login-password" name="password" type="password"
+                                       autocomplete="current-password" placeholder="••••••••" required>
+                                <button class="ver-pass" type="button" aria-label="Mostrar contraseña">
+                                    <span class="material-symbols-outlined">visibility_off</span>
+                                </button>
+                            </div>
+                            <div class="error" id="error-login"></div>
+                            <button class="btn ancho" type="submit">Entrar</button>
+                            <div class="auth-pie">
+                                <a href="mailto:support@sevilladigitall.com?subject=Olvidé mi contraseña">¿Olvidé mi contraseña?</a>
+                                <a href="#" id="ir-registro">Crear una cuenta</a>
+                            </div>
+                        </form>
                     </div>
-                    <label>Contraseña (mínimo 8 caracteres)</label>
-                    <input name="password" type="password" autocomplete="new-password" required minlength="8">
-                    <div class="error" id="error-registro"></div>
-                    <button class="btn" type="submit">Registrarme</button>
-                </form>
+
+                    <!-- Registro -->
+                    <div id="panel-registro" class="oculto">
+                        <div class="auth-cabecera">
+                            <h1>Crear Cuenta</h1>
+                            <p>Complete sus datos para abrir su cuenta de cliente.</p>
+                        </div>
+                        <form id="form-registro">
+                            <div class="fila">
+                                <div>
+                                    <label for="reg-nombre">Nombre</label>
+                                    <input id="reg-nombre" name="nombre" required minlength="2">
+                                </div>
+                                <div>
+                                    <label for="reg-apellido">Apellido</label>
+                                    <input id="reg-apellido" name="apellido" required minlength="2">
+                                </div>
+                            </div>
+                            <label for="reg-usuario">Usuario (con él iniciará sesión)</label>
+                            <div class="campo">
+                                <span class="material-symbols-outlined">person</span>
+                                <input id="reg-usuario" name="usuario" autocomplete="username" required
+                                       minlength="3" maxlength="30" pattern="[A-Za-z0-9._\-]+"
+                                       title="Solo letras, números y . _ - (sin espacios)"
+                                       placeholder="p. ej. ana.torres">
+                            </div>
+                            <label for="reg-telefono">Teléfono</label>
+                            <div class="fila">
+                                <select name="pais" id="sel-pais" style="flex:0 0 200px;min-width:150px"></select>
+                                <div class="campo" style="flex:1">
+                                    <span class="material-symbols-outlined">call</span>
+                                    <input id="reg-telefono" name="telefono" type="tel"
+                                           placeholder="600 11 22 33" required>
+                                </div>
+                            </div>
+                            <label for="reg-password">Contraseña (mínimo 8 caracteres)</label>
+                            <div class="campo">
+                                <span class="material-symbols-outlined">lock</span>
+                                <input id="reg-password" name="password" type="password"
+                                       autocomplete="new-password" placeholder="••••••••" required minlength="8">
+                                <button class="ver-pass" type="button" aria-label="Mostrar contraseña">
+                                    <span class="material-symbols-outlined">visibility_off</span>
+                                </button>
+                            </div>
+                            <div class="error" id="error-registro"></div>
+                            <button class="btn ancho" type="submit">Registrarme</button>
+                            <div class="auth-pie">
+                                <span></span>
+                                <a href="#" id="ir-login">Ya tengo cuenta</a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
             </div>
         </div>
+    </div>
 
+    <div class="contenedor">
         <!-- ================= CLIENTE ================= -->
         <div id="vista-cliente" class="oculto">
             <div class="tarjeta">
@@ -112,18 +441,18 @@
                 <div class="saldo" id="cliente-saldo">—</div>
             </div>
             <div class="tarjeta">
-                <h2>Mis inversiones</h2>
+                <h2 style="margin-top:0">Mis inversiones</h2>
                 <div id="cliente-inversiones"><p class="muted">No tienes inversiones todavía.</p></div>
             </div>
             <div class="tarjeta">
-                <h2>Movimientos</h2>
+                <h2 style="margin-top:0">Movimientos</h2>
                 <div id="cliente-movimientos"><p class="muted">Sin movimientos.</p></div>
             </div>
         </div>
 
         <!-- ================= ADMIN ================= -->
         <div id="vista-admin" class="oculto">
-            <h1>Panel de administración</h1>
+            <h1 style="margin-bottom:20px">Panel de administración</h1>
             <div class="tabs">
                 <div class="tab activa" id="tab-clientes">Clientes</div>
                 <div class="tab" id="tab-config">Configuración del sitio</div>
@@ -147,7 +476,7 @@
                         <div class="fila">
                             <div>
                                 <label>Tipo</label>
-                                <select name="tipo" id="mov-tipo" style="width:100%;padding:10px;border-radius:6px;border:1px solid #444;background:#1a1a1a;color:#fff;font-size:1em">
+                                <select name="tipo" id="mov-tipo">
                                     <option value="deposito">Depósito (+)</option>
                                     <option value="retiro">Retiro (−)</option>
                                     <option value="compra_oro">Compra de oro (−)</option>
@@ -162,7 +491,7 @@
                         </div>
                         <label>Descripción</label>
                         <input name="descripcion" required placeholder="Concepto del movimiento">
-                        <div class="muted">Los retiros y compras se restan del saldo automáticamente.</div>
+                        <div class="muted" style="margin-top:8px">Los retiros y compras se restan del saldo automáticamente.</div>
                         <div class="error" id="error-movimiento"></div>
                         <div class="ok" id="ok-movimiento"></div>
                         <button class="btn" type="submit">Registrar movimiento</button>
@@ -178,7 +507,7 @@
             <!-- Configuración del sitio -->
             <div id="panel-config" class="oculto">
                 <div class="tarjeta">
-                    <h2>Apariencia y textos de la web pública</h2>
+                    <h2 style="margin-top:0">Apariencia y textos de la web pública</h2>
                     <p class="muted">Lo que cambies aquí se ve en goldcorp.online en la próxima visita.</p>
                     <form id="form-config">
                         <label>Nombre del sitio</label>
@@ -230,12 +559,27 @@
             $('sel-pais').appendChild(op);
         }
 
-        // Aplica el color de marca guardado, para que la cuenta combine con la web.
+        // Aplica la marca y colores guardados, para que combine con la web publica.
         api('/api/sitio').then((c) => {
             if (c.color_primario) document.documentElement.style.setProperty('--primario', c.color_primario);
             if (c.color_fondo) document.documentElement.style.setProperty('--fondo', c.color_fondo);
-            if (c.nombre_sitio) $('marca').textContent = c.nombre_sitio;
+            if (c.nombre_sitio) {
+                $('marca').textContent = c.nombre_sitio;
+                $('marca-panel').textContent = c.nombre_sitio;
+                $('marca-movil').textContent = c.nombre_sitio;
+                document.title = 'Portal de Clientes - ' + c.nombre_sitio;
+            }
         }).catch(() => {});
+
+        // Boton del ojo: alterna ver/ocultar la contraseña del campo que lo contiene.
+        for (const btn of document.querySelectorAll('.ver-pass')) {
+            btn.onclick = () => {
+                const input = btn.parentElement.querySelector('input');
+                const oculta = input.type === 'password';
+                input.type = oculta ? 'text' : 'password';
+                btn.querySelector('span').textContent = oculta ? 'visibility' : 'visibility_off';
+            };
+        }
 
         // Crea una fila de tabla con celdas de texto (textContent = sin riesgo de HTML).
         function fila(celdas, onClick) {
@@ -285,13 +629,13 @@
         }
 
         // ---------- Alternar login / registro ----------
-        $('tab-login').onclick = () => {
-            $('tab-login').classList.add('activa'); $('tab-registro').classList.remove('activa');
-            mostrar('panel-login', true); mostrar('panel-registro', false);
-        };
-        $('tab-registro').onclick = () => {
-            $('tab-registro').classList.add('activa'); $('tab-login').classList.remove('activa');
+        $('ir-registro').onclick = (e) => {
+            e.preventDefault();
             mostrar('panel-registro', true); mostrar('panel-login', false);
+        };
+        $('ir-login').onclick = (e) => {
+            e.preventDefault();
+            mostrar('panel-login', true); mostrar('panel-registro', false);
         };
 
         // ---------- Registro ----------
@@ -299,7 +643,7 @@
             e.preventDefault();
             $('error-registro').textContent = '';
             const f = e.target;
-            const btn = f.querySelector('button');
+            const btn = f.querySelector('button[type=submit]');
             btn.disabled = true; btn.textContent = 'Creando…';
             try {
                 // El telefono viaja completo en formato internacional: prefijo del
@@ -327,7 +671,7 @@
             e.preventDefault();
             $('error-login').textContent = '';
             const f = e.target;
-            const btn = f.querySelector('button');
+            const btn = f.querySelector('button[type=submit]');
             btn.disabled = true; btn.textContent = 'Entrando…';
             try {
                 const r = await api('/api/clientes/login', {
@@ -428,7 +772,7 @@
             }
             const resta = tipo === 'retiro' || tipo === 'compra_oro';
             const importeEur = (resta ? '-' : '') + magnitud;
-            const btn = f.querySelector('button');
+            const btn = f.querySelector('button[type=submit]');
             btn.disabled = true;
             try {
                 await api('/api/clientes/movimientos', {
@@ -455,8 +799,8 @@
                 f.texto_header.value = c.texto_header || '';
                 f.texto_footer.value = c.texto_footer || '';
                 f.logo_url.value = c.logo_url || '';
-                f.color_primario.value = c.color_primario || '#ffd700';
-                f.color_fondo.value = c.color_fondo || '#1a1a1a';
+                f.color_primario.value = c.color_primario || '#f2ca50';
+                f.color_fondo.value = c.color_fondo || '#121414';
             } catch (err) {
                 $('error-config').textContent = err.message;
             }
@@ -475,7 +819,7 @@
                 color_primario: f.color_primario.value,
                 color_fondo: f.color_fondo.value,
             };
-            const btn = f.querySelector('button');
+            const btn = f.querySelector('button[type=submit]');
             btn.disabled = true;
             try {
                 const c = await api('/api/sitio', { metodo: 'PUT', auth: true, cuerpo });
@@ -493,7 +837,7 @@
         async function arrancar() {
             const autenticado = !!sesion.token;
             mostrar('vista-auth', !autenticado);
-            mostrar('btn-salir', autenticado);
+            mostrar('barra-top', autenticado);
             mostrar('vista-cliente', false);
             mostrar('vista-admin', false);
             if (!autenticado) return;
