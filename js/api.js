@@ -30,9 +30,9 @@ export const sesion = {
 };
 
 /** Llama a la API. Lanza un Error con el mensaje del servidor si la respuesta no es 2xx. */
-export async function api(ruta, { metodo = 'GET', cuerpo, auth = false } = {}) {
+export async function api(ruta, { method = 'GET', body, auth = false } = {}) {
   const cabeceras = {};
-  if (cuerpo !== undefined) cabeceras['content-type'] = 'application/json';
+  if (body !== undefined) cabeceras['content-type'] = 'application/json';
   if (auth) {
     const t = sesion.token;
     if (!t) throw new Error('No has iniciado sesion');
@@ -42,9 +42,9 @@ export async function api(ruta, { metodo = 'GET', cuerpo, auth = false } = {}) {
   let resp;
   try {
     resp = await fetch(API + ruta, {
-      method: metodo,
+      method: method,
       headers: cabeceras,
-      body: cuerpo !== undefined ? JSON.stringify(cuerpo) : undefined,
+      body: body !== undefined ? JSON.stringify(body) : undefined,
     });
   } catch {
     // El servicio gratuito de Render se duerme tras 15 min; la primera llamada
@@ -63,7 +63,7 @@ export async function api(ruta, { metodo = 'GET', cuerpo, auth = false } = {}) {
     // Token caducado o invalido: limpiamos la sesion para no quedar en un limbo.
     sesion.cerrar();
   }
-  if (!resp.ok) throw new Error(datos?.error ?? `Error ${resp.status}`);
+  if (!resp.ok) throw new Error(datos?.error ?? `Error ${resp.statusText}`);
   return datos;
 }
 

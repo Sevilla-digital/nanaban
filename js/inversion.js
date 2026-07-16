@@ -160,7 +160,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }, 2500);
     } catch (err) {
       console.error(err);
-      mostrarError(err.error || 'Ocurrió un error inesperado.');
+      mostrarError(err.message || 'Ocurrió un error inesperado.');
       setLoading(false);
     }
   });
