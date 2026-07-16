@@ -3,120 +3,520 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gold Corp - Inversión en Oro</title>
+    <title>Gold Corp Financial - Inversión en Oro</title>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@400;600;700&family=Source+Serif+4:wght@400;600&display=swap" rel="stylesheet">
     <style>
+        /* Diseño adaptado de Stitch a CSS plano: mismas fuentes, colores y rejilla,
+           sin el CDN de Tailwind (que no es para produccion). Los colores dinamicos
+           del panel de admin entran por las variables --oro y --fondo. */
         :root {
-            --primario: #ffd700;
-            --fondo: #1a1a1a;
+            --fondo: #121414;
+            --tarjeta: #1a1a1a;
+            --texto: #e2e2e2;
+            --texto-suave: #d0c5af;
+            --oro: #f2ca50;
+            --oro-oscuro: #d4af37;
+            --borde: #2a2a2a;
+            --borde-oro: rgba(212, 175, 55, 0.3);
+            --ancho-max: 1440px;
         }
-        * { box-sizing: border-box; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            background: linear-gradient(135deg, var(--fondo) 0%, #2d2d2d 100%);
-            color: #fff;
+            background: var(--fondo);
+            color: var(--texto);
+            font-family: 'Source Serif 4', Georgia, serif;
+            font-size: 16px;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
         }
-        header.barra {
+        .material-symbols-outlined {
+            font-family: 'Material Symbols Outlined';
+            font-weight: normal;
+            font-style: normal;
+            display: inline-block;
+            line-height: 1;
+            letter-spacing: normal;
+            white-space: nowrap;
+            direction: ltr;
+            -webkit-font-feature-settings: 'liga';
+            font-feature-settings: 'liga';
+        }
+        .contenedor {
+            max-width: var(--ancho-max);
+            margin: 0 auto;
+            padding-left: 16px;
+            padding-right: 16px;
+            width: 100%;
+        }
+        @media (min-width: 768px) {
+            .contenedor { padding-left: 64px; padding-right: 64px; }
+        }
+
+        /* ---- Barra de navegacion ---- */
+        nav {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            background: var(--fondo);
+            border-bottom: 1px solid #333535;
+        }
+        .nav-fila {
             display: flex;
-            align-items: center;
             justify-content: space-between;
-            padding: 16px 24px;
+            align-items: center;
+            padding-top: 8px;
+            padding-bottom: 8px;
             gap: 16px;
         }
-        .marca { display: flex; align-items: center; gap: 12px; }
-        .marca img { height: 40px; width: auto; }
-        .marca span { font-weight: bold; color: var(--primario); font-size: 1.2em; }
-        .btn {
-            display: inline-block;
-            background: var(--primario);
-            color: #1a1a1a;
-            padding: 12px 24px;
-            border-radius: 6px;
+        .marca {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-family: Montserrat, sans-serif;
+            font-weight: 700;
+            font-size: 20px;
+            letter-spacing: -0.01em;
+            color: var(--texto);
             text-decoration: none;
-            font-weight: bold;
+        }
+        .marca img { height: 40px; width: auto; }
+        @media (min-width: 768px) { .marca { font-size: 28px; } }
+        .nav-enlaces { display: none; }
+        @media (min-width: 768px) {
+            .nav-enlaces { display: flex; gap: 24px; align-items: center; }
+        }
+        .nav-enlaces a {
+            font-family: Inter, sans-serif;
+            font-size: 14px;
+            font-weight: 500;
+            letter-spacing: 0.05em;
+            color: var(--texto-suave);
+            text-decoration: none;
+            padding-bottom: 4px;
+            transition: color 0.3s;
+        }
+        .nav-enlaces a:hover { color: var(--oro); }
+        .nav-enlaces a.activo {
+            color: var(--oro);
+            border-bottom: 2px solid var(--oro);
+        }
+
+        /* ---- Botones ---- */
+        .btn {
+            font-family: Inter, sans-serif;
+            font-size: 14px;
+            font-weight: 500;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            border-radius: 4px;
             border: none;
             cursor: pointer;
-            font-size: 1em;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: opacity 0.2s, background 0.3s;
+            white-space: nowrap;
         }
-        .btn:hover { opacity: 0.9; }
-        main {
-            flex: 1;
+        .btn-oro {
+            background: var(--oro-oscuro);
+            color: #121414;
+            padding: 12px 24px;
+        }
+        .btn-oro:hover { opacity: 0.9; }
+        .btn-grande { padding: 16px 32px; }
+        .btn-borde {
+            background: transparent;
+            border: 1px solid var(--oro-oscuro);
+            color: var(--oro-oscuro);
+            padding: 16px 32px;
+        }
+        .btn-borde:hover { background: rgba(212, 175, 55, 0.1); }
+
+        /* ---- Hero ---- */
+        .hero {
+            position: relative;
+            min-height: 80vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            text-align: center;
-            padding: 40px 20px;
+            overflow: hidden;
         }
-        .hero { max-width: 800px; }
-        h1 { color: var(--primario); font-size: 3em; margin: 0 0 16px; }
-        .eslogan { font-size: 1.4em; color: #ccc; margin: 0 0 24px; }
-        .texto-header { font-size: 1.1em; color: #aaa; line-height: 1.6; margin: 0 auto 32px; max-width: 640px; white-space: pre-line; }
-        footer {
-            padding: 24px;
+        .hero-fondo {
+            position: absolute;
+            inset: 0;
+            z-index: 0;
+        }
+        .hero-fondo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0.4;
+        }
+        .hero-fondo::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to top, var(--fondo), rgba(18, 20, 20, 0.8), transparent);
+        }
+        .hero-contenido {
+            position: relative;
+            z-index: 10;
             text-align: center;
-            color: #888;
-            font-size: 0.9em;
-            border-top: 1px solid #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .hero h1 {
+            font-family: Montserrat, sans-serif;
+            font-size: 32px;
+            font-weight: 700;
+            line-height: 1.1;
+            letter-spacing: -0.02em;
+            margin-bottom: 24px;
+            max-width: 56rem;
+        }
+        @media (min-width: 768px) { .hero h1 { font-size: 48px; } }
+        .hero h1 .dorado { color: var(--oro); }
+        .hero p {
+            font-size: 18px;
+            color: var(--texto-suave);
+            margin-bottom: 40px;
+            max-width: 42rem;
             white-space: pre-line;
         }
-        @media (max-width: 600px) {
-            h1 { font-size: 2em; }
-            header.barra { flex-direction: column; }
+        .hero-botones {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            align-items: center;
+            width: 100%;
         }
+        .hero-botones .btn { width: 100%; }
+        @media (min-width: 640px) {
+            .hero-botones { flex-direction: row; width: auto; }
+            .hero-botones .btn { width: auto; }
+        }
+
+        /* ---- Seccion de ventajas ---- */
+        .ventajas { padding-top: 80px; padding-bottom: 80px; }
+        .ventajas-cabecera {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            margin-bottom: 64px;
+        }
+        .estrellas {
+            display: flex;
+            gap: 8px;
+            color: var(--oro);
+            margin-bottom: 16px;
+        }
+        .estrellas .material-symbols-outlined { font-variation-settings: 'FILL' 1; }
+        .ventajas h2 {
+            font-family: Montserrat, sans-serif;
+            font-size: 24px;
+            font-weight: 600;
+            line-height: 1.2;
+        }
+        @media (min-width: 768px) { .ventajas h2 { font-size: 32px; } }
+        .ventajas-cabecera p {
+            color: var(--texto-suave);
+            margin-top: 16px;
+            max-width: 42rem;
+        }
+
+        /* ---- Rejilla bento ---- */
+        .bento {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 24px;
+        }
+        @media (min-width: 768px) {
+            .bento {
+                grid-template-columns: repeat(3, 1fr);
+                grid-auto-rows: 250px;
+            }
+            .bento .doble { grid-column: span 2; }
+        }
+        .celda {
+            background: var(--tarjeta);
+            border: 1px solid var(--borde);
+            border-radius: 8px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 24px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .celda:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.5);
+        }
+        .celda.borde-oro { border-color: var(--borde-oro); }
+        .celda-cima {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        .celda .icono { font-size: 36px; color: var(--texto); }
+        .celda .icono.dorado { color: var(--oro); }
+        .celda .icono.oro-oscuro { color: var(--oro-oscuro); }
+        .celda h3 {
+            font-family: Inter, sans-serif;
+            font-size: 18px;
+            font-weight: 500;
+            letter-spacing: 0.02em;
+            margin-bottom: 8px;
+        }
+        .celda h3.oro-oscuro { color: var(--oro-oscuro); }
+        .celda p { color: var(--texto-suave); }
+        .celda p.pequeno { font-size: 14px; }
+        .chip {
+            font-family: Inter, sans-serif;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            color: var(--texto-suave);
+            background: #333535;
+            border: 1px solid var(--borde);
+            border-radius: 9999px;
+            padding: 4px 12px;
+            white-space: nowrap;
+        }
+        .en-linea {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-family: Inter, sans-serif;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--texto-suave);
+        }
+        .punto-verde {
+            width: 8px;
+            height: 8px;
+            border-radius: 9999px;
+            background: #22c55e;
+        }
+
+        /* ---- Pie ---- */
+        footer {
+            background: #0c0f0f;
+            border-top: 1px solid #333535;
+            margin-top: auto;
+        }
+        .pie-fila {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 80px;
+            padding-bottom: 80px;
+            gap: 32px;
+        }
+        @media (min-width: 768px) {
+            .pie-fila { flex-direction: row; gap: 0; }
+        }
+        .pie-marca {
+            font-family: Montserrat, sans-serif;
+            font-size: 28px;
+            font-weight: 600;
+            text-align: center;
+        }
+        @media (min-width: 768px) { .pie-marca { text-align: left; } }
+        .pie-marca .copyright {
+            font-family: 'Source Serif 4', Georgia, serif;
+            font-size: 16px;
+            font-weight: 400;
+            color: var(--texto-suave);
+            margin-top: 8px;
+            max-width: 24rem;
+            white-space: pre-line;
+        }
+        .pie-enlaces {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 24px;
+        }
+        .pie-enlaces a {
+            font-family: Inter, sans-serif;
+            font-size: 12px;
+            font-weight: 600;
+            color: #8a8a88;
+            text-decoration: underline;
+            transition: color 0.2s;
+        }
+        .pie-enlaces a:hover { color: var(--oro); }
     </style>
 </head>
 <body>
-    <header class="barra">
-        <div class="marca">
-            <img id="logo" alt="" hidden>
-            <span id="marca-nombre">Gold Corp Financial</span>
+    <nav>
+        <div class="contenedor nav-fila">
+            <a class="marca" href="/">
+                <img id="logo" alt="" hidden>
+                <span id="marca-nombre">Gold Corp Financial</span>
+            </a>
+            <div class="nav-enlaces">
+                <a class="activo" href="#inversiones">Inversiones</a>
+                <a href="#seguridad">Seguridad</a>
+                <a href="#nosotros">Nosotros</a>
+            </div>
+            <a class="btn btn-oro" href="cuenta.html">
+                Acceso clientes
+                <span class="material-symbols-outlined" style="font-size:18px">login</span>
+            </a>
         </div>
-        <a class="btn" href="cuenta.html">Acceder / Registrarse</a>
-    </header>
+    </nav>
 
-    <main>
-        <div class="hero">
-            <h1 id="titulo">🏆 Gold Corp Financial</h1>
-            <p class="eslogan" id="eslogan">Inversión en Oro - Segura y Rentable</p>
-            <p class="texto-header" id="texto-header"></p>
-            <a class="btn" href="cuenta.html">Empieza ahora</a>
-        </div>
+    <main style="flex-grow:1">
+        <section class="hero">
+            <div class="hero-fondo">
+                <img alt="Despacho ejecutivo con vistas a la ciudad de noche y lingotes de oro sobre la mesa"
+                     src="https://lh3.googleusercontent.com/aida-public/AB6AXuCyYqaQ1XHXqu0MGK9YzQvsctAN1GY9KV6XmaWsVJNGA_n4hyv_7tdKpO2r01hw9XGYCuPITtK5oSP9HY-DjNC_5LQmUh8vv8iMvujtHUap6foGaNrEg0P-NyUijRuvxAXZhWQq1IokuyI_sUrlfO8BFfepX6wj438Ar0OYUK-1Z41GDhuKjPp32YlwD7zmu3iw7tcgzpZU5_nbLNae87qTkV7_Q53qy3vMgICFBDLON5oUtsnV6X1l">
+            </div>
+            <div class="contenedor hero-contenido">
+                <h1 id="titulo">Inversión en Oro: <span class="dorado">Segura y Rentable</span></h1>
+                <p id="texto-header">Su patrimonio merece la solidez del metal más precioso. Gestión profesional y transparencia garantizada para asegurar su futuro financiero.</p>
+                <div class="hero-botones">
+                    <a class="btn btn-oro btn-grande" href="cuenta.html">Empezar ahora</a>
+                    <a class="btn btn-borde" href="mailto:support@sevilladigitall.com">Contactar asesor</a>
+                </div>
+            </div>
+        </section>
+
+        <section class="contenedor ventajas" id="inversiones">
+            <div class="ventajas-cabecera">
+                <div class="estrellas">
+                    <span class="material-symbols-outlined">star</span>
+                    <span class="material-symbols-outlined">star</span>
+                    <span class="material-symbols-outlined">star</span>
+                    <span class="material-symbols-outlined">star</span>
+                    <span class="material-symbols-outlined">star</span>
+                </div>
+                <h2>Top 5 Estrellas en Inversión</h2>
+                <p>Respaldados por certificaciones de seguridad internacionales y la confianza de miles de inversores de alto patrimonio.</p>
+            </div>
+
+            <div class="bento">
+                <div class="celda doble" id="seguridad">
+                    <div class="celda-cima">
+                        <span class="material-symbols-outlined icono dorado">shield</span>
+                        <span class="chip">Certificado A+</span>
+                    </div>
+                    <div>
+                        <h3>Seguridad Absoluta</h3>
+                        <p>Su oro físico se almacena en bóvedas de alta seguridad auditadas independientemente, garantizando la protección total de sus activos contra cualquier eventualidad.</p>
+                    </div>
+                </div>
+
+                <div class="celda borde-oro">
+                    <span class="material-symbols-outlined icono oro-oscuro">trending_up</span>
+                    <div>
+                        <h3 class="oro-oscuro">Rentabilidad Sostenida</h3>
+                        <p class="pequeno">Históricamente, el oro ha mantenido su valor, protegiendo contra la inflación.</p>
+                    </div>
+                </div>
+
+                <div class="celda">
+                    <span class="material-symbols-outlined icono">currency_exchange</span>
+                    <div>
+                        <h3>Alta Liquidez</h3>
+                        <p class="pequeno">Convierta su inversión en efectivo rápidamente en los mercados globales 24/7.</p>
+                    </div>
+                </div>
+
+                <div class="celda doble">
+                    <div class="celda-cima">
+                        <span class="material-symbols-outlined icono">support_agent</span>
+                        <span class="en-linea"><span class="punto-verde"></span>Asesores Online</span>
+                    </div>
+                    <div>
+                        <h3>Asesoría Personalizada</h3>
+                        <p>Un equipo de expertos financieros dedicados a diseñar una estrategia de inversión en metales preciosos adaptada a su perfil de riesgo y objetivos a largo plazo.</p>
+                    </div>
+                </div>
+
+                <div class="celda">
+                    <span class="material-symbols-outlined icono">monitor_heart</span>
+                    <div>
+                        <h3>Tecnología Avanzada</h3>
+                        <p class="pequeno">Plataforma robusta para el monitoreo en tiempo real de sus posiciones.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
     </main>
 
-    <footer id="footer"></footer>
+    <footer id="nosotros">
+        <div class="contenedor pie-fila">
+            <div class="pie-marca">
+                <span id="pie-marca-nombre">Gold Corp Financial</span>
+                <div class="copyright" id="footer-texto">© 2026 Gold Corp Financial. Todos los derechos reservados.</div>
+            </div>
+            <div class="pie-enlaces">
+                <a href="#">Privacidad</a>
+                <a href="#">Términos de Servicio</a>
+                <a href="#">Cumplimiento</a>
+                <a href="mailto:support@sevilladigitall.com">Contacto</a>
+            </div>
+        </div>
+    </footer>
 
     <script type="module">
         import { api } from './js/api.js';
 
-        // La pagina ya se ve con los valores por defecto de arriba. Si la API responde,
-        // los sustituimos por la configuracion que haya guardado el admin. Si la API
-        // esta dormida o falla, el visitante nunca ve una pagina rota.
+        // La pagina ya se ve completa con los textos por defecto. Si la API responde,
+        // se aplican el nombre, logo, colores y textos que el admin haya guardado en
+        // el panel. Si la API esta dormida o falla, el visitante no ve nada roto.
         try {
             const c = await api('/api/sitio');
             const root = document.documentElement.style;
-            if (c.color_primario) root.setProperty('--primario', c.color_primario);
+            if (c.color_primario) {
+                root.setProperty('--oro', c.color_primario);
+                root.setProperty('--oro-oscuro', c.color_primario);
+            }
             if (c.color_fondo) root.setProperty('--fondo', c.color_fondo);
 
             // textContent (no innerHTML): el contenido viene de la BD y no debe poder
             // inyectar HTML en la pagina publica.
             if (c.nombre_sitio) {
                 document.getElementById('marca-nombre').textContent = c.nombre_sitio;
-                document.getElementById('titulo').textContent = c.nombre_sitio;
+                document.getElementById('pie-marca-nombre').textContent = c.nombre_sitio;
                 document.title = c.nombre_sitio + ' - Inversión en Oro';
             }
-            if (c.eslogan) document.getElementById('eslogan').textContent = c.eslogan;
-            document.getElementById('texto-header').textContent = c.texto_header || '';
-            document.getElementById('footer').textContent =
-                c.texto_footer || `© ${new Date().getFullYear()} ${c.nombre_sitio || 'Gold Corp'}`;
+            // El eslogan del panel sustituye al titular del hero. Si tiene un
+            // separador (: o -), la parte final va en dorado como en el diseño.
+            // Todo entra como texto plano (append/textContent), nunca como HTML.
+            if (c.eslogan) {
+                const titulo = document.getElementById('titulo');
+                titulo.textContent = '';
+                const partes = c.eslogan.match(/^(.+?[:\-–—]\s*)(.+)$/);
+                if (partes) {
+                    titulo.append(partes[1]);
+                    const acento = document.createElement('span');
+                    acento.className = 'dorado';
+                    acento.textContent = partes[2];
+                    titulo.append(acento);
+                } else {
+                    titulo.textContent = c.eslogan;
+                }
+            }
+            if (c.texto_header) document.getElementById('texto-header').textContent = c.texto_header;
+            if (c.texto_footer) document.getElementById('footer-texto').textContent = c.texto_footer;
 
             const logo = document.getElementById('logo');
             if (c.logo_url) { logo.src = c.logo_url; logo.hidden = false; }
         } catch {
-            document.getElementById('footer').textContent = `© ${new Date().getFullYear()} Gold Corp`;
+            /* Sin conexion con la API: la pagina se queda con sus valores por defecto. */
         }
     </script>
 </body>
