@@ -534,7 +534,10 @@
     </div>
 
     <script type="module">
-        import { api, sesion, dinero, fecha } from './js/api.js';
+        // La ?v= debe subir cada vez que cambie js/api.js: fuerza al navegador a
+        // pedir el modulo nuevo en vez de servir uno viejo de la cache. Sin esto,
+        // un HTML nuevo con un js/api.js cacheado viejo rompe todos los botones.
+        import { api, sesion, dinero, fecha } from './js/api.js?v=2';
 
         const $ = (id) => document.getElementById(id);
         const mostrar = (id, si) => $(id).classList.toggle('oculto', !si);
