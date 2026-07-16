@@ -27,11 +27,12 @@ ALTER TABLE clientes ADD COLUMN IF NOT EXISTS usuario TEXT;
 CREATE UNIQUE INDEX IF NOT EXISTS clientes_usuario_key ON clientes (usuario);
 
 -- Una inversion es una posicion abierta por el cliente.
+-- La moneda de la plataforma es el dolar estadounidense (USD).
 CREATE TABLE IF NOT EXISTS inversiones (
   id            BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   cliente_id    BIGINT        NOT NULL REFERENCES clientes(id) ON DELETE RESTRICT,
   gramos_oro    NUMERIC(14,4) NOT NULL CHECK (gramos_oro > 0),
-  importe_eur   NUMERIC(18,2) NOT NULL CHECK (importe_eur > 0),
+  importe       NUMERIC(18,2) NOT NULL CHECK (importe > 0),
   estado        TEXT          NOT NULL DEFAULT 'abierta'
                               CHECK (estado IN ('abierta', 'cerrada', 'cancelada')),
   abierta_en    TIMESTAMPTZ   NOT NULL DEFAULT now(),
@@ -42,14 +43,14 @@ CREATE TABLE IF NOT EXISTS inversiones (
 CREATE INDEX IF NOT EXISTS idx_inversiones_cliente ON inversiones (cliente_id, abierta_en DESC);
 
 -- Libro de movimientos: fuente de verdad del saldo, solo se anade (nunca UPDATE/DELETE).
--- El saldo de un cliente es SUM(importe_eur) sobre esta tabla. Asi no hay dos numeros
+-- El saldo de un cliente es SUM(importe) sobre esta tabla. Asi no hay dos numeros
 -- que puedan desincronizarse entre si.
 CREATE TABLE IF NOT EXISTS movimientos (
   id            BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   cliente_id    BIGINT        NOT NULL REFERENCES clientes(id) ON DELETE RESTRICT,
   tipo          TEXT          NOT NULL
                               CHECK (tipo IN ('deposito', 'retiro', 'compra_oro', 'venta_oro', 'ajuste')),
-  importe_eur   NUMERIC(18,2) NOT NULL CHECK (importe_eur <> 0),
+  importe       NUMERIC(18,2) NOT NULL CHECK (importe <> 0),
   descripcion   TEXT          NOT NULL CHECK (length(trim(descripcion)) > 0),
   inversion_id  BIGINT        REFERENCES inversiones(id) ON DELETE RESTRICT,
   -- Quien registro el movimiento. Deja rastro para auditoria.
@@ -59,14 +60,32 @@ CREATE TABLE IF NOT EXISTS movimientos (
 
 CREATE INDEX IF NOT EXISTS idx_movimientos_cliente ON movimientos (cliente_id, creado_en DESC);
 
+-- Migracion: las columnas se llamaban importe_eur cuando la plataforma era en
+-- euros. Ahora la moneda es el dolar y el nombre paso a ser neutro (importe).
+-- El RENAME solo corre si la columna vieja sigue existiendo.
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns
+             WHERE table_name = 'movimientos' AND column_name = 'importe_eur') THEN
+    ALTER TABLE movimientos RENAME COLUMN importe_eur TO importe;
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.columns
+             WHERE table_name = 'inversiones' AND column_name = 'importe_eur') THEN
+    ALTER TABLE inversiones RENAME COLUMN importe_eur TO importe;
+  END IF;
+END $$;
+
 -- Los movimientos no se editan ni se borran: un libro contable que se puede reescribir
 -- no sirve como prueba de nada.
 CREATE OR REPLACE RULE movimientos_no_update AS ON UPDATE TO movimientos DO INSTEAD NOTHING;
 CREATE OR REPLACE RULE movimientos_no_delete AS ON DELETE TO movimientos DO INSTEAD NOTHING;
 
-CREATE OR REPLACE VIEW saldos AS
+-- DROP + CREATE (y no OR REPLACE) porque la columna de salida cambio de nombre
+-- (saldo_eur -> saldo) y OR REPLACE no permite renombrar columnas de una vista.
+DROP VIEW IF EXISTS saldos;
+CREATE VIEW saldos AS
   SELECT c.id AS cliente_id,
-         COALESCE(SUM(m.importe_eur), 0)::NUMERIC(18,2) AS saldo_eur
+         COALESCE(SUM(m.importe), 0)::NUMERIC(18,2) AS saldo
   FROM clientes c
   LEFT JOIN movimientos m ON m.cliente_id = c.id
   GROUP BY c.id;

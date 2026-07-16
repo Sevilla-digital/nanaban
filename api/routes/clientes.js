@@ -155,7 +155,7 @@ router.post('/bootstrap-admin', limiteAuth, async (req, res, next) => {
 router.get('/me', requiereAuth, async (req, res, next) => {
   try {
     const { rows } = await query(
-      `SELECT c.id, c.nombre, c.apellido, c.usuario, c.telefono, c.es_admin, c.creado_en, s.saldo_eur
+      `SELECT c.id, c.nombre, c.apellido, c.usuario, c.telefono, c.es_admin, c.creado_en, s.saldo
        FROM clientes c
        JOIN saldos s ON s.cliente_id = c.id
        WHERE c.id = $1`,
@@ -164,7 +164,7 @@ router.get('/me', requiereAuth, async (req, res, next) => {
     if (rows.length === 0) return res.status(404).json({ error: 'Cliente no encontrado' });
 
     const inversiones = await query(
-      `SELECT id, gramos_oro, importe_eur, estado, abierta_en, cerrada_en
+      `SELECT id, gramos_oro, importe, estado, abierta_en, cerrada_en
        FROM inversiones WHERE cliente_id = $1 ORDER BY abierta_en DESC`,
       [req.cliente.id]
     );
@@ -179,7 +179,7 @@ router.get('/me/movimientos', requiereAuth, async (req, res, next) => {
   try {
     const limite = Math.min(Number(req.query.limite) || 50, 200);
     const { rows } = await query(
-      `SELECT id, tipo, importe_eur, descripcion, inversion_id, creado_en
+      `SELECT id, tipo, importe, descripcion, inversion_id, creado_en
        FROM movimientos WHERE cliente_id = $1
        ORDER BY creado_en DESC, id DESC
        LIMIT $2`,
@@ -198,7 +198,7 @@ router.get('/', requiereAuth, requiereAdmin, async (req, res, next) => {
     const limite = Math.min(Number(req.query.limite) || 100, 500);
     const { rows } = await query(
       `SELECT c.id, c.nombre, c.apellido, c.usuario, c.telefono, c.es_admin, c.activo,
-              c.creado_en, s.saldo_eur
+              c.creado_en, s.saldo
        FROM clientes c
        JOIN saldos s ON s.cliente_id = c.id
        WHERE ($1 = '' OR c.nombre ILIKE '%'||$1||'%' OR c.apellido ILIKE '%'||$1||'%'
@@ -221,7 +221,7 @@ router.get('/:id', requiereAuth, requiereAdmin, async (req, res, next) => {
 
     const { rows } = await query(
       `SELECT c.id, c.nombre, c.apellido, c.usuario, c.telefono, c.es_admin, c.activo,
-              c.creado_en, s.saldo_eur
+              c.creado_en, s.saldo
        FROM clientes c
        JOIN saldos s ON s.cliente_id = c.id
        WHERE c.id = $1`,
@@ -233,12 +233,12 @@ router.get('/:id', requiereAuth, requiereAdmin, async (req, res, next) => {
     // admin puntual, la latencia extra es un round-trip, y asi no dependemos de que
     // haya varias conexiones libres en el pool.
     const inversiones = await query(
-      `SELECT id, gramos_oro, importe_eur, estado, abierta_en, cerrada_en
+      `SELECT id, gramos_oro, importe, estado, abierta_en, cerrada_en
        FROM inversiones WHERE cliente_id = $1 ORDER BY abierta_en DESC`,
       [id]
     );
     const movimientos = await query(
-      `SELECT id, tipo, importe_eur, descripcion, inversion_id, creado_en
+      `SELECT id, tipo, importe, descripcion, inversion_id, creado_en
        FROM movimientos WHERE cliente_id = $1 ORDER BY creado_en DESC, id DESC LIMIT 200`,
       [id]
     );
@@ -254,8 +254,8 @@ const nuevoMovimiento = z.object({
   // en el JSON que sale de la API y vuelven como string. Aceptamos ambos.
   clienteId: z.coerce.number().int().positive().max(Number.MAX_SAFE_INTEGER),
   tipo: z.enum(['deposito', 'retiro', 'compra_oro', 'venta_oro', 'ajuste']),
-  // Importe en euros con 2 decimales como string, para no perder precision al parsear.
-  importeEur: z.string().regex(/^-?\d{1,15}(\.\d{1,2})?$/, 'Importe con formato "123.45"'),
+  // Importe en dolares con 2 decimales como string, para no perder precision al parsear.
+  importe: z.string().regex(/^-?\d{1,15}(\.\d{1,2})?$/, 'Importe con formato "123.45"'),
   descripcion: z.string().trim().min(1).max(500),
 });
 
@@ -269,7 +269,7 @@ router.post('/movimientos', requiereAuth, requiereAdmin, async (req, res, next) 
     if (!datos.success) {
       return res.status(400).json({ error: 'Datos invalidos', detalle: datos.error.flatten() });
     }
-    const { clienteId, tipo, importeEur, descripcion } = datos.data;
+    const { clienteId, tipo, importe, descripcion } = datos.data;
 
     const resultado = await withTransaction(async (client) => {
       // Bloquea la fila del cliente para que dos retiros simultaneos no puedan
@@ -281,22 +281,22 @@ router.post('/movimientos', requiereAuth, requiereAdmin, async (req, res, next) 
 
       if (tipo === 'retiro' || tipo === 'compra_oro') {
         const saldo = await client.query(
-          'SELECT COALESCE(SUM(importe_eur), 0) AS saldo FROM movimientos WHERE cliente_id = $1',
+          'SELECT COALESCE(SUM(importe), 0) AS saldo FROM movimientos WHERE cliente_id = $1',
           [clienteId]
         );
         // Comparamos en Postgres, no en JS, para respetar la aritmetica NUMERIC.
         const suficiente = await client.query('SELECT ($1::numeric + $2::numeric) >= 0 AS ok', [
           saldo.rows[0].saldo,
-          importeEur,
+          importe,
         ]);
         if (!suficiente.rows[0].ok) return { error: 400, mensaje: 'Saldo insuficiente' };
       }
 
       const { rows } = await client.query(
-        `INSERT INTO movimientos (cliente_id, tipo, importe_eur, descripcion, creado_por)
+        `INSERT INTO movimientos (cliente_id, tipo, importe, descripcion, creado_por)
          VALUES ($1, $2, $3::numeric, $4, $5)
-         RETURNING id, cliente_id, tipo, importe_eur, descripcion, creado_en`,
-        [clienteId, tipo, importeEur, descripcion, req.cliente.id]
+         RETURNING id, cliente_id, tipo, importe, descripcion, creado_en`,
+        [clienteId, tipo, importe, descripcion, req.cliente.id]
       );
       return { movimiento: rows[0] };
     });

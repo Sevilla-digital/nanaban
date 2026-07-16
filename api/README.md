@@ -62,12 +62,16 @@ Auth por token JWT: `Authorization: Bearer <token>`.
 
 ## Decisiones que conviene conocer
 
+- **La moneda de la plataforma es el dolar estadounidense (USD).** Las columnas se
+  llaman `importe`/`saldo` (neutras); si algun dia cambia la moneda, solo cambia el
+  formateo en `js/api.js` (`dinero()`). Las columnas se llamaban `importe_eur` al
+  principio: el esquema renombra solo al arrancar si encuentra los nombres viejos.
 - **El dinero es `NUMERIC(18,2)`, nunca float.** En coma flotante `0.1 + 0.2` no da
   `0.3`, y en saldos de clientes eso son descuadres reales. Los importes viajan como
   string (`"1500.50"`) por el mismo motivo: `pg` los devuelve asi para no perder
   precision.
 - **`movimientos` es un libro append-only.** Hay reglas en la base de datos que
-  ignoran `UPDATE` y `DELETE` sobre esa tabla: el saldo es `SUM(importe_eur)`, y un
+  ignoran `UPDATE` y `DELETE` sobre esa tabla: el saldo es `SUM(importe)`, y un
   libro que se puede reescribir no prueba nada. Para corregir un error se anade un
   movimiento de tipo `ajuste`, no se edita el anterior.
 - **El saldo no se guarda, se calcula** (vista `saldos`). Asi no hay dos numeros que

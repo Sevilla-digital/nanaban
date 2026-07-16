@@ -162,7 +162,7 @@ check('usuario inexistente -> 401', r5b.status === 401, String(r5b.status));
 const r6 = await get('/api/clientes/me', token);
 const me = await r6.json();
 check('GET /me -> 200', r6.status === 200, String(r6.status));
-check('saldo inicial 0.00', String(me.saldo_eur) === '0.00', String(me.saldo_eur));
+check('saldo inicial 0.00', String(me.saldo) === '0.00', String(me.saldo));
 
 // sin token
 const r7 = await get('/api/clientes/me');
@@ -176,7 +176,7 @@ check('token manipulado -> 401', r8.status === 401, String(r8.status));
 const r9 = await post('/api/clientes/movimientos', {
   clienteId: reg.cliente.id,
   tipo: 'deposito',
-  importeEur: '1000000.00',
+  importe: '1000000.00',
   descripcion: 'Me regalo un millon',
 }, token);
 check('cliente normal no puede crear movimientos -> 403', r9.status === 403, String(r9.status));
@@ -201,25 +201,25 @@ const tokenAdmin = adminLogin.token;
 const r10 = await post('/api/clientes/movimientos', {
   clienteId: reg.cliente.id,
   tipo: 'deposito',
-  importeEur: '1500.50',
+  importe: '1500.50',
   descripcion: 'Ingreso inicial',
 }, tokenAdmin);
 check('admin crea deposito -> 201', r10.status === 201, String(r10.status));
 
 const r11 = await get('/api/clientes/me', tokenAdmin);
-check('saldo refleja el deposito', String((await r11.json()).saldo_eur) === '1500.50');
+check('saldo refleja el deposito', String((await r11.json()).saldo) === '1500.50');
 
 // retiro por encima del saldo
 const r12 = await post('/api/clientes/movimientos', {
   clienteId: reg.cliente.id,
   tipo: 'retiro',
-  importeEur: '-99999.00',
+  importe: '-99999.00',
   descripcion: 'Vaciar cuenta',
 }, tokenAdmin);
 check('retiro sin fondos -> 400', r12.status === 400, String(r12.status));
 
 const r13 = await get('/api/clientes/me', tokenAdmin);
-check('saldo intacto tras retiro rechazado', String((await r13.json()).saldo_eur) === '1500.50');
+check('saldo intacto tras retiro rechazado', String((await r13.json()).saldo) === '1500.50');
 
 // movimientos
 const r14 = await get('/api/clientes/me/movimientos', tokenAdmin);
@@ -229,7 +229,7 @@ check('lista de movimientos tiene 1 entrada', (await r14.json()).movimientos.len
 const rLista = await get('/api/clientes', tokenAdmin);
 const lista = await rLista.json();
 check('admin lista clientes -> 200', rLista.status === 200, String(rLista.status));
-check('el listado incluye a Ana con su saldo', lista.clientes?.some((c) => c.nombre === 'Ana' && String(c.saldo_eur) === '1500.50'));
+check('el listado incluye a Ana con su saldo', lista.clientes?.some((c) => c.nombre === 'Ana' && String(c.saldo) === '1500.50'));
 
 // admin: buscar por telefono
 const rBusca = await get('/api/clientes?buscar=600112233', tokenAdmin);
@@ -239,7 +239,7 @@ check('admin busca por telefono', (await rBusca.json()).clientes?.length === 1);
 const rDetalle = await get(`/api/clientes/${reg.cliente.id}`, tokenAdmin);
 const detalle = await rDetalle.json();
 check('admin ve el detalle de un cliente -> 200', rDetalle.status === 200, String(rDetalle.status));
-check('el detalle trae saldo y movimientos', String(detalle.saldo_eur) === '1500.50' && detalle.movimientos.length === 1);
+check('el detalle trae saldo y movimientos', String(detalle.saldo) === '1500.50' && detalle.movimientos.length === 1);
 
 // un cliente normal NO puede listar clientes
 const rClienteLista = await get('/api/clientes', token);

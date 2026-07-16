@@ -485,7 +485,7 @@
                                 </select>
                             </div>
                             <div>
-                                <label>Importe en € (positivo)</label>
+                                <label>Importe en $ (positivo)</label>
                                 <input name="importe" type="text" inputmode="decimal" placeholder="1500.50" required>
                             </div>
                         </div>
@@ -534,7 +534,7 @@
     </div>
 
     <script type="module">
-        import { api, sesion, euros, fecha } from './js/api.js';
+        import { api, sesion, dinero, fecha } from './js/api.js';
 
         const $ = (id) => document.getElementById(id);
         const mostrar = (id, si) => $(id).classList.toggle('oculto', !si);
@@ -602,12 +602,12 @@
             tabla.innerHTML = '<thead><tr><th>Fecha</th><th>Tipo</th><th>Descripción</th><th>Importe</th></tr></thead>';
             const tbody = document.createElement('tbody');
             for (const m of movimientos) {
-                const neg = Number(m.importe_eur) < 0;
+                const neg = Number(m.importe) < 0;
                 tbody.appendChild(fila([
                     fecha(m.creado_en),
                     m.tipo.replace('_', ' '),
                     m.descripcion,
-                    { texto: euros(m.importe_eur), clase: neg ? 'neg' : 'pos' },
+                    { texto: dinero(m.importe), clase: neg ? 'neg' : 'pos' },
                 ]));
             }
             tabla.appendChild(tbody);
@@ -622,7 +622,7 @@
             tabla.innerHTML = '<thead><tr><th>Fecha</th><th>Oro (g)</th><th>Importe</th><th>Estado</th></tr></thead>';
             const tbody = document.createElement('tbody');
             for (const i of inversiones) {
-                tbody.appendChild(fila([fecha(i.abierta_en), i.gramos_oro, euros(i.importe_eur), i.estado]));
+                tbody.appendChild(fila([fecha(i.abierta_en), i.gramos_oro, dinero(i.importe), i.estado]));
             }
             tabla.appendChild(tbody);
             cont.appendChild(tabla);
@@ -694,7 +694,7 @@
         async function cargarCliente() {
             const yo = await api('/api/clientes/me', { auth: true });
             $('cliente-saludo').textContent = `Hola, ${yo.nombre} ${yo.apellido || ''}`.trim();
-            $('cliente-saldo').textContent = euros(yo.saldo_eur);
+            $('cliente-saldo').textContent = dinero(yo.saldo);
             tablaInversiones('cliente-inversiones', yo.inversiones);
             const mov = await api('/api/clientes/me/movimientos', { auth: true });
             tablaMovimientos('cliente-movimientos', mov.movimientos);
@@ -728,7 +728,7 @@
                 const tbody = document.createElement('tbody');
                 for (const c of clientes) {
                     const nombre = `${c.nombre} ${c.apellido || ''}`.trim() + (c.es_admin ? ' ⭐' : '');
-                    tbody.appendChild(fila([nombre, c.usuario || '—', c.telefono, euros(c.saldo_eur)], () => abrirCliente(c.id)));
+                    tbody.appendChild(fila([nombre, c.usuario || '—', c.telefono, dinero(c.saldo)], () => abrirCliente(c.id)));
                 }
                 tabla.appendChild(tbody);
                 cont.appendChild(tabla);
@@ -742,7 +742,7 @@
             const c = await api('/api/clientes/' + id, { auth: true });
             $('detalle-nombre').textContent = `${c.nombre} ${c.apellido || ''}`.trim();
             $('detalle-tel').textContent = [c.usuario, c.telefono].filter(Boolean).join(' · ');
-            $('detalle-saldo').textContent = euros(c.saldo_eur);
+            $('detalle-saldo').textContent = dinero(c.saldo);
             tablaInversiones('detalle-inversiones', c.inversiones);
             tablaMovimientos('detalle-movimientos', c.movimientos);
             $('error-movimiento').textContent = ''; $('ok-movimiento').textContent = '';
@@ -771,13 +771,13 @@
                 return;
             }
             const resta = tipo === 'retiro' || tipo === 'compra_oro';
-            const importeEur = (resta ? '-' : '') + magnitud;
+            const importe = (resta ? '-' : '') + magnitud;
             const btn = f.querySelector('button[type=submit]');
             btn.disabled = true;
             try {
                 await api('/api/clientes/movimientos', {
                     metodo: 'POST', auth: true,
-                    cuerpo: { clienteId: clienteAbierto, tipo, importeEur, descripcion: f.descripcion.value },
+                    cuerpo: { clienteId: clienteAbierto, tipo, importe, descripcion: f.descripcion.value },
                 });
                 $('ok-movimiento').textContent = 'Movimiento registrado.';
                 f.reset();

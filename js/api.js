@@ -67,11 +67,14 @@ export async function api(ruta, { metodo = 'GET', cuerpo, auth = false } = {}) {
   return datos;
 }
 
-/** Formatea un importe (que viaja como string "1500.50") a "1.500,50 €". */
-export function euros(valor) {
+/**
+ * Formatea un importe (que viaja como string "1500.50") a "$1,500.50".
+ * La moneda de la plataforma es el dolar estadounidense (USD).
+ */
+export function dinero(valor) {
   const n = Number(valor);
   if (!Number.isFinite(n)) return '—';
-  return n.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' });
+  return n.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
 }
 
 export function fecha(iso) {
