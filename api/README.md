@@ -57,6 +57,15 @@ HTTP de verdad. No necesita base de datos ni red.
 | GET    | `/api/clientes/me`            | cliente      |
 | GET    | `/api/clientes/me/movimientos`| cliente      |
 | POST   | `/api/clientes/movimientos`   | **solo admin** |
+| GET    | `/api/pagos/metodos`          | cliente      |
+| GET    | `/api/pagos/metodos/gestion`  | **solo admin** |
+| POST   | `/api/pagos/metodos`          | **solo admin** |
+| PUT    | `/api/pagos/metodos/:id`      | **solo admin** |
+| DELETE | `/api/pagos/metodos/:id`      | **solo admin** |
+| POST   | `/api/pagos/recargas`         | cliente      |
+| GET    | `/api/pagos/recargas`         | **solo admin** |
+| POST   | `/api/pagos/recargas/:id/confirmar` | **solo admin** |
+| POST   | `/api/pagos/recargas/:id/rechazar`  | **solo admin** |
 
 Auth por token JWT: `Authorization: Bearer <token>`.
 

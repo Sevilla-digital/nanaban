@@ -602,6 +602,178 @@
         .estado-mov { display: flex; align-items: center; gap: 8px; color: var(--texto-suave); }
         .punto-ok { width: 8px; height: 8px; border-radius: 9999px; background: #4ade80; flex-shrink: 0; }
         .monto-pos { color: var(--primario); font-weight: 600; }
+
+        /* ---- Pantalla de recarga ---- */
+        .recarga-volver {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-family: Inter, sans-serif;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--texto-suave);
+            background: none;
+            border: none;
+            cursor: pointer;
+            margin-bottom: 24px;
+            transition: color 0.2s;
+        }
+        .recarga-volver:hover { color: var(--primario); }
+        .recarga-cabecera h1 { font-family: Montserrat, sans-serif; font-size: 32px; font-weight: 700; margin-bottom: 12px; }
+        @media (min-width: 768px) { .recarga-cabecera h1 { font-size: 40px; } }
+        .recarga-cabecera p { color: var(--texto-suave); max-width: 42rem; }
+        .recarga-importe { max-width: 320px; margin: 32px 0 8px; }
+        .rejilla-metodos { display: grid; grid-template-columns: 1fr; gap: 24px; margin-top: 24px; }
+        @media (min-width: 1024px) { .rejilla-metodos { grid-template-columns: repeat(2, 1fr); } }
+        .tarjeta-metodo {
+            background: linear-gradient(145deg, rgba(26,28,28,0.9), rgba(18,20,20,0.95));
+            border: 1px solid var(--borde);
+            border-radius: 12px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            transition: border-color 0.3s, box-shadow 0.3s, transform 0.3s;
+        }
+        .tarjeta-metodo:hover {
+            border-color: rgba(212, 175, 55, 0.3);
+            box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.5);
+            transform: translateY(-2px);
+        }
+        .tarjeta-metodo .cabezal { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+        .tarjeta-metodo .cuadro-icono {
+            width: 48px;
+            height: 48px;
+            border-radius: 8px;
+            background: #282a2b;
+            border: 1px solid rgba(77, 70, 53, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primario);
+            flex-shrink: 0;
+        }
+        .tarjeta-metodo h2 { font-family: Montserrat, sans-serif; font-size: 22px; font-weight: 600; }
+        .tarjeta-metodo .descripcion { color: var(--texto-suave); font-size: 14px; margin-bottom: 20px; }
+        .lista-opciones { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
+        .opcion-metodo {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            width: 100%;
+            padding: 16px;
+            border-radius: 8px;
+            background: #1a1c1c;
+            border: 1px solid #333535;
+            color: var(--texto);
+            font-family: inherit;
+            font-size: 1em;
+            text-align: left;
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s;
+        }
+        .opcion-metodo:hover { border-color: var(--primario); background: #202323; }
+        .opcion-metodo .izq { display: flex; align-items: center; gap: 12px; min-width: 0; }
+        .opcion-metodo .redondo {
+            width: 32px;
+            height: 32px;
+            border-radius: 9999px;
+            background: #37393a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: Inter, sans-serif;
+            font-size: 12px;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+        .opcion-metodo .nombre { font-family: Inter, sans-serif; font-weight: 500; }
+        .opcion-metodo .material-symbols-outlined { color: var(--texto-suave); font-size: 18px; }
+        .recarga-seguridad {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--texto-suave);
+            font-family: Inter, sans-serif;
+            font-size: 12px;
+            margin-top: 40px;
+            padding-top: 24px;
+            border-top: 1px solid rgba(77, 70, 53, 0.2);
+        }
+
+        /* ---- Modal de pago con temporizador ---- */
+        .modal-fondo {
+            position: fixed;
+            inset: 0;
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+        .modal {
+            background: #1a1c1c;
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            border-radius: 16px;
+            padding: 28px;
+            width: 100%;
+            max-width: 460px;
+            max-height: 92vh;
+            overflow-y: auto;
+        }
+        .modal-cima { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+        .modal-cima h2 { font-family: Montserrat, sans-serif; font-size: 22px; font-weight: 600; }
+        .cerrar-modal { background: none; border: none; color: var(--texto-suave); cursor: pointer; padding: 4px; display: flex; }
+        .cerrar-modal:hover { color: var(--primario); }
+        .modal-sub { color: var(--texto-suave); font-size: 14px; margin-bottom: 20px; }
+        .cronometro {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            padding: 16px;
+            border-radius: 12px;
+            background: rgba(212, 175, 55, 0.08);
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            margin-bottom: 20px;
+        }
+        .cronometro .tiempo { font-family: Montserrat, sans-serif; font-size: 40px; font-weight: 700; color: var(--primario); line-height: 1; }
+        .cronometro.agotado { background: rgba(255, 180, 171, 0.08); border-color: rgba(255, 180, 171, 0.3); }
+        .cronometro.agotado .tiempo { color: var(--error); }
+        .cronometro .rotulo { font-family: Inter, sans-serif; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--texto-suave); }
+        .dato-pago {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--borde);
+        }
+        .dato-pago:last-of-type { border-bottom: none; }
+        .dato-pago .k { font-family: Inter, sans-serif; font-size: 13px; color: var(--texto-suave); flex-shrink: 0; }
+        .dato-pago .v { font-family: Inter, sans-serif; font-weight: 600; text-align: right; word-break: break-all; }
+        .copiar {
+            background: none;
+            border: 1px solid var(--borde);
+            color: var(--texto-suave);
+            border-radius: 6px;
+            cursor: pointer;
+            padding: 4px 8px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-family: Inter, sans-serif;
+            font-size: 12px;
+            flex-shrink: 0;
+            transition: color 0.2s, border-color 0.2s;
+        }
+        .copiar:hover { color: var(--primario); border-color: var(--primario); }
+        .copiar .material-symbols-outlined { font-size: 14px; }
+        .modal .aviso { font-size: 12px; color: var(--texto-suave); margin: 16px 0; line-height: 1.5; }
     </style>
 </head>
 <body>
@@ -780,10 +952,10 @@
                                 <div class="saldo-grande" id="cliente-saldo">—</div>
                             </div>
                             <div class="acciones-saldo">
-                                <a class="btn" href="mailto:support@sevilladigitall.com?subject=Depósito de fondos">
+                                <button class="btn" type="button" id="abrir-recarga">
                                     <span class="material-symbols-outlined" style="font-size:18px">add</span>
                                     Recargar saldo
-                                </a>
+                                </button>
                                 <a class="btn sec" href="mailto:support@sevilladigitall.com?subject=Retiro de fondos">
                                     <span class="material-symbols-outlined" style="font-size:18px">arrow_outward</span>
                                     Retirar fondos
@@ -808,12 +980,75 @@
         </div>
     </div>
 
+    <!-- ================= RECARGAR SALDO (cliente) ================= -->
+    <div id="vista-recarga" class="oculto">
+        <div class="cliente-main-int">
+            <button class="recarga-volver" type="button" id="recarga-volver">
+                <span class="material-symbols-outlined" style="font-size:18px">arrow_back</span>
+                Volver al panel
+            </button>
+            <div class="recarga-cabecera">
+                <h1>Recargar saldo</h1>
+                <p>Indica el monto y elige tu método de depósito. El mínimo es $10. Al pulsar un
+                   método verás los datos de pago y un temporizador de 5 minutos para completarlo.</p>
+            </div>
+
+            <div class="recarga-importe">
+                <label for="recarga-monto">Monto a recargar (USD)</label>
+                <div class="campo">
+                    <span class="material-symbols-outlined">attach_money</span>
+                    <input id="recarga-monto" type="text" inputmode="decimal" placeholder="100.00" value="">
+                </div>
+                <div class="error" id="error-recarga"></div>
+            </div>
+
+            <div class="rejilla-metodos" id="recarga-metodos">
+                <p class="muted">Cargando métodos…</p>
+            </div>
+
+            <div class="recarga-seguridad">
+                <span class="material-symbols-outlined" style="font-size:16px">lock</span>
+                Tras realizar el pago, tu recarga queda registrada y el equipo la confirma al recibir los fondos.
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de pago con temporizador -->
+    <div id="modal-pago" class="modal-fondo oculto">
+        <div class="modal">
+            <div class="modal-cima">
+                <h2 id="modal-titulo">Datos de pago</h2>
+                <button class="cerrar-modal" type="button" id="cerrar-modal" aria-label="Cerrar">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <p class="modal-sub" id="modal-sub"></p>
+
+            <div class="cronometro" id="cronometro">
+                <span class="tiempo" id="cronometro-tiempo">05:00</span>
+                <span class="rotulo">Tiempo para completar el pago</span>
+            </div>
+
+            <div id="modal-datos"></div>
+
+            <p class="aviso">Realiza el pago exacto por el monto indicado dentro del tiempo. Cuando lo
+               hayas hecho, pulsa el botón para registrar tu recarga; el equipo la confirmará al
+               verificar los fondos.</p>
+
+            <div class="error" id="error-modal"></div>
+            <div class="ok" id="ok-modal"></div>
+            <button class="btn ancho" type="button" id="ya-pague">Ya realicé el pago</button>
+        </div>
+    </div>
+
     <div class="contenedor">
         <!-- ================= ADMIN ================= -->
         <div id="vista-admin" class="oculto">
             <h1 style="margin-bottom:20px">Panel de administración</h1>
             <div class="tabs">
                 <div class="tab activa" id="tab-clientes">Clientes</div>
+                <div class="tab" id="tab-recargas">Recargas</div>
+                <div class="tab" id="tab-metodos">Métodos de pago</div>
                 <div class="tab" id="tab-config">Configuración del sitio</div>
             </div>
 
@@ -860,6 +1095,60 @@
                     <div id="detalle-inversiones"></div>
                     <h2>Movimientos</h2>
                     <div id="detalle-movimientos"></div>
+                </div>
+            </div>
+
+            <!-- Recargas -->
+            <div id="panel-recargas" class="oculto">
+                <div class="tarjeta">
+                    <h2 style="margin-top:0">Solicitudes de recarga</h2>
+                    <p class="muted">Cuando confirmes una recarga, se abona el saldo del cliente automáticamente.</p>
+                    <div id="lista-recargas"><p class="muted">Cargando…</p></div>
+                </div>
+            </div>
+
+            <!-- Métodos de pago -->
+            <div id="panel-metodos" class="oculto">
+                <div class="tarjeta">
+                    <h2 style="margin-top:0">Añadir método de pago</h2>
+                    <p class="muted">Los métodos activos son los que ven los clientes al recargar. Desactiva uno para dejar de recibir por ahí sin borrarlo.</p>
+                    <form id="form-metodo">
+                        <label>Tipo</label>
+                        <select name="tipo" id="metodo-tipo">
+                            <option value="banco">Cuenta bancaria</option>
+                            <option value="cripto">Criptomoneda</option>
+                        </select>
+
+                        <div id="campos-banco">
+                            <label>Nombre del banco</label>
+                            <input name="etiqueta_banco" placeholder="p. ej. Banco Lafise">
+                            <label>Titular de la cuenta</label>
+                            <input name="titular" placeholder="p. ej. Gold Corp S.A.">
+                            <div class="fila">
+                                <div><label>Número de cuenta</label><input name="numero_cuenta" placeholder="1001-2002-3003"></div>
+                                <div><label>Moneda</label><input name="moneda" placeholder="USD" value="USD"></div>
+                            </div>
+                        </div>
+
+                        <div id="campos-cripto" class="oculto">
+                            <label>Moneda (etiqueta)</label>
+                            <input name="etiqueta_cripto" placeholder="p. ej. USDT">
+                            <label>Red</label>
+                            <input name="red" placeholder="p. ej. TRC20">
+                            <label>Dirección de la billetera</label>
+                            <input name="direccion" placeholder="Dirección donde recibes el pago">
+                        </div>
+
+                        <label>Notas para el cliente (opcional)</label>
+                        <input name="notas" placeholder="p. ej. Acreditación en 24-48 h">
+                        <div class="error" id="error-metodo"></div>
+                        <div class="ok" id="ok-metodo"></div>
+                        <button class="btn" type="submit">Añadir método</button>
+                    </form>
+                </div>
+                <div class="tarjeta">
+                    <h2 style="margin-top:0">Métodos configurados</h2>
+                    <div id="lista-metodos"><p class="muted">Cargando…</p></div>
                 </div>
             </div>
 
@@ -1184,18 +1473,211 @@
             movimientosCliente('cliente-movimientos', mov.movimientos);
         }
 
+        // ---------- Recargar saldo (cliente) ----------
+        const DURACION_RECARGA = 5 * 60; // segundos que da el temporizador para pagar
+        let cronoInterval = null;
+        let recargaEnCurso = null; // { metodo, monto }
+
+        $('abrir-recarga').onclick = () => {
+            mostrar('vista-cliente', false);
+            mostrar('vista-recarga', true);
+            $('error-recarga').textContent = '';
+            cargarMetodosRecarga();
+        };
+        $('recarga-volver').onclick = () => {
+            mostrar('vista-recarga', false);
+            mostrar('vista-cliente', true);
+        };
+
+        async function cargarMetodosRecarga() {
+            const cont = $('recarga-metodos');
+            cont.innerHTML = '';
+            cont.appendChild(el('p', 'muted', 'Cargando métodos…'));
+            try {
+                const { metodos } = await api('/api/pagos/metodos', { auth: true });
+                cont.innerHTML = '';
+                const bancos = metodos.filter((m) => m.tipo === 'banco');
+                const criptos = metodos.filter((m) => m.tipo === 'cripto');
+                if (!bancos.length && !criptos.length) {
+                    cont.appendChild(el('p', 'muted',
+                        'Aún no hay métodos de pago disponibles. Escríbenos y te ayudamos.'));
+                    return;
+                }
+                if (bancos.length) {
+                    cont.appendChild(tarjetaMetodos('Cuentas bancarias',
+                        'Transferencia directa desde bancos locales. Acreditación en 24-48 h hábiles.',
+                        'account_balance', bancos));
+                }
+                if (criptos.length) {
+                    cont.appendChild(tarjetaMetodos('Criptomonedas',
+                        'Depósito a través de redes blockchain.', 'currency_bitcoin', criptos));
+                }
+            } catch (err) {
+                cont.innerHTML = '';
+                cont.appendChild(el('p', 'error', err.message));
+            }
+        }
+
+        function tarjetaMetodos(titulo, desc, icono, metodos) {
+            const tarjeta = el('div', 'tarjeta-metodo');
+            const cabezal = el('div', 'cabezal');
+            const cuadro = el('div', 'cuadro-icono');
+            cuadro.appendChild(el('span', 'material-symbols-outlined', icono));
+            cabezal.append(cuadro, el('h2', '', titulo));
+            tarjeta.appendChild(cabezal);
+            tarjeta.appendChild(el('p', 'descripcion', desc));
+            const lista = el('div', 'lista-opciones');
+            for (const m of metodos) {
+                const btn = el('button', 'opcion-metodo');
+                btn.type = 'button';
+                const izq = el('div', 'izq');
+                izq.append(
+                    el('div', 'redondo', (m.etiqueta || '?').slice(0, 2).toUpperCase()),
+                    el('span', 'nombre', m.etiqueta + (m.red ? ' · ' + m.red : ''))
+                );
+                btn.append(izq, el('span', 'material-symbols-outlined', 'chevron_right'));
+                btn.onclick = () => abrirModalPago(m);
+                lista.appendChild(btn);
+            }
+            tarjeta.appendChild(lista);
+            return tarjeta;
+        }
+
+        function abrirModalPago(metodo) {
+            // Sin un monto valido (>= $10) el temporizador no tiene sentido: validamos antes.
+            const monto = ($('recarga-monto').value || '').trim().replace(',', '.');
+            if (!/^\d{1,15}(\.\d{1,2})?$/.test(monto) || Number(monto) < 10) {
+                $('error-recarga').textContent = 'Introduce un monto de al menos $10 antes de elegir un método.';
+                $('recarga-monto').focus();
+                return;
+            }
+            $('error-recarga').textContent = '';
+            recargaEnCurso = { metodo, monto };
+
+            $('modal-titulo').textContent =
+                metodo.tipo === 'banco' ? 'Transferencia bancaria' : 'Depósito en cripto';
+            $('modal-sub').textContent = `Envía exactamente ${dinero(monto)} a estos datos:`;
+
+            const datos = $('modal-datos');
+            datos.innerHTML = '';
+            const filas = metodo.tipo === 'banco'
+                ? [['Banco', metodo.etiqueta, false], ['Titular', metodo.titular, false],
+                   ['Cuenta', metodo.numero_cuenta, true], ['Moneda', metodo.moneda, false]]
+                : [['Moneda', metodo.etiqueta, false], ['Red', metodo.red, false],
+                   ['Dirección', metodo.direccion, true]];
+            if (metodo.notas) filas.push(['Nota', metodo.notas, false]);
+            filas.push(['Monto', dinero(monto), true]);
+
+            for (const [k, v, copiable] of filas) {
+                const fila = el('div', 'dato-pago');
+                fila.appendChild(el('span', 'k', k));
+                if (copiable) {
+                    const caja = el('div');
+                    caja.style.cssText = 'display:flex;align-items:center;gap:8px;min-width:0';
+                    caja.appendChild(el('span', 'v', v));
+                    const b = el('button', 'copiar');
+                    b.type = 'button';
+                    b.appendChild(el('span', 'material-symbols-outlined', 'content_copy'));
+                    b.append('Copiar');
+                    b.onclick = () => copiar(v, b);
+                    caja.appendChild(b);
+                    fila.appendChild(caja);
+                } else {
+                    fila.appendChild(el('span', 'v', v));
+                }
+                datos.appendChild(fila);
+            }
+
+            $('error-modal').textContent = ''; $('ok-modal').textContent = '';
+            const yaPague = $('ya-pague');
+            yaPague.disabled = false; yaPague.textContent = 'Ya realicé el pago';
+            $('cronometro').classList.remove('agotado');
+            mostrar('modal-pago', true);
+            iniciarCrono();
+        }
+
+        function iniciarCrono() {
+            clearInterval(cronoInterval);
+            let restante = DURACION_RECARGA;
+            const pinta = () => {
+                const mm = String(Math.floor(restante / 60)).padStart(2, '0');
+                const ss = String(restante % 60).padStart(2, '0');
+                $('cronometro-tiempo').textContent = `${mm}:${ss}`;
+            };
+            pinta();
+            cronoInterval = setInterval(() => {
+                restante -= 1;
+                pinta();
+                if (restante <= 0) {
+                    clearInterval(cronoInterval);
+                    $('cronometro').classList.add('agotado');
+                    $('error-modal').textContent =
+                        'Se agotó el tiempo. Si ya pagaste puedes registrarlo igualmente; si no, cierra y vuelve a empezar.';
+                }
+            }, 1000);
+        }
+
+        function cerrarModal() {
+            clearInterval(cronoInterval);
+            mostrar('modal-pago', false);
+            recargaEnCurso = null;
+        }
+        $('cerrar-modal').onclick = cerrarModal;
+        $('modal-pago').onclick = (e) => { if (e.target === $('modal-pago')) cerrarModal(); };
+
+        async function copiar(texto, btn) {
+            try {
+                await navigator.clipboard.writeText(texto);
+                const span = btn.querySelector('span');
+                span.textContent = 'check';
+                setTimeout(() => { span.textContent = 'content_copy'; }, 1500);
+            } catch { /* el navegador puede bloquear el portapapeles; se copia a mano */ }
+        }
+
+        $('ya-pague').onclick = async () => {
+            if (!recargaEnCurso) return;
+            $('error-modal').textContent = ''; $('ok-modal').textContent = '';
+            const btn = $('ya-pague');
+            btn.disabled = true; btn.textContent = 'Registrando…';
+            try {
+                await api('/api/pagos/recargas', {
+                    metodo: 'POST', auth: true,
+                    cuerpo: { metodoId: recargaEnCurso.metodo.id, monto: recargaEnCurso.monto },
+                });
+                clearInterval(cronoInterval);
+                $('ok-modal').textContent = 'Recarga registrada. Se abonará en cuanto verifiquemos el pago.';
+                btn.textContent = 'Registrado ✓';
+                setTimeout(() => {
+                    cerrarModal();
+                    mostrar('vista-recarga', false);
+                    mostrar('vista-cliente', true);
+                    cargarCliente();
+                }, 1800);
+            } catch (err) {
+                $('error-modal').textContent = err.message;
+                btn.disabled = false; btn.textContent = 'Ya realicé el pago';
+            }
+        };
+
         // ---------- Vista de admin ----------
         let clienteAbierto = null;
 
-        $('tab-clientes').onclick = () => {
-            $('tab-clientes').classList.add('activa'); $('tab-config').classList.remove('activa');
-            mostrar('panel-clientes', true); mostrar('panel-config', false);
-        };
-        $('tab-config').onclick = () => {
-            $('tab-config').classList.add('activa'); $('tab-clientes').classList.remove('activa');
-            mostrar('panel-config', true); mostrar('panel-clientes', false);
-            cargarConfig();
-        };
+        // Pestañas del admin: cada una muestra su panel y, si tiene, ejecuta un cargador.
+        const TABS_ADMIN = [
+            { tab: 'tab-clientes', panel: 'panel-clientes' },
+            { tab: 'tab-recargas', panel: 'panel-recargas', cargar: () => listarRecargas() },
+            { tab: 'tab-metodos', panel: 'panel-metodos', cargar: () => listarMetodos() },
+            { tab: 'tab-config', panel: 'panel-config', cargar: () => cargarConfig() },
+        ];
+        for (const t of TABS_ADMIN) {
+            $(t.tab).onclick = () => {
+                for (const otro of TABS_ADMIN) {
+                    $(otro.tab).classList.toggle('activa', otro === t);
+                    mostrar(otro.panel, otro === t);
+                }
+                t.cargar?.();
+            };
+        }
 
         let debounce;
         $('buscar').oninput = (e) => { clearTimeout(debounce); debounce = setTimeout(() => listarClientes(e.target.value), 300); };
@@ -1317,6 +1799,181 @@
             }
         };
 
+        // ---------- Admin: recargas ----------
+        const ESTADO_RECARGA = { pendiente: 'Pendiente', confirmada: 'Confirmada', rechazada: 'Rechazada' };
+
+        // Botón pequeño para las celdas de acción de las tablas de admin.
+        function botonAccion(texto, clase, onClick) {
+            const b = el('button', 'btn ' + clase, texto);
+            b.type = 'button';
+            b.style.cssText = 'margin:0 0 0 8px;padding:8px 14px;font-size:12px';
+            b.onclick = onClick;
+            return b;
+        }
+
+        async function listarRecargas() {
+            const cont = $('lista-recargas');
+            cont.innerHTML = '';
+            cont.appendChild(el('p', 'muted', 'Cargando…'));
+            try {
+                const { recargas } = await api('/api/pagos/recargas', { auth: true });
+                cont.innerHTML = '';
+                if (!recargas.length) { cont.appendChild(el('p', 'muted', 'No hay solicitudes de recarga.')); return; }
+                const tabla = document.createElement('table');
+                tabla.innerHTML =
+                    '<thead><tr><th>Fecha</th><th>Cliente</th><th>Método</th><th>Monto</th><th>Estado</th><th></th></tr></thead>';
+                const tbody = document.createElement('tbody');
+                for (const r of recargas) {
+                    const tr = document.createElement('tr');
+                    tr.appendChild(el('td', '', fecha(r.creada_en)));
+                    const quien = `${r.nombre} ${r.apellido || ''}`.trim() + (r.usuario ? ` (@${r.usuario})` : '');
+                    tr.appendChild(el('td', '', quien));
+                    tr.appendChild(el('td', '', r.metodo_desc));
+                    tr.appendChild(el('td', 'monto-pos', dinero(r.monto)));
+                    tr.appendChild(el('td', '', ESTADO_RECARGA[r.estado] ?? r.estado));
+                    const acc = document.createElement('td');
+                    acc.style.whiteSpace = 'nowrap';
+                    if (r.estado === 'pendiente') {
+                        acc.appendChild(botonAccion('Confirmar', '', (e) => accionRecarga(r.id, 'confirmar', e.target)));
+                        acc.appendChild(botonAccion('Rechazar', 'sec', (e) => accionRecarga(r.id, 'rechazar', e.target)));
+                    }
+                    tr.appendChild(acc);
+                    tbody.appendChild(tr);
+                }
+                tabla.appendChild(tbody);
+                cont.appendChild(tabla);
+            } catch (err) {
+                cont.innerHTML = '';
+                cont.appendChild(el('p', 'error', err.message));
+            }
+        }
+
+        async function accionRecarga(id, accion, btn) {
+            if (accion === 'rechazar' && !confirm('¿Rechazar esta recarga? No se abonará nada.')) return;
+            btn.disabled = true;
+            try {
+                await api(`/api/pagos/recargas/${id}/${accion}`, { metodo: 'POST', auth: true });
+                listarRecargas();
+                if (accion === 'confirmar' && clienteAbierto) abrirCliente(clienteAbierto);
+            } catch (err) {
+                alert(err.message);
+                btn.disabled = false;
+            }
+        }
+
+        // ---------- Admin: métodos de pago ----------
+        $('metodo-tipo').onchange = () => {
+            const esBanco = $('metodo-tipo').value === 'banco';
+            mostrar('campos-banco', esBanco);
+            mostrar('campos-cripto', !esBanco);
+        };
+
+        $('form-metodo').onsubmit = async (e) => {
+            e.preventDefault();
+            $('error-metodo').textContent = ''; $('ok-metodo').textContent = '';
+            const f = e.target;
+            const tipo = f.tipo.value;
+
+            let cuerpo;
+            if (tipo === 'banco') {
+                if (!f.etiqueta_banco.value.trim() || !f.titular.value.trim()
+                    || !f.numero_cuenta.value.trim() || !f.moneda.value.trim()) {
+                    $('error-metodo').textContent = 'Completa banco, titular, número de cuenta y moneda.';
+                    return;
+                }
+                cuerpo = {
+                    tipo, etiqueta: f.etiqueta_banco.value, titular: f.titular.value,
+                    numero_cuenta: f.numero_cuenta.value, moneda: f.moneda.value, notas: f.notas.value,
+                };
+            } else {
+                if (!f.etiqueta_cripto.value.trim() || !f.red.value.trim() || !f.direccion.value.trim()) {
+                    $('error-metodo').textContent = 'Completa moneda, red y dirección.';
+                    return;
+                }
+                cuerpo = {
+                    tipo, etiqueta: f.etiqueta_cripto.value, red: f.red.value,
+                    direccion: f.direccion.value, notas: f.notas.value,
+                };
+            }
+
+            const btn = f.querySelector('button[type=submit]');
+            btn.disabled = true;
+            try {
+                await api('/api/pagos/metodos', { metodo: 'POST', auth: true, cuerpo });
+                $('ok-metodo').textContent = 'Método añadido.';
+                f.reset();
+                $('metodo-tipo').dispatchEvent(new Event('change'));
+                listarMetodos();
+            } catch (err) {
+                $('error-metodo').textContent = err.message;
+            } finally {
+                btn.disabled = false;
+            }
+        };
+
+        // Reconstruye el cuerpo completo (que exige el PUT) a partir de una fila existente.
+        function cuerpoMetodo(m, cambios = {}) {
+            const base = m.tipo === 'banco'
+                ? { tipo: 'banco', etiqueta: m.etiqueta, titular: m.titular,
+                    numero_cuenta: m.numero_cuenta, moneda: m.moneda }
+                : { tipo: 'cripto', etiqueta: m.etiqueta, red: m.red, direccion: m.direccion };
+            return { ...base, notas: m.notas || '', activo: m.activo, orden: m.orden || 0, ...cambios };
+        }
+
+        async function listarMetodos() {
+            const cont = $('lista-metodos');
+            cont.innerHTML = '';
+            cont.appendChild(el('p', 'muted', 'Cargando…'));
+            try {
+                const { metodos } = await api('/api/pagos/metodos/gestion', { auth: true });
+                cont.innerHTML = '';
+                if (!metodos.length) { cont.appendChild(el('p', 'muted', 'Aún no has añadido métodos.')); return; }
+                const tabla = document.createElement('table');
+                tabla.innerHTML = '<thead><tr><th>Tipo</th><th>Detalle</th><th>Estado</th><th></th></tr></thead>';
+                const tbody = document.createElement('tbody');
+                for (const m of metodos) {
+                    const tr = document.createElement('tr');
+                    tr.appendChild(el('td', '', m.tipo === 'banco' ? 'Banco' : 'Cripto'));
+                    const detalle = m.tipo === 'banco'
+                        ? `${m.etiqueta} · ${m.numero_cuenta} (${m.moneda})`
+                        : `${m.etiqueta} · ${m.red} · ${m.direccion}`;
+                    tr.appendChild(el('td', '', detalle));
+                    tr.appendChild(el('td', m.activo ? 'pos' : 'muted', m.activo ? 'Activo' : 'Inactivo'));
+                    const acc = document.createElement('td');
+                    acc.style.whiteSpace = 'nowrap';
+                    acc.appendChild(botonAccion(m.activo ? 'Desactivar' : 'Activar', 'sec',
+                        (e) => cambiarActivo(m, e.target)));
+                    acc.appendChild(botonAccion('Borrar', 'sec', (e) => borrarMetodo(m.id, e.target)));
+                    tr.appendChild(acc);
+                    tbody.appendChild(tr);
+                }
+                tabla.appendChild(tbody);
+                cont.appendChild(tabla);
+            } catch (err) {
+                cont.innerHTML = '';
+                cont.appendChild(el('p', 'error', err.message));
+            }
+        }
+
+        async function cambiarActivo(m, btn) {
+            btn.disabled = true;
+            try {
+                await api(`/api/pagos/metodos/${m.id}`, {
+                    metodo: 'PUT', auth: true, cuerpo: cuerpoMetodo(m, { activo: !m.activo }),
+                });
+                listarMetodos();
+            } catch (err) { alert(err.message); btn.disabled = false; }
+        }
+
+        async function borrarMetodo(id, btn) {
+            if (!confirm('¿Borrar este método? Las recargas ya registradas se conservan.')) return;
+            btn.disabled = true;
+            try {
+                await api(`/api/pagos/metodos/${id}`, { metodo: 'DELETE', auth: true });
+                listarMetodos();
+            } catch (err) { alert(err.message); btn.disabled = false; }
+        }
+
         // ---------- Decide qué vista mostrar ----------
         async function arrancar() {
             const autenticado = !!sesion.token;
@@ -1325,6 +1982,8 @@
             // lleva su propia marca y cierre de sesion (lateral y cabecera movil).
             mostrar('barra-top', autenticado && sesion.esAdmin);
             mostrar('vista-cliente', false);
+            mostrar('vista-recarga', false);
+            mostrar('modal-pago', false);
             mostrar('vista-admin', false);
             if (!autenticado) return;
 

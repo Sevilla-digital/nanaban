@@ -291,6 +291,106 @@ const rCampoRaro = await fetch(`${BASE}/api/sitio`, {
 });
 check('campo desconocido rechazado -> 400', rCampoRaro.status === 400, String(rCampoRaro.status));
 
+// --- Metodos de pago y recargas ---
+
+// Un cliente de verdad (no admin) para el flujo de recarga.
+await post('/api/clientes/registro', {
+  nombre: 'Rita', apellido: 'Paga', usuario: 'rita.paga',
+  telefono: '+34655443322', password: 'unacontrasenalarga',
+});
+const rRita = await post('/api/clientes/login', { usuario: 'rita.paga', password: 'unacontrasenalarga' });
+const rita = await rRita.json();
+const tokenRita = rita.token;
+const ritaId = rita.cliente.id;
+
+// cliente normal no puede gestionar metodos -> 403
+const rGestNoAdmin = await get('/api/pagos/metodos/gestion', tokenRita);
+check('cliente normal no gestiona metodos -> 403', rGestNoAdmin.status === 403, String(rGestNoAdmin.status));
+
+// admin crea una cuenta bancaria
+const rBanco = await post('/api/pagos/metodos', {
+  tipo: 'banco', etiqueta: 'Banco Lafise', titular: 'Gold Corp SA',
+  numero_cuenta: '1001-2002-3003', moneda: 'USD',
+}, tokenAdmin);
+const banco = await rBanco.json();
+check('admin crea metodo banco -> 201', rBanco.status === 201, String(rBanco.status));
+
+// admin crea una cripto
+const rCripto = await post('/api/pagos/metodos', {
+  tipo: 'cripto', etiqueta: 'USDT', red: 'TRC20',
+  direccion: 'TXYZ1234567890abcdefghij',
+}, tokenAdmin);
+const cripto = await rCripto.json();
+check('admin crea metodo cripto -> 201', rCripto.status === 201, String(rCripto.status));
+
+// banco sin numero de cuenta -> 400
+const rBancoMal = await post('/api/pagos/metodos', {
+  tipo: 'banco', etiqueta: 'Sin cuenta', titular: 'X', moneda: 'USD',
+}, tokenAdmin);
+check('banco sin numero de cuenta -> 400', rBancoMal.status === 400, String(rBancoMal.status));
+
+// tipo desconocido -> 400
+const rTipoMal = await post('/api/pagos/metodos', { tipo: 'paypal', etiqueta: 'X' }, tokenAdmin);
+check('tipo de metodo desconocido -> 400', rTipoMal.status === 400, String(rTipoMal.status));
+
+// admin crea un metodo inactivo: el cliente NO debe verlo
+const rInactivo = await post('/api/pagos/metodos', {
+  tipo: 'banco', etiqueta: 'BAC (llena)', titular: 'Gold Corp SA',
+  numero_cuenta: '9', moneda: 'USD', activo: false,
+}, tokenAdmin);
+const inactivo = await rInactivo.json();
+check('admin crea metodo inactivo -> 201', rInactivo.status === 201, String(rInactivo.status));
+
+// el cliente ve solo los activos (banco + cripto = 2)
+const rMetCliente = await get('/api/pagos/metodos', tokenRita);
+const metCliente = await rMetCliente.json();
+check('cliente ve solo metodos activos (2)', metCliente.metodos?.length === 2, String(metCliente.metodos?.length));
+check('el inactivo no aparece', !metCliente.metodos.some((m) => m.id === inactivo.id));
+
+// recarga por debajo del minimo -> 400
+const rMin = await post('/api/pagos/recargas', { metodoId: banco.id, monto: '9.99' }, tokenRita);
+check('recarga por debajo de $10 -> 400', rMin.status === 400, String(rMin.status));
+
+// recarga contra un metodo inactivo -> 400
+const rContraInactivo = await post('/api/pagos/recargas', { metodoId: inactivo.id, monto: '50' }, tokenRita);
+check('recarga contra metodo inactivo -> 400', rContraInactivo.status === 400, String(rContraInactivo.status));
+
+// recarga valida -> 201
+const rRecarga = await post('/api/pagos/recargas', { metodoId: banco.id, monto: '50.00' }, tokenRita);
+const recarga = await rRecarga.json();
+check('recarga valida -> 201', rRecarga.status === 201, String(rRecarga.status));
+check('la recarga guarda la descripcion del metodo', /Lafise/.test(recarga.metodo_desc), recarga.metodo_desc);
+
+// admin ve la recarga pendiente
+const rPend = await get('/api/pagos/recargas?estado=pendiente', tokenAdmin);
+const pend = await rPend.json();
+check('admin ve la recarga pendiente', pend.recargas?.some((x) => x.id === recarga.id));
+
+// cliente no puede confirmar -> 403
+const rConfNoAdmin = await post(`/api/pagos/recargas/${recarga.id}/confirmar`, {}, tokenRita);
+check('cliente no confirma recargas -> 403', rConfNoAdmin.status === 403, String(rConfNoAdmin.status));
+
+// admin confirma -> 201 y abona el saldo
+const rConf = await post(`/api/pagos/recargas/${recarga.id}/confirmar`, {}, tokenAdmin);
+check('admin confirma la recarga -> 201', rConf.status === 201, String(rConf.status));
+
+const rSaldoRita = await get('/api/clientes/me', tokenRita);
+check('el saldo de Rita sube a 50.00', String((await rSaldoRita.json()).saldo) === '50.00');
+
+// confirmar dos veces NO abona doble -> 409
+const rDoble = await post(`/api/pagos/recargas/${recarga.id}/confirmar`, {}, tokenAdmin);
+check('confirmar dos veces -> 409 (sin doble abono)', rDoble.status === 409, String(rDoble.status));
+const rSaldoRita2 = await get('/api/clientes/me', tokenRita);
+check('el saldo sigue en 50.00 tras el doble intento', String((await rSaldoRita2.json()).saldo) === '50.00');
+
+// borrar un metodo -> el cliente deja de verlo
+const rDel = await fetch(`${BASE}/api/pagos/metodos/${cripto.id}`, {
+  method: 'DELETE', headers: { authorization: `Bearer ${tokenAdmin}` },
+});
+check('admin borra un metodo -> 200', rDel.status === 200, String(rDel.status));
+const rMetTrasBorrar = await get('/api/pagos/metodos', tokenRita);
+check('el metodo borrado ya no aparece', !(await rMetTrasBorrar.json()).metodos.some((m) => m.id === cripto.id));
+
 // inyeccion SQL
 const r15 = await post('/api/clientes/login', {
   usuario: "' OR '1'='1",

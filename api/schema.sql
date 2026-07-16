@@ -106,3 +106,50 @@ CREATE TABLE IF NOT EXISTS configuracion_sitio (
 
 -- Garantiza que la fila unica exista siempre, sin duplicarla en re-ejecuciones.
 INSERT INTO configuracion_sitio (id) VALUES (1) ON CONFLICT (id) DO NOTHING;
+
+-- Metodos de pago para recargar saldo. Los gestiona el admin desde el panel y el
+-- cliente los ve al recargar. Una sola tabla para bancos y cripto: la columna 'tipo'
+-- decide que campos aplican (la API valida cada tipo con un esquema distinto).
+CREATE TABLE IF NOT EXISTS metodos_pago (
+  id             BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  tipo           TEXT        NOT NULL CHECK (tipo IN ('banco', 'cripto')),
+  etiqueta       TEXT        NOT NULL CHECK (length(trim(etiqueta)) > 0),
+  -- Campos de banco (obligatorios solo cuando tipo='banco', lo exige la API).
+  titular        TEXT,
+  numero_cuenta  TEXT,
+  moneda         TEXT,
+  -- Campos de cripto.
+  red            TEXT,
+  direccion      TEXT,
+  -- Comunes.
+  notas          TEXT        NOT NULL DEFAULT '',
+  activo         BOOLEAN     NOT NULL DEFAULT TRUE,
+  orden          INT         NOT NULL DEFAULT 0,
+  creado_en      TIMESTAMPTZ NOT NULL DEFAULT now(),
+  actualizado_en TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_metodos_pago ON metodos_pago (tipo, activo, orden, id);
+
+-- Solicitudes de recarga: cuando el cliente pulsa "ya realice el pago", queda una
+-- fila pendiente que el admin ve y confirma. Al confirmar se crea el deposito.
+-- El minimo son 10 dolares (lo exige tambien la API antes de insertar).
+CREATE TABLE IF NOT EXISTS recargas (
+  id             BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  cliente_id     BIGINT        NOT NULL REFERENCES clientes(id) ON DELETE RESTRICT,
+  monto          NUMERIC(18,2) NOT NULL CHECK (monto >= 10),
+  -- Si se borra el metodo, la recarga sobrevive con su descripcion congelada.
+  metodo_id      BIGINT        REFERENCES metodos_pago(id) ON DELETE SET NULL,
+  metodo_desc    TEXT          NOT NULL,
+  referencia     TEXT          NOT NULL DEFAULT '',
+  estado         TEXT          NOT NULL DEFAULT 'pendiente'
+                               CHECK (estado IN ('pendiente', 'confirmada', 'rechazada')),
+  -- Deposito creado al confirmar. Enlaza la recarga con el movimiento del libro.
+  movimiento_id  BIGINT        REFERENCES movimientos(id) ON DELETE RESTRICT,
+  atendida_por   BIGINT        REFERENCES clientes(id) ON DELETE RESTRICT,
+  atendida_en    TIMESTAMPTZ,
+  creada_en      TIMESTAMPTZ   NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_recargas_estado ON recargas (estado, creada_en DESC);
+CREATE INDEX IF NOT EXISTS idx_recargas_cliente ON recargas (cliente_id, creada_en DESC);
