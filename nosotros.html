@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gold Corp Financial - Inversión en Oro</title>
+    <title>Nosotros - Gold Corp Financial</title>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@400;600;700&family=Source+Serif+4:wght@400;600&display=swap" rel="stylesheet">
     <style>
@@ -368,19 +368,99 @@
             transition: color 0.2s;
         }
         .pie-enlaces a:hover { color: var(--oro); }
+
+        /* ---- Seccion Nosotros ---- */
+        .nosotros-eyebrow {
+            font-family: Inter, sans-serif; font-size: 12px; font-weight: 600;
+            letter-spacing: 0.18em; text-transform: uppercase; color: var(--oro);
+            display: inline-block; padding-bottom: 8px;
+            border-bottom: 1px solid var(--borde-oro); margin-bottom: 24px;
+        }
+        /* Intro con imagen de fondo */
+        .nosotros-hero { position: relative; overflow: hidden; padding: 96px 0; border-bottom: 1px solid var(--borde); }
+        .nosotros-hero-fondo {
+            position: absolute; inset: 0; z-index: 0;
+            background-size: cover; background-position: center; opacity: 0.22;
+        }
+        .nosotros-hero-fondo::after {
+            content: ''; position: absolute; inset: 0;
+            background: linear-gradient(to bottom, rgba(18, 20, 20, 0.75), var(--fondo));
+        }
+        .nosotros-intro { position: relative; z-index: 1; text-align: center; max-width: 62rem; }
+        .nosotros-intro h2 {
+            font-family: Montserrat, sans-serif; font-weight: 700; font-size: 30px;
+            line-height: 1.15; letter-spacing: -0.02em; margin-bottom: 24px;
+        }
+        @media (min-width: 768px) { .nosotros-intro h2 { font-size: 46px; } }
+        .nosotros-intro > p { color: var(--texto-suave); font-size: 18px; max-width: 42rem; margin: 0 auto 32px; }
+
+        .nosotros-bloque { padding-top: 80px; padding-bottom: 80px; }
+        /* Nuestra Mision */
+        .nosotros-mision { display: grid; grid-template-columns: 1fr; gap: 40px; align-items: center; }
+        @media (min-width: 900px) { .nosotros-mision { grid-template-columns: 5fr 6fr; gap: 64px; } }
+        .nosotros-mision h3 { font-family: Montserrat, sans-serif; font-size: 26px; font-weight: 600; margin-bottom: 20px; }
+        @media (min-width: 768px) { .nosotros-mision h3 { font-size: 32px; } }
+        .nosotros-linea { width: 64px; height: 2px; background: var(--oro-oscuro); margin-bottom: 24px; }
+        .nosotros-mision p { color: var(--texto-suave); margin-bottom: 20px; }
+        .nosotros-mision p:last-child { margin-bottom: 0; }
+        .nosotros-figura { position: relative; }
+        .nosotros-figura img {
+            position: relative; z-index: 1; width: 100%; height: auto; aspect-ratio: 4 / 3;
+            object-fit: cover; filter: contrast(1.1); border-radius: 4px; display: block; background: var(--tarjeta);
+        }
+        @media (min-width: 900px) { .nosotros-figura::before { content: ''; position: absolute; inset: -16px; border: 1px solid var(--borde-oro); z-index: 0; } }
+
+        /* Presencia Estrategica */
+        .nosotros-presencia { background: var(--tarjeta); border-top: 1px solid var(--borde); border-bottom: 1px solid var(--borde); padding-top: 80px; padding-bottom: 80px; }
+        .nosotros-titulo-centro { text-align: center; margin-bottom: 56px; }
+        .nosotros-titulo-centro h3 { font-family: Montserrat, sans-serif; font-size: 28px; font-weight: 600; }
+        @media (min-width: 768px) { .nosotros-titulo-centro h3 { font-size: 32px; } }
+        .nosotros-titulo-centro p { color: var(--oro); font-family: Inter, sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; margin-top: 8px; }
+        .nosotros-ubicaciones { display: grid; grid-template-columns: 1fr; gap: 24px; }
+        @media (min-width: 768px) { .nosotros-ubicaciones { grid-template-columns: repeat(3, 1fr); } }
+        .nosotros-ubic { background: var(--fondo); border: 1px solid var(--borde); border-radius: 8px; overflow: hidden; transition: border-color 0.3s, transform 0.3s; }
+        .nosotros-ubic:hover { border-color: var(--borde-oro); transform: translateY(-4px); }
+        .nosotros-ubic-img { height: 200px; overflow: hidden; background: var(--tarjeta); }
+        .nosotros-ubic-img > div { width: 100%; height: 100%; background-size: cover; background-position: center; transition: transform 0.7s ease; }
+        .nosotros-ubic:hover .nosotros-ubic-img > div { transform: scale(1.06); }
+        .nosotros-ubic-cuerpo { padding: 24px; }
+        .nosotros-ubic h4 { font-family: Montserrat, sans-serif; font-size: 22px; font-weight: 600; margin-bottom: 4px; }
+        .nosotros-ubic .region { color: var(--oro); font-family: Inter, sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 16px; }
+        .nosotros-ubic p { color: var(--texto-suave); font-size: 15px; }
+
+        /* Cumplimiento y regulacion */
+        .nosotros-cumplimiento { background: var(--tarjeta); border-left: 4px solid var(--oro); padding: 32px; position: relative; overflow: hidden; border-radius: 4px; }
+        @media (min-width: 768px) { .nosotros-cumplimiento { padding: 48px; } }
+        .nosotros-cumplimiento-glow { position: absolute; top: -80px; right: -80px; width: 240px; height: 240px; background: rgba(242, 202, 80, 0.06); border-radius: 9999px; filter: blur(60px); pointer-events: none; }
+        .nosotros-cumplimiento-cabecera { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; position: relative; z-index: 1; }
+        .nosotros-cumplimiento-cabecera .material-symbols-outlined { color: var(--oro); font-size: 32px; }
+        .nosotros-cumplimiento-cabecera h3 { font-family: Montserrat, sans-serif; font-size: 24px; font-weight: 600; }
+        @media (min-width: 768px) { .nosotros-cumplimiento-cabecera h3 { font-size: 28px; } }
+        .nosotros-cumplimiento > p { color: var(--texto-suave); font-size: 18px; max-width: 48rem; margin-bottom: 32px; position: relative; z-index: 1; }
+        .nosotros-cumplimiento strong { color: var(--texto); }
+        .nosotros-cumplimiento em { color: var(--texto-suave); font-style: italic; }
+        .nosotros-cumplimiento-cols { display: grid; grid-template-columns: 1fr; gap: 32px; position: relative; z-index: 1; }
+        @media (min-width: 768px) { .nosotros-cumplimiento-cols { grid-template-columns: 1fr 1fr; } }
+        .nosotros-cumplimiento-cols h5 { color: var(--oro); font-family: Inter, sans-serif; font-size: 14px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 8px; }
+        .nosotros-cumplimiento-cols p { color: var(--texto-suave); }
+
+        /* CTA final */
+        .nosotros-cta { text-align: center; padding-top: 80px; padding-bottom: 40px; }
+        .nosotros-cta h3 { font-family: Montserrat, sans-serif; font-size: 26px; font-weight: 600; margin-bottom: 32px; }
+        @media (min-width: 768px) { .nosotros-cta h3 { font-size: 32px; } }
     </style>
 </head>
 <body>
     <nav>
         <div class="contenedor nav-fila">
-            <a class="marca" href="/">
+            <a class="marca" href="index.html">
                 <img id="logo" alt="" hidden>
                 <span id="marca-nombre">Gold Corp Financial</span>
             </a>
             <div class="nav-enlaces">
-                <a class="activo" href="#inversiones">Inversiones</a>
-                <a href="#seguridad">Seguridad</a>
-                <a href="nosotros.html">Nosotros</a>
+                <a href="index.html#inversiones">Inversiones</a>
+                <a href="index.html#seguridad">Seguridad</a>
+                <a class="activo" href="nosotros.html">Nosotros</a>
             </div>
             <a class="btn btn-oro" id="btn-acceso" href="cuenta.html">
                 <span id="btn-acceso-texto">Acceso clientes</span>
@@ -390,83 +470,112 @@
     </nav>
 
     <main style="flex-grow:1">
-        <section class="hero">
-            <div class="hero-fondo">
-                <img alt="Despacho ejecutivo con vistas a la ciudad de noche y lingotes de oro sobre la mesa"
-                     src="https://lh3.googleusercontent.com/aida-public/AB6AXuCyYqaQ1XHXqu0MGK9YzQvsctAN1GY9KV6XmaWsVJNGA_n4hyv_7tdKpO2r01hw9XGYCuPITtK5oSP9HY-DjNC_5LQmUh8vv8iMvujtHUap6foGaNrEg0P-NyUijRuvxAXZhWQq1IokuyI_sUrlfO8BFfepX6wj438Ar0OYUK-1Z41GDhuKjPp32YlwD7zmu3iw7tcgzpZU5_nbLNae87qTkV7_Q53qy3vMgICFBDLON5oUtsnV6X1l">
-            </div>
-            <div class="contenedor hero-contenido">
-                <h1 id="titulo">Inversión en Oro: <span class="dorado">Segura y Rentable</span></h1>
-                <p id="texto-header">Su patrimonio merece la solidez del metal más precioso. Gestión profesional y transparencia garantizada para asegurar su futuro financiero.</p>
-                <div class="hero-botones">
-                    <a class="btn btn-oro btn-grande" href="cuenta.html">Empezar ahora</a>
-                    <a class="btn btn-borde" href="mailto:support@sevilladigitall.com">Contactar asesor</a>
+        <!-- ================= NOSOTROS ================= -->
+        <section class="nosotros" id="nosotros">
+            <!-- Intro con imagen de fondo -->
+            <div class="nosotros-hero">
+                <div class="nosotros-hero-fondo" style="background-image:url('https://lh3.googleusercontent.com/aida-public/AB6AXuBqOJnu5D2f5yVuEURb2F76TJSy_H2jy1ak7Cvz2iwvltqjmx5hdt7UB9iNLknSPbYReeFwzr_QE_bRAzLyZMUUAKji4xROs1m_xOl0nMlXMMa1ZP82F2yM0Dcha7BYym82hgXNUOLcdf2jwJzObP2Qfii_Akn7q_QhTL0JsrfN40fIdHzyNlKNsULYDxHJt9Gqk1qT5qzoaSQZe-TVHDWWAgKrI995K-jbc44nXT8KIRzKjsE7fDbr');"></div>
+                <div class="contenedor nosotros-intro">
+                    <span class="nosotros-eyebrow">Nosotros</span>
+                    <h2>Conectando inversores con la riqueza de la tierra nicaragüense.</h2>
+                    <p>Somos una firma de inversión de grado institucional dedicada a facilitar el acceso seguro y regulado a las minas de pequeña escala en Nicaragua, compartiendo beneficios tangibles a través de retornos diarios.</p>
+                    <a class="btn btn-oro btn-grande" href="index.html#inversiones">
+                        Ver oportunidades
+                        <span class="material-symbols-outlined" style="font-size:18px">arrow_forward</span>
+                    </a>
                 </div>
+            </div>
+
+            <!-- Nuestra Misión -->
+            <div class="contenedor nosotros-bloque">
+                <div class="nosotros-mision">
+                    <div>
+                        <h2 style="font-family:Montserrat,sans-serif;font-size:26px;font-weight:600;margin-bottom:20px">Nuestra Misión</h2>
+                        <div class="nosotros-linea"></div>
+                        <p>En Gold Corp Financial actuamos como el puente vital entre el capital global y las ricas operaciones mineras artesanales de Nicaragua. Nuestro modelo está diseñado para generar valor real, transformando el oro extraído en retornos diarios estables para nuestros clientes.</p>
+                        <p>No somos especuladores; somos facilitadores de la economía real, operando con la más estricta transparencia y rigor institucional para garantizar que cada onza extraída beneficie tanto a las comunidades locales como a nuestros inversores globales.</p>
+                    </div>
+                    <div class="nosotros-figura">
+                        <img loading="lazy"
+                             alt="Lingotes de oro refinado apilados en una bóveda institucional de alta seguridad"
+                             src="https://lh3.googleusercontent.com/aida-public/AB6AXuADy02pQQ6MIhfKwA-ADd-S_EaSWkbed9ZUL1XKU7HPZk0nBFNmqjiMfPr2HXhaaomn59l7gPLb983Q7QHr5oIX40P09Usx4UqsHIVWiZ1n44BUxZtlG4kd10MkagRs-Lr66vVojpgS6AXuV7868e6r1eXtAyTxFK7oV08SI92EJKf0vUp8vEfYU1eofvzdhIHVIYIGNlb_L1CtxGMmMaj3sgk1hAVGUfjXzl82VkEu5K74T41euILn">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Presencia Estratégica -->
+            <div class="nosotros-presencia">
+                <div class="contenedor">
+                    <div class="nosotros-titulo-centro">
+                        <h2 style="font-family:Montserrat,sans-serif;font-size:28px;font-weight:600">Presencia Estratégica</h2>
+                        <p>Operaciones clave en Nicaragua</p>
+                    </div>
+                    <div class="nosotros-ubicaciones">
+                        <article class="nosotros-ubic">
+                            <div class="nosotros-ubic-img">
+                                <div style="background-image:url('https://lh3.googleusercontent.com/aida-public/AB6AXuBjRccjyJNgHexA_7bf2-AOgC36iANRfcZ8217W-AaHm7py3zu_vR_l6AVoNtcw4x1fZM3jWOU5M1rKDW6-Xk10keh3uEugphXbel1dwqNgbx48OWp7vn_zLHEpa7EmZaDtIISzRuLhgqR8dJ8z6py9H-mW8Qu5kv-1sgOZs0xy1r0j6g5z7W4YScysESCT8k_8zV-ZEdX0bqROSeThqRCPLbAwQW7Ii7AIxGffeowcY7wIoqrxcN31');"></div>
+                            </div>
+                            <div class="nosotros-ubic-cuerpo">
+                                <h4>La Libertad</h4>
+                                <div class="region">Chontales</div>
+                                <p>Uno de los distritos auríferos más históricos de Nicaragua, donde colaboramos con mineros experimentados para asegurar un flujo constante y de alta pureza.</p>
+                            </div>
+                        </article>
+                        <article class="nosotros-ubic">
+                            <div class="nosotros-ubic-img">
+                                <div style="background-image:url('https://lh3.googleusercontent.com/aida-public/AB6AXuCn8XDNwbKa3o2uxPeSFUhpxHSI2EkU9vZf_Ytq-UQCKqtv6k3JXQbYdJM3bWq9bkdf40H9WcAgMvltSvWcuuro2dIy2gMccVJqvH8GRK3AF0MUl5TQp_7m646KpcFWJu_i7WxeKT8tjXxg-Fi4Vnx89VjRtLc4PC8Km5Y7ebQZHLXRKXG3ya8gnFFapekko08S5MExGZjBTqu7lk4whZbkclSgCTIbcio2CYUld3-hmlJPdDej09iJ');"></div>
+                            </div>
+                            <div class="nosotros-ubic-cuerpo">
+                                <h4>Bonanza</h4>
+                                <div class="region">RAAN</div>
+                                <p>Parte del célebre Triángulo Minero, Bonanza ofrece operaciones de alto rendimiento. Nuestra presencia aquí fortalece nuestra capacidad de distribución diaria.</p>
+                            </div>
+                        </article>
+                        <article class="nosotros-ubic">
+                            <div class="nosotros-ubic-img">
+                                <div style="background-image:url('https://lh3.googleusercontent.com/aida-public/AB6AXuB6jmKPS3WB0Yyd7T3iBpicYtC9Srf-xuoTnbLqxLry3LGIxfZ-5W5IxYWO0JiFS-XRAun7oiwWbhA0HpD6ujkLi0YIX3nnjGvSgpEMrF-Db13qNbKeODHdWaevVpk--VooD__MEoCk5PQReIVJ8OqpmsQb9uvj3GekdZ9T_gQ3L_Krcb6ZXDokGC_8jWXj-QAwN5mGndSdSJTaxwtOEjcTAyPk2YuRllNFhKBeBTwgWLrqWci2btMD');"></div>
+                            </div>
+                            <div class="nosotros-ubic-cuerpo">
+                                <h4>Siuna</h4>
+                                <div class="region">Triángulo Minero</div>
+                                <p>Un pilar estratégico en nuestra red de extracción. Las alianzas en Siuna nos permiten escalar operaciones manteniendo rigurosos estándares de calidad.</p>
+                            </div>
+                        </article>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cumplimiento y Regulación -->
+            <div class="contenedor nosotros-bloque">
+                <div class="nosotros-cumplimiento">
+                    <div class="nosotros-cumplimiento-glow"></div>
+                    <div class="nosotros-cumplimiento-cabecera">
+                        <span class="material-symbols-outlined">gavel</span>
+                        <h2 style="font-family:Montserrat,sans-serif;font-size:24px;font-weight:600">Cumplimiento y Regulación Institucional</h2>
+                    </div>
+                    <p>La confianza es la base de las finanzas institucionales. Operamos bajo el estricto escrutinio y regulación del <strong>Ministerio de Energía y Minas (MEM)</strong> de Nicaragua.</p>
+                    <div class="nosotros-cumplimiento-cols">
+                        <div>
+                            <h5>Tercero Facilitador</h5>
+                            <p>Actuamos como una entidad puente auditada, garantizando que el capital fluya de manera segura hacia operaciones lícitas y que los retornos se distribuyan con precisión milimétrica a nuestros clientes.</p>
+                        </div>
+                        <div>
+                            <h5>Transparencia Total</h5>
+                            <p>Nuestros procesos de <em>Due Diligence</em> aseguran que cada operación minera asociada cumpla con los estándares ambientales y laborales nacionales, protegiendo su inversión de riesgos operativos.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CTA final -->
+            <div class="contenedor nosotros-cta">
+                <h2 style="font-family:Montserrat,sans-serif;font-size:26px;font-weight:600;margin-bottom:32px">Inicie su posición en oro físico</h2>
+                <a class="btn btn-borde" href="cuenta.html">
+                    Invertir ahora
+                    <span class="material-symbols-outlined" style="font-size:18px">arrow_forward</span>
+                </a>
             </div>
         </section>
-
-        <section class="contenedor ventajas" id="inversiones">
-            <div class="ventajas-cabecera">
-                <div class="estrellas">
-                    <span class="material-symbols-outlined">star</span>
-                    <span class="material-symbols-outlined">star</span>
-                    <span class="material-symbols-outlined">star</span>
-                    <span class="material-symbols-outlined">star</span>
-                    <span class="material-symbols-outlined">star</span>
-                </div>
-                <h2>Top 5 Estrellas en Inversión</h2>
-                <p>Respaldados por certificaciones de seguridad internacionales y la confianza de miles de inversores de alto patrimonio.</p>
-            </div>
-
-            <div class="bento">
-                <div class="celda doble" id="seguridad">
-                    <div class="celda-cima">
-                        <span class="material-symbols-outlined icono dorado">shield</span>
-                        <span class="chip">Certificado A+</span>
-                    </div>
-                    <div>
-                        <h3>Seguridad Absoluta</h3>
-                        <p>Su oro físico se almacena en bóvedas de alta seguridad auditadas independientemente, garantizando la protección total de sus activos contra cualquier eventualidad.</p>
-                    </div>
-                </div>
-
-                <div class="celda borde-oro">
-                    <span class="material-symbols-outlined icono oro-oscuro">trending_up</span>
-                    <div>
-                        <h3 class="oro-oscuro">Rentabilidad Sostenida</h3>
-                        <p class="pequeno">Históricamente, el oro ha mantenido su valor, protegiendo contra la inflación.</p>
-                    </div>
-                </div>
-
-                <div class="celda">
-                    <span class="material-symbols-outlined icono">currency_exchange</span>
-                    <div>
-                        <h3>Alta Liquidez</h3>
-                        <p class="pequeno">Convierta su inversión en efectivo rápidamente en los mercados globales 24/7.</p>
-                    </div>
-                </div>
-
-                <div class="celda doble">
-                    <div class="celda-cima">
-                        <span class="material-symbols-outlined icono">support_agent</span>
-                        <span class="en-linea"><span class="punto-verde"></span>Asesores Online</span>
-                    </div>
-                    <div>
-                        <h3>Asesoría Personalizada</h3>
-                        <p>Un equipo de expertos financieros dedicados a diseñar una estrategia de inversión en metales preciosos adaptada a su perfil de riesgo y objetivos a largo plazo.</p>
-                    </div>
-                </div>
-
-                <div class="celda">
-                    <span class="material-symbols-outlined icono">monitor_heart</span>
-                    <div>
-                        <h3>Tecnología Avanzada</h3>
-                        <p class="pequeno">Plataforma robusta para el monitoreo en tiempo real de sus posiciones.</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
     </main>
 
     <footer>
@@ -513,26 +622,8 @@
             if (c.nombre_sitio) {
                 document.getElementById('marca-nombre').textContent = c.nombre_sitio;
                 document.getElementById('pie-marca-nombre').textContent = c.nombre_sitio;
-                document.title = c.nombre_sitio + ' - Inversión en Oro';
+                document.title = c.nombre_sitio + ' - Nosotros';
             }
-            // El eslogan del panel sustituye al titular del hero. Si tiene un
-            // separador (: o -), la parte final va en dorado como en el diseño.
-            // Todo entra como texto plano (append/textContent), nunca como HTML.
-            if (c.eslogan) {
-                const titulo = document.getElementById('titulo');
-                titulo.textContent = '';
-                const partes = c.eslogan.match(/^(.+?[:\-–—]\s*)(.+)$/);
-                if (partes) {
-                    titulo.append(partes[1]);
-                    const acento = document.createElement('span');
-                    acento.className = 'dorado';
-                    acento.textContent = partes[2];
-                    titulo.append(acento);
-                } else {
-                    titulo.textContent = c.eslogan;
-                }
-            }
-            if (c.texto_header) document.getElementById('texto-header').textContent = c.texto_header;
             if (c.texto_footer) document.getElementById('footer-texto').textContent = c.texto_footer;
 
             const logo = document.getElementById('logo');
