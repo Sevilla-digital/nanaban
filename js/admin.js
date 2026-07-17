@@ -1,4 +1,4 @@
-import { api, euros, dinero, fecha, sesion } from './api.js';
+import { api, dinero, fecha, sesion } from './api.js';
 
 // Utilidades locales para no depender de main.js
 function el(etiqueta, clase = '', texto = '') {
