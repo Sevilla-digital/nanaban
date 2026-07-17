@@ -166,10 +166,13 @@ CREATE TABLE IF NOT EXISTS metodos_retiro_cliente (
   -- Cripto
   cripto_red       TEXT,
   cripto_direccion TEXT,
+  telefono_movil   TEXT,
   
   creado_en        TIMESTAMPTZ NOT NULL DEFAULT now(),
   activo           BOOLEAN     NOT NULL DEFAULT TRUE
 );
+
+ALTER TABLE metodos_retiro_cliente ADD COLUMN IF NOT EXISTS telefono_movil TEXT;
 
 -- Registro de solicitudes de retiro
 CREATE TABLE IF NOT EXISTS retiros (

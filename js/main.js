@@ -684,7 +684,7 @@ async function cargarMetodosRetiro() {
         metodosRetiro = metodos;
         renderizarMetodosRetiro();
     } catch (err) {
-        $('retiro-metodos-lista').innerHTML = '<p class="error">Error al cargar métodos</p>';
+        $('retiro-metodos-lista').innerHTML = '<p class="muted" style="grid-column: span 2; font-size:13px;">Por favor, agregar un método de pago.</p>';
     }
 }
 
