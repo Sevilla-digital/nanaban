@@ -275,6 +275,49 @@ router.get('/:id', requiereAuth, requiereAdmin, async (req, res, next) => {
   }
 });
 
+/** Eliminar un cliente por completo y todo su historial. Solo admin. */
+router.delete('/:id', requiereAuth, requiereAdmin, async (req, res, next) => {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: 'Id invalido' });
+    if (req.cliente.id === id) return res.status(403).json({ error: 'No puedes eliminarte a ti mismo' });
+
+    await withTransaction(async (client) => {
+      // Postgres RULES prevent DELETE and UPDATE on movimientos. We must temporarily disable them.
+      await client.query('ALTER TABLE movimientos DISABLE RULE movimientos_no_delete');
+      await client.query('ALTER TABLE movimientos DISABLE RULE movimientos_no_update');
+      
+      // Nullify references that point to this client to prevent foreign key errors
+      await client.query('UPDATE movimientos SET creado_por = NULL WHERE creado_por = $1', [id]);
+      await client.query('UPDATE recargas SET atendida_por = NULL WHERE atendida_por = $1', [id]);
+      await client.query('UPDATE clientes SET referido_por = NULL WHERE referido_por = $1', [id]);
+      
+      // Delete rows belonging to this client
+      await client.query('DELETE FROM recargas WHERE cliente_id = $1', [id]);
+      await client.query('DELETE FROM movimientos WHERE cliente_id = $1', [id]);
+      await client.query('DELETE FROM inversiones WHERE cliente_id = $1', [id]);
+      
+      // Delete the client
+      const r = await client.query('DELETE FROM clientes WHERE id = $1', [id]);
+      
+      // Re-enable the rules
+      await client.query('ALTER TABLE movimientos ENABLE RULE movimientos_no_delete');
+      await client.query('ALTER TABLE movimientos ENABLE RULE movimientos_no_update');
+
+      if (r.rowCount === 0) {
+        throw new Error('Cliente no encontrado');
+      }
+    });
+
+    res.json({ mensaje: 'Cliente eliminado' });
+  } catch (err) {
+    if (err.message === 'Cliente no encontrado') {
+      return res.status(404).json({ error: err.message });
+    }
+    next(err);
+  }
+});
+
 const nuevoMovimiento = z.object({
   // El driver pg devuelve los BIGINT como string, asi que los ids viajan como "12"
   // en el JSON que sale de la API y vuelven como string. Aceptamos ambos.

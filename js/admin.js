@@ -262,6 +262,27 @@ export function inicializarAdmin() {
         };
     }
 
+    if ($('btn-eliminar-cuenta')) {
+        $('btn-eliminar-cuenta').onclick = async () => {
+            if (!clienteAbierto) return;
+            if (!confirm('¿Estás seguro de que deseas ELIMINAR por completo a este cliente y todo su historial? Esta acción no se puede deshacer.')) return;
+            try {
+                const btn = $('btn-eliminar-cuenta');
+                btn.disabled = true;
+                btn.textContent = 'Eliminando...';
+                await api('/api/clientes/' + clienteAbierto, { method: 'DELETE', auth: true });
+                $('cerrar-detalle').click();
+                listarClientes();
+            } catch (err) {
+                alert('Error al eliminar: ' + err.message);
+            } finally {
+                const btn = $('btn-eliminar-cuenta');
+                btn.disabled = false;
+                btn.textContent = 'Eliminar cuenta';
+            }
+        };
+    }
+
     // Arrancar la primera pestaña (Clientes)
     listarClientes();
 }
