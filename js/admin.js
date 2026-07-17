@@ -165,7 +165,7 @@ export function inicializarAdmin() {
             btn.disabled = true;
             try {
                 await api('/api/clientes/movimientos', {
-                    metodo: 'POST', auth: true,
+                    method: 'POST', auth: true,
                     cuerpo: { clienteId: clienteAbierto, tipo, importeEur, descripcion: f.descripcion.value },
                 });
                 $('ok-movimiento').textContent = 'Movimiento registrado.';
@@ -196,7 +196,7 @@ export function inicializarAdmin() {
             const btn = f.querySelector('button');
             btn.disabled = true;
             try {
-                const c = await api('/api/sitio', { metodo: 'PUT', auth: true, cuerpo });
+                const c = await api('/api/sitio', { method: 'PUT', auth: true, cuerpo });
                 document.documentElement.style.setProperty('--primario', c.color_primario);
                 document.documentElement.style.setProperty('--fondo', c.color_fondo);
                 $('ok-config').textContent = 'Guardado. Se verá en la web pública.';
@@ -248,7 +248,7 @@ export function inicializarAdmin() {
             const btn = f.querySelector('button[type=submit]');
             btn.disabled = true;
             try {
-                await api('/api/pagos/metodos', { metodo: 'POST', auth: true, cuerpo });
+                await api('/api/pagos/metodos', { method: 'POST', auth: true, cuerpo });
                 $('ok-metodo').textContent = 'Método añadido.';
                 f.reset();
                 $('metodo-tipo').dispatchEvent(new Event('change'));
@@ -362,7 +362,7 @@ async function accionRecarga(id, accion, btn) {
     if (accion === 'rechazar' && !confirm('¿Rechazar esta recarga? No se abonará nada.')) return;
     btn.disabled = true;
     try {
-        await api(`/api/pagos/recargas/${id}/${accion}`, { metodo: 'POST', auth: true });
+        await api(`/api/pagos/recargas/${id}/${accion}`, { method: 'POST', auth: true });
         listarRecargas();
         if (accion === 'confirmar' && clienteAbierto) abrirCliente(clienteAbierto);
     } catch (err) {
@@ -419,7 +419,7 @@ async function cambiarActivo(m, btn) {
     btn.disabled = true;
     try {
         await api(`/api/pagos/metodos/${m.id}`, {
-            metodo: 'PUT', auth: true, cuerpo: cuerpoMetodo(m, { activo: !m.activo }),
+            method: 'PUT', auth: true, cuerpo: cuerpoMetodo(m, { activo: !m.activo }),
         });
         listarMetodos();
     } catch (err) { alert(err.message); btn.disabled = false; }
@@ -429,7 +429,7 @@ async function borrarMetodo(id, btn) {
     if (!confirm('¿Borrar este método? Las recargas ya registradas se conservan.')) return;
     btn.disabled = true;
     try {
-        await api(`/api/pagos/metodos/${id}`, { metodo: 'DELETE', auth: true });
+        await api(`/api/pagos/metodos/${id}`, { method: 'DELETE', auth: true });
         listarMetodos();
     } catch (err) { alert(err.message); btn.disabled = false; }
 }
