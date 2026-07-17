@@ -9,7 +9,10 @@ function el(etiqueta, clase = '', texto = '') {
 }
 function mostrar(id, visible) {
     const d = document.getElementById(id);
-    if (d) d.style.display = visible ? '' : 'none';
+    if (d) {
+        if (visible) d.classList.remove('oculto');
+        else d.classList.add('oculto');
+    }
 }
 const $ = id => document.getElementById(id);
 
