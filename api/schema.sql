@@ -80,16 +80,20 @@ BEGIN
 END $$;
 
 DO $$
-DECLARE constraint_name TEXT;
+DECLARE
+  rec RECORD;
 BEGIN
-  SELECT conname INTO constraint_name
-  FROM pg_constraint
-  WHERE conrelid = 'movimientos'::regclass AND (conname LIKE 'movimientos_tipo_check%' OR conname LIKE 'movimientos_tipo_check');
+  FOR rec IN
+    SELECT conname 
+    FROM pg_constraint 
+    WHERE conrelid = 'movimientos'::regclass 
+      AND contype = 'c' 
+      AND (conname LIKE '%tipo_check%' OR conname LIKE 'movimientos_%_check')
+  LOOP
+    EXECUTE 'ALTER TABLE movimientos DROP CONSTRAINT ' || rec.conname;
+  END LOOP;
   
-  IF constraint_name IS NOT NULL THEN
-    EXECUTE 'ALTER TABLE movimientos DROP CONSTRAINT ' || constraint_name;
-    EXECUTE 'ALTER TABLE movimientos ADD CONSTRAINT movimientos_tipo_check CHECK (tipo IN (''deposito'', ''retiro'', ''compra_oro'', ''venta_oro'', ''ajuste'', ''comision_referido''))';
-  END IF;
+  EXECUTE 'ALTER TABLE movimientos ADD CONSTRAINT movimientos_tipo_check CHECK (tipo IN (''deposito'', ''retiro'', ''compra_oro'', ''venta_oro'', ''ajuste'', ''comision_referido''))';
 END $$;
 
 -- Migracion para añadir el plan a inversiones existentes (si las hubiera).

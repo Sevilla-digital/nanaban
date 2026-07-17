@@ -776,6 +776,14 @@
         .copiar:hover { color: var(--primario); border-color: var(--primario); }
         .copiar .material-symbols-outlined { font-size: 14px; }
         .modal .aviso { font-size: 12px; color: var(--texto-suave); margin: 16px 0; line-height: 1.5; }
+        .metodo-retiro-radio:checked + div {
+            border-color: var(--primario) !important;
+            background: rgba(212, 175, 55, 0.05) !important;
+        }
+        .metodo-retiro-radio:checked + div .metodo-check {
+            color: var(--primario) !important;
+        }
+        
     </style>
     <style>
         /* Estilos adicionales para nueva-inversion.html */
@@ -1132,7 +1140,7 @@
                         <h1 style="font-size:32px; font-weight:600; margin:0 0 8px 0;">Retirar Fondos</h1>
                         <p style="margin:0; font-size:16px; color:var(--texto-suave);">Transferencia de liquidez a cuentas verificadas.</p>
                     </div>
-                    <div style="text-align:right;">
+                    <div style="text-align:right; margin-bottom: 24px; padding-right: 16px;">
                         <p style="font-size:12px; text-transform:uppercase; letter-spacing:0.1em; color:var(--texto-suave); margin:0 0 4px 0;">Balance Disponible</p>
                         <p style="font-size:40px; font-weight:700; color:var(--primario); margin:0;" id="retiro-balance-disponible">$0.00</p>
                     </div>
