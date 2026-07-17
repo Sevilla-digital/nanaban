@@ -65,8 +65,8 @@ router.post('/metodos', requiereAuth, async (req, res, next) => {
 // =================== Retiros (Cliente) ===================
 
 const solicitarRetiroEsquema = z.object({
-  monto: z.number().positive().min(30),
-  metodo_retiro_id: z.number().int().positive()
+  monto: z.coerce.number().positive().min(30),
+  metodo_retiro_id: z.coerce.number().int().positive()
 });
 
 /** Solicitar un retiro */
@@ -112,6 +112,9 @@ router.post('/', requiereAuth, async (req, res, next) => {
 
     res.status(201).json({ mensaje: 'Retiro solicitado. Procesamiento en 24h.' });
   } catch (err) {
+    if (err instanceof z.ZodError) {
+      return res.status(400).json({ error: err.errors.map(e => e.message).join(', ') });
+    }
     if (err.message === 'Saldo insuficiente' || err.message === 'Método de retiro inválido o inactivo') {
       return res.status(400).json({ error: err.message });
     }
