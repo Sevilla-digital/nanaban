@@ -199,14 +199,57 @@ function inicializarMenuLateral() {
         'cuenta.html': '#resumen',
         'nueva-inversion.html': 'nueva-inversion.html'
     };
+    
+    const actualizarVista = (hash) => {
+        if (!window.location.pathname.endsWith('cuenta.html')) return;
+        
+        const referidos = document.getElementById('sec-referidos');
+        const resumen = document.getElementById('resumen');
+        const inversiones = document.getElementById('sec-inversiones');
+        const movimientos = document.getElementById('sec-movimientos');
+        
+        if (!referidos || !resumen) return;
 
+        if (hash === '#sec-referidos') {
+            resumen.style.display = 'none';
+            inversiones.style.display = 'none';
+            movimientos.style.display = 'none';
+            referidos.style.display = 'block';
+        } else {
+            resumen.style.display = ''; // Se usa la clase original
+            inversiones.style.display = '';
+            movimientos.style.display = '';
+            referidos.style.display = 'none';
+        }
+    };
+
+    window.addEventListener('hashchange', () => {
+        actualizarVista(window.location.hash);
+        const hash = window.location.hash || enlaces[ruta];
+        for (const enlace of document.querySelectorAll('.lateral-enlace')) {
+            const href = enlace.getAttribute('href');
+            if (href === hash || (href === 'cuenta.html' && hash === enlaces['cuenta.html'])) {
+                enlace.classList.add('activo');
+            } else {
+                enlace.classList.remove('activo');
+            }
+        }
+    });
+
+    actualizarVista(window.location.hash);
+
+    const currentHash = window.location.hash || enlaces[ruta];
     for (const enlace of document.querySelectorAll('.lateral-enlace')) {
         const href = enlace.getAttribute('href');
-        if (href === enlaces[ruta] || (href.includes('cuenta.html') && ruta === 'cuenta.html')) {
+        if (href === currentHash || (href.includes('cuenta.html') && ruta === 'cuenta.html' && !window.location.hash)) {
             enlace.classList.add('activo');
         } else {
             enlace.classList.remove('activo');
         }
+        enlace.addEventListener('click', () => {
+            document.querySelectorAll('.lateral-enlace').forEach(e => e.classList.remove('activo'));
+            enlace.classList.add('activo');
+        });
     }
 }
 
@@ -361,7 +404,7 @@ async function cargarCliente() {
         
         const ref = await api('/api/clientes/referidos', { auth: true });
         if ($('link-referido')) {
-            $('link-referido').value = `${window.location.origin}?ref=${yo.usuario || ''}`;
+            $('link-referido').value = `${window.location.origin}/cuenta.html?ref=${yo.usuario || ''}`;
             $('btn-copiar-link').onclick = async () => {
                 try {
                     await navigator.clipboard.writeText($('link-referido').value);
