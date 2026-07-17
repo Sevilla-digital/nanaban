@@ -762,7 +762,7 @@ function inicializarRetiro() {
     
     if (btnAbrir) {
         btnAbrir.onclick = () => {
-            mostrar('vista-panel', false);
+            mostrar('vista-cliente', false);
             mostrar('vista-retiro', true);
             $('retiro-monto').value = '';
             actualizarResumenRetiro();
@@ -780,7 +780,7 @@ function inicializarRetiro() {
     if (btnVolver) {
         btnVolver.onclick = () => {
             mostrar('vista-retiro', false);
-            mostrar('vista-panel', true);
+            mostrar('vista-cliente', true);
         };
     }
 
