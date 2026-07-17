@@ -139,6 +139,8 @@ function inicializarRegistro() {
         const btn = form.querySelector('button[type=submit]');
         btn.disabled = true; btn.textContent = 'Creando…';
         try {
+            const params = new URLSearchParams(window.location.search);
+            const ref = params.get('ref') || undefined;
             const r = await api('/api/clientes/registro', {
                 method: 'POST',
                 body: {
@@ -146,6 +148,7 @@ function inicializarRegistro() {
                     usuario: form.usuario.value,
                     telefono: form.pais.value + form.telefono.value.replace(/\D/g, ''),
                     password: form.password.value,
+                    ref,
                 },
             });
             sesion.guardar(r.token, { ...r.cliente, esAdmin: r.cliente.es_admin === true });
@@ -275,6 +278,7 @@ const ICONO_TIPO = {
     compra_oro: 'shopping_cart',
     venta_oro: 'sell',
     ajuste: 'tune',
+    comision_referido: 'group',
 };
 
 function movimientosCliente(destino, movimientos) {
@@ -320,6 +324,30 @@ function movimientosCliente(destino, movimientos) {
     cont.appendChild(tabla);
 }
 
+function referidosCliente(destino, referidos) {
+    const cont = $(destino);
+    if (!cont) return;
+    cont.innerHTML = '';
+    if (!referidos?.length) {
+        const vacio = el('p', 'muted', 'Aún no has invitado a nadie.');
+        vacio.style.padding = '24px';
+        cont.appendChild(vacio);
+        return;
+    }
+    const tabla = document.createElement('table');
+    tabla.innerHTML = '<thead><tr><th>Fecha de registro</th><th>Nombre</th><th>Usuario</th></tr></thead>';
+    const tbody = document.createElement('tbody');
+    for (const r of referidos) {
+        const tr = document.createElement('tr');
+        tr.appendChild(el('td', '', fecha(r.creado_en)));
+        tr.appendChild(el('td', '', `${r.nombre} ${r.apellido || ''}`.trim()));
+        tr.appendChild(el('td', '', '@' + (r.usuario || '')));
+        tbody.appendChild(tr);
+    }
+    tabla.appendChild(tbody);
+    cont.appendChild(tabla);
+}
+
 async function cargarCliente() {
     try {
         const yo = await api('/api/clientes/me', { auth: true });
@@ -330,6 +358,19 @@ async function cargarCliente() {
         tarjetasInversiones('cliente-inversiones', yo.inversiones);
         const mov = await api('/api/clientes/me/movimientos', { auth: true });
         movimientosCliente('cliente-movimientos', mov.movimientos);
+        
+        const ref = await api('/api/clientes/referidos', { auth: true });
+        if ($('link-referido')) {
+            $('link-referido').value = `${window.location.origin}?ref=${yo.usuario || ''}`;
+            $('btn-copiar-link').onclick = async () => {
+                try {
+                    await navigator.clipboard.writeText($('link-referido').value);
+                    $('btn-copiar-link').textContent = '¡Copiado!';
+                    setTimeout(() => { $('btn-copiar-link').textContent = 'Copiar'; }, 1500);
+                } catch { }
+            };
+        }
+        referidosCliente('cliente-referidos', ref.referidos);
     } catch (err) {
         // Token caducado u otro fallo: api() ya limpia la sesion en un 401.
         if (!sesion.token) { arrancar(); return; }

@@ -960,6 +960,10 @@
                         <span class="material-symbols-outlined">receipt_long</span>
                         <span>Movimientos</span>
                     </a>
+                    <a class="lateral-enlace" href="#sec-referidos">
+                        <span class="material-symbols-outlined">group</span>
+                        <span>Referidos</span>
+                    </a>
                 </nav>
                 <div class="lateral-pie">
                     <a class="btn ancho" href="nueva-inversion.html">Nueva inversión</a>
@@ -1017,6 +1021,25 @@
                     <section class="seccion-cliente" id="sec-movimientos">
                         <header class="linea"><h2>Movimientos recientes</h2></header>
                         <div class="tabla-panel" id="cliente-movimientos"></div>
+                    </section>
+
+                    <!-- Referidos -->
+                    <section class="seccion-cliente" id="sec-referidos">
+                        <header class="linea">
+                            <h2>Programa de Referidos</h2>
+                        </header>
+                        <div class="tarjeta-resumen" style="margin-bottom:24px">
+                            <div style="width:100%">
+                                <div class="titulo">TU ENLACE DE INVITACIÓN</div>
+                                <div style="display:flex; gap:8px; align-items:center; margin-top:8px">
+                                    <input id="link-referido" readonly style="flex:1; background:var(--surface); border:1px solid #333; padding:8px 12px; color:var(--texto-principal); border-radius:4px" />
+                                    <button class="btn" id="btn-copiar-link" type="button">Copiar</button>
+                                </div>
+                                <p class="muted" style="margin-top:12px; font-size:0.9rem">Gana un 6% de las recargas de tus referidos directos, y un 3% de las de segundo nivel.</p>
+                            </div>
+                        </div>
+                        <header class="linea"><h3>Tus referidos directos</h3></header>
+                        <div class="tabla-panel" id="cliente-referidos"></div>
                     </section>
                 </main>
             </div>

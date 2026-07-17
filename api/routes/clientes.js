@@ -43,6 +43,7 @@ const registro = z.object({
     .regex(/^[a-zA-Z0-9._-]+$/, 'Solo letras, numeros y . _ - (sin espacios)'),
   telefono: z.string().min(6).max(20),
   password: z.string().min(8, 'La contrasena debe tener al menos 8 caracteres').max(200),
+  ref: z.string().trim().max(30).optional(),
 });
 
 router.post('/registro', limiteAuth, async (req, res, next) => {
@@ -58,11 +59,20 @@ router.post('/registro', limiteAuth, async (req, res, next) => {
     // Minusculas siempre: "Ana" y "ana" son el mismo usuario.
     const usuario = datos.data.usuario.toLowerCase();
     const hash = await hashPassword(datos.data.password);
+    
+    let referidoPorId = null;
+    if (datos.data.ref) {
+      const refRes = await query('SELECT id FROM clientes WHERE usuario = $1', [datos.data.ref.toLowerCase()]);
+      if (refRes.rows.length > 0) {
+        referidoPorId = refRes.rows[0].id;
+      }
+    }
+
     const { rows } = await query(
-      `INSERT INTO clientes (nombre, apellido, usuario, telefono, password_hash)
-       VALUES ($1, $2, $3, $4, $5)
+      `INSERT INTO clientes (nombre, apellido, usuario, telefono, password_hash, referido_por)
+       VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING id, nombre, apellido, usuario, telefono, es_admin, creado_en`,
-      [datos.data.nombre, datos.data.apellido, usuario, telefono, hash]
+      [datos.data.nombre, datos.data.apellido, usuario, telefono, hash, referidoPorId]
     );
 
     res.status(201).json({ token: firmarToken(rows[0]), cliente: rows[0] });
@@ -186,6 +196,22 @@ router.get('/me/movimientos', requiereAuth, async (req, res, next) => {
       [req.cliente.id, limite]
     );
     res.json({ movimientos: rows });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/** Referidos directos del cliente actual. */
+router.get('/referidos', requiereAuth, async (req, res, next) => {
+  try {
+    const { rows } = await query(
+      `SELECT id, nombre, apellido, usuario, creado_en
+       FROM clientes
+       WHERE referido_por = $1
+       ORDER BY creado_en DESC`,
+      [req.cliente.id]
+    );
+    res.json({ referidos: rows });
   } catch (err) {
     next(err);
   }

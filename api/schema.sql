@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS clientes (
 -- La tabla ya existia en Render sin estas columnas; los ALTER son las migraciones.
 ALTER TABLE clientes ADD COLUMN IF NOT EXISTS apellido TEXT NOT NULL DEFAULT '';
 ALTER TABLE clientes ADD COLUMN IF NOT EXISTS usuario TEXT;
+ALTER TABLE clientes ADD COLUMN IF NOT EXISTS referido_por BIGINT REFERENCES clientes(id) ON DELETE SET NULL;
 
 -- La unicidad del usuario vive SOLO en este indice (no en la columna) para que
 -- el nombre del constraint sea el mismo en instalaciones nuevas y migradas:
@@ -51,7 +52,7 @@ CREATE TABLE IF NOT EXISTS movimientos (
   id            BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   cliente_id    BIGINT        NOT NULL REFERENCES clientes(id) ON DELETE RESTRICT,
   tipo          TEXT          NOT NULL
-                              CHECK (tipo IN ('deposito', 'retiro', 'compra_oro', 'venta_oro', 'ajuste')),
+                              CHECK (tipo IN ('deposito', 'retiro', 'compra_oro', 'venta_oro', 'ajuste', 'comision_referido')),
   importe       NUMERIC(18,2) NOT NULL CHECK (importe <> 0),
   descripcion   TEXT          NOT NULL CHECK (length(trim(descripcion)) > 0),
   inversion_id  BIGINT        REFERENCES inversiones(id) ON DELETE RESTRICT,
@@ -74,6 +75,19 @@ BEGIN
   IF EXISTS (SELECT 1 FROM information_schema.columns
              WHERE table_name = 'inversiones' AND column_name = 'importe_eur') THEN
     ALTER TABLE inversiones RENAME COLUMN importe_eur TO importe;
+  END IF;
+END $$;
+
+DO $$
+DECLARE constraint_name TEXT;
+BEGIN
+  SELECT conname INTO constraint_name
+  FROM pg_constraint
+  WHERE conrelid = 'movimientos'::regclass AND (conname LIKE 'movimientos_tipo_check%' OR conname LIKE 'movimientos_tipo_check');
+  
+  IF constraint_name IS NOT NULL THEN
+    EXECUTE 'ALTER TABLE movimientos DROP CONSTRAINT ' || constraint_name;
+    EXECUTE 'ALTER TABLE movimientos ADD CONSTRAINT movimientos_tipo_check CHECK (tipo IN (''deposito'', ''retiro'', ''compra_oro'', ''venta_oro'', ''ajuste'', ''comision_referido''))';
   END IF;
 END $$;
 

@@ -292,6 +292,29 @@ router.post('/recargas/:id/confirmar', requiereAuth, requiereAdmin, async (req, 
          RETURNING id, cliente_id, tipo, importe, descripcion, creado_en`,
         [recarga.cliente_id, recarga.monto, `Recarga confirmada · ${recarga.metodo_desc}`, req.cliente.id]
       );
+
+      const cRes = await client.query('SELECT referido_por, usuario FROM clientes WHERE id = $1', [recarga.cliente_id]);
+      if (cRes.rows.length > 0 && cRes.rows[0].referido_por) {
+        const nivel1Id = cRes.rows[0].referido_por;
+        const nombreRef = cRes.rows[0].usuario || 'usuario_desconocido';
+        const comision1 = Number(recarga.monto) * 0.06;
+        await client.query(
+          `INSERT INTO movimientos (cliente_id, tipo, importe, descripcion, creado_por)
+           VALUES ($1, 'comision_referido', $2::numeric, $3, $4)`,
+          [nivel1Id, comision1, `Comision (6%) por referido directo (@${nombreRef})`, req.cliente.id]
+        );
+
+        const r2Res = await client.query('SELECT referido_por FROM clientes WHERE id = $1', [nivel1Id]);
+        if (r2Res.rows.length > 0 && r2Res.rows[0].referido_por) {
+          const nivel2Id = r2Res.rows[0].referido_por;
+          const comision2 = Number(recarga.monto) * 0.03;
+          await client.query(
+            `INSERT INTO movimientos (cliente_id, tipo, importe, descripcion, creado_por)
+             VALUES ($1, 'comision_referido', $2::numeric, $3, $4)`,
+            [nivel2Id, comision2, `Comision (3%) por referido indirecto (@${nombreRef})`, req.cliente.id]
+          );
+        }
+      }
       await client.query(
         `UPDATE recargas SET estado='confirmada', movimiento_id=$1, atendida_por=$2, atendida_en=now()
          WHERE id=$3`,
