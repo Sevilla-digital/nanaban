@@ -598,9 +598,9 @@ async function arrancar() {
     // Si está autenticado, mostramos el panel del cliente y cargamos sus datos
     try {
         if (sesion.esAdmin) {
-            // Lógica de admin (no implementada en este script)
-            console.log("Usuario admin detectado, redirigiendo a panel de admin si existiera.");
-            // Aquí iría la lógica para mostrar el panel de admin
+            mostrar('vista-admin', true);
+            const { inicializarAdmin } = await import('./admin.js');
+            inicializarAdmin();
         } else {
             mostrar('vista-cliente', true);
             await cargarCliente();
