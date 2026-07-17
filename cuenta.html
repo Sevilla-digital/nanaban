@@ -601,6 +601,8 @@
         .icono-mov .material-symbols-outlined { font-size: 16px; }
         .estado-mov { display: flex; align-items: center; gap: 8px; color: var(--texto-suave); }
         .punto-ok { width: 8px; height: 8px; border-radius: 9999px; background: #4ade80; flex-shrink: 0; }
+        .punto-wait { width: 8px; height: 8px; border-radius: 9999px; background: #eab308; flex-shrink: 0; }
+        .punto-err { width: 8px; height: 8px; border-radius: 9999px; background: #ef4444; flex-shrink: 0; }
         .monto-pos { color: var(--primario); font-weight: 600; }
 
         /* ---- Pantalla de recarga ---- */
@@ -1003,10 +1005,10 @@
                                     <span class="material-symbols-outlined" style="font-size:18px">add</span>
                                     Recargar saldo
                                 </button>
-                                <a class="btn sec" href="mailto:support@sevilladigitall.com?subject=Retiro de fondos">
+                                <button class="btn sec" type="button" id="abrir-retiro">
                                     <span class="material-symbols-outlined" style="font-size:18px">arrow_outward</span>
                                     Retirar fondos
-                                </a>
+                                </button>
                             </div>
                         </div>
                     </section>
@@ -1113,6 +1115,196 @@
         </div>
     </div>
 
+    <!-- ================= RETIRAR FONDOS (cliente) ================= -->
+    <div id="vista-retiro" class="oculto">
+        <div class="cliente-main-int" style="max-width: 1000px; padding: 24px;">
+            <button class="recarga-volver" type="button" id="retiro-volver">
+                <span class="material-symbols-outlined" style="font-size:18px">arrow_back</span>
+                Volver al panel
+            </button>
+            <div class="recarga-cabecera" style="margin-top: 24px;">
+                <div style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:24px;">
+                    <div>
+                        <div style="display:flex; align-items:center; gap:8px; color:var(--texto-suave); margin-bottom:8px;">
+                            <span class="material-symbols-outlined" style="font-size:16px;">account_balance</span>
+                            <span style="font-size:12px; text-transform:uppercase; letter-spacing:0.1em; font-weight:600;">Tesorería Corporativa</span>
+                        </div>
+                        <h1 style="font-size:32px; font-weight:600; margin:0 0 8px 0;">Retirar Fondos</h1>
+                        <p style="margin:0; font-size:16px; color:var(--texto-suave);">Transferencia de liquidez a cuentas verificadas.</p>
+                    </div>
+                    <div style="text-align:right;">
+                        <p style="font-size:12px; text-transform:uppercase; letter-spacing:0.1em; color:var(--texto-suave); margin:0 0 4px 0;">Balance Disponible</p>
+                        <p style="font-size:40px; font-weight:700; color:var(--primario); margin:0;" id="retiro-balance-disponible">$0.00</p>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap:32px; align-items:start; margin-top:32px;" class="retiro-grid">
+                
+                <!-- Columna Izquierda: Formulario -->
+                <div style="background:var(--superficie); border:1px solid #333; border-radius:12px; padding:24px; position:relative; overflow:hidden;">
+                    <div style="position:absolute; left:0; top:0; bottom:0; width:4px; background:var(--primario);"></div>
+                    <h2 style="font-size:14px; text-transform:uppercase; letter-spacing:0.05em; display:flex; align-items:center; gap:8px; margin:0 0 24px 0;">
+                        <span class="material-symbols-outlined" style="color:var(--primario); font-size:18px;">payments</span>
+                        Detalles de la Transacción
+                    </h2>
+                    
+                    <div style="margin-bottom:32px;">
+                        <label for="retiro-monto" style="display:block; font-size:12px; color:var(--texto-suave); margin-bottom:8px; font-weight:500;">Monto a Retirar (USD)</label>
+                        <div style="position:relative;">
+                            <span style="position:absolute; left:16px; top:50%; transform:translateY(-50%); color:var(--primario); font-size:18px;">$</span>
+                            <input id="retiro-monto" type="text" inputmode="decimal" placeholder="0.00" style="width:100%; background:var(--fondo); border:1px solid #444; border-radius:4px; color:var(--texto-principal); font-size:24px; font-weight:600; padding:12px 16px 12px 40px; outline:none; transition:border-color 0.2s;" onfocus="this.style.borderColor='var(--primario)'" onblur="this.style.borderColor='#444'">
+                            <button id="retiro-max" type="button" style="position:absolute; right:12px; top:50%; transform:translateY(-50%); background:rgba(242,202,80,0.1); color:var(--primario); border:none; padding:4px 12px; border-radius:4px; font-size:12px; font-weight:600; cursor:pointer;">MAX</button>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; margin-top:8px; padding:0 4px;">
+                            <span style="font-size:11px; color:var(--texto-suave);">Mínimo de retiro: $30.00 USD</span>
+                            <span style="font-size:11px; color:var(--primario); display:flex; align-items:center; gap:4px;">
+                                <span class="material-symbols-outlined" style="font-size:12px;">info</span>
+                                Comisión por retiro: 5%
+                            </span>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label style="display:block; font-size:12px; color:var(--texto-suave); margin-bottom:12px; font-weight:500;">Destino de los Fondos</label>
+                        <div id="retiro-metodos-lista" style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+                            <p class="muted" style="grid-column: span 2;">Cargando métodos...</p>
+                        </div>
+                        <button type="button" id="btn-nuevo-metodo" style="margin-top:16px; background:none; border:none; display:flex; align-items:center; gap:4px; color:var(--texto-suave); font-size:14px; cursor:pointer; padding:0;">
+                            <span class="material-symbols-outlined" style="font-size:16px;">add</span>
+                            <span style="text-decoration:underline; text-underline-offset:4px;">Añadir nueva cuenta</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Columna Derecha: Resumen -->
+                <div style="background:#1a1c1c; border:1px solid #333; border-radius:12px; padding:24px; position:sticky; top:32px;">
+                    <h3 style="font-size:14px; text-transform:uppercase; letter-spacing:0.05em; padding-bottom:16px; border-bottom:1px solid #333; margin:0 0 24px 0;">Resumen de Retiro</h3>
+                    <div style="margin-bottom:32px;">
+                        <div style="display:flex; justify-content:space-between; margin-bottom:16px;">
+                            <span style="color:var(--texto-suave);">Monto Solicitado</span>
+                            <span id="retiro-resumen-monto">$0.00</span>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; color:#ef4444; margin-bottom:16px;">
+                            <span>Comisión (5%)</span>
+                            <span id="retiro-resumen-comision">-$0.00</span>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; align-items:flex-end; padding-top:16px; border-top:1px solid #333;">
+                            <span style="font-size:14px; text-transform:uppercase; font-weight:500;">Total a Recibir</span>
+                            <span style="font-size:24px; font-weight:600; color:var(--primario);" id="retiro-resumen-total">$0.00</span>
+                        </div>
+                    </div>
+                    
+                    <div class="error" id="error-solicitud-retiro" style="margin-bottom:16px;"></div>
+                    <div class="ok" id="ok-solicitud-retiro" style="margin-bottom:16px;"></div>
+
+                    <button class="btn" id="btn-solicitar-retiro" type="button" style="width:100%; padding:16px; font-size:16px; display:flex; justify-content:center; gap:8px; margin-bottom:24px;">
+                        Solicitar Retiro
+                        <span class="material-symbols-outlined" style="font-size:20px;">arrow_forward</span>
+                    </button>
+                    <div style="display:flex; gap:12px; align-items:flex-start; background:var(--fondo); padding:16px; border-radius:8px; border:1px solid #333;">
+                        <span class="material-symbols-outlined" style="color:var(--primario); font-size:20px; opacity:0.8;">lock</span>
+                        <div>
+                            <p style="margin:0 0 4px 0; font-size:12px; font-weight:600; color:var(--texto-suave);">Seguridad Institucional</p>
+                            <p style="margin:0; font-size:11px; color:rgba(255,255,255,0.5); line-height:1.5;">Las solicitudes de retiro tardan un lapso de 24 horas en llegar, sujetos a verificación AML/KYC.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <style>
+                @media (max-width: 768px) {
+                    .retiro-grid { grid-template-columns: 1fr !important; }
+                    #retiro-metodos-lista { grid-template-columns: 1fr !important; }
+                }
+                .metodo-retiro-radio:checked + div {
+                    background: rgba(242,202,80,0.1);
+                    border-color: rgba(242,202,80,0.5);
+                }
+                .metodo-retiro-radio:checked + div .metodo-check {
+                    color: var(--primario);
+                }
+                .metodo-retiro-card:hover { border-color: #555; }
+            </style>
+        </div>
+    </div>
+
+    <!-- Modal Añadir Método de Retiro -->
+    <div id="modal-nuevo-metodo" class="modal-fondo oculto">
+        <div class="modal">
+            <div class="modal-cima">
+                <h2>Añadir Cuenta de Retiro</h2>
+                <button class="cerrar-modal" type="button" id="cerrar-modal-metodo" aria-label="Cerrar">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            
+            <form id="form-nuevo-metodo" style="margin-top: 16px;">
+                <label for="metodo-tipo" style="display:block; margin-bottom:8px;">Tipo de Cuenta</label>
+                <select id="metodo-tipo" class="campo" style="width:100%; margin-bottom:16px; background:var(--fondo); border:1px solid #444; color:white; padding:8px; border-radius:4px;">
+                    <option value="banco">Cuenta Bancaria (Nicaragua)</option>
+                    <option value="movil">Billetera Móvil</option>
+                    <option value="cripto">Criptomoneda</option>
+                </select>
+
+                <!-- Campos Banco -->
+                <div id="campos-banco-retiro">
+                    <label for="metodo-banco-nombre" style="display:block; margin-bottom:8px;">Banco</label>
+                    <select id="metodo-banco-nombre" class="campo" style="width:100%; margin-bottom:16px; background:var(--fondo); border:1px solid #444; color:white; padding:8px; border-radius:4px;">
+                        <option value="Lafise">Lafise</option>
+                        <option value="BAC">BAC</option>
+                        <option value="Banpro">Banpro</option>
+                        <option value="Ficohsa">Ficohsa</option>
+                        <option value="Avanz">Avanz</option>
+                        <option value="Bdf">BDF</option>
+                    </select>
+
+                    <label style="display:block; margin-bottom:8px;">Nombre del Titular</label>
+                    <input type="text" id="metodo-banco-titular" class="campo" style="width:100%; margin-bottom:16px;" placeholder="Ej. Juan Pérez">
+
+                    <label style="display:block; margin-bottom:8px;">Número de Cuenta</label>
+                    <input type="text" id="metodo-banco-cuenta" class="campo" style="width:100%; margin-bottom:16px;" placeholder="Ej. 1023456789">
+                </div>
+
+                <!-- Campos Móvil -->
+                <div id="campos-movil-retiro" class="oculto">
+                    <label style="display:block; margin-bottom:8px;">Operadora</label>
+                    <select id="metodo-movil-nombre" class="campo" style="width:100%; margin-bottom:16px; background:var(--fondo); border:1px solid #444; color:white; padding:8px; border-radius:4px;">
+                        <option value="Claro Pay">Claro Pay</option>
+                        <option value="Tigo Money">Tigo Money</option>
+                        <option value="Billetera Móvil Banpro">Billetera Móvil Banpro</option>
+                        <option value="Billetera Móvil Lafise">Billetera Móvil Lafise</option>
+                    </select>
+
+                    <label style="display:block; margin-bottom:8px;">Nombre del Titular</label>
+                    <input type="text" id="metodo-movil-titular" class="campo" style="width:100%; margin-bottom:16px;" placeholder="Ej. Juan Pérez">
+
+                    <label style="display:block; margin-bottom:8px;">Número de Teléfono</label>
+                    <input type="text" id="metodo-movil-telefono" class="campo" style="width:100%; margin-bottom:16px;" placeholder="Ej. 8888 8888">
+                </div>
+
+                <!-- Campos Cripto -->
+                <div id="campos-cripto-retiro" class="oculto">
+                    <label style="display:block; margin-bottom:8px;">Red / Moneda</label>
+                    <select id="metodo-cripto-red" class="campo" style="width:100%; margin-bottom:16px; background:var(--fondo); border:1px solid #444; color:white; padding:8px; border-radius:4px;">
+                        <option value="USDT (TRC20)">USDT (TRC20)</option>
+                        <option value="USDT (ERC20)">USDT (ERC20)</option>
+                        <option value="USDT (BEP20)">USDT (BEP20)</option>
+                        <option value="Bitcoin (BTC)">Bitcoin (BTC)</option>
+                        <option value="Ethereum (ETH)">Ethereum (ETH)</option>
+                    </select>
+
+                    <label style="display:block; margin-bottom:8px;">Dirección de la Billetera</label>
+                    <input type="text" id="metodo-cripto-direccion" class="campo" style="width:100%; margin-bottom:16px;" placeholder="Ej. T... o 0x...">
+                </div>
+
+                <div class="error" id="error-nuevo-metodo" style="margin-bottom:16px;"></div>
+
+                <button type="submit" id="btn-guardar-metodo" class="btn" style="width:100%; justify-content:center;">Guardar Cuenta</button>
+            </form>
+        </div>
+    </div>
+
     <div class="contenedor">
         <!-- ================= ADMIN ================= -->
         <div id="vista-admin" class="oculto">
@@ -1120,6 +1312,7 @@
             <div class="tabs">
                 <div class="tab activa" id="tab-clientes">Clientes</div>
                 <div class="tab" id="tab-recargas">Recargas</div>
+                <div class="tab" id="tab-retiros">Retiros</div>
                 <div class="tab" id="tab-metodos">Métodos de pago</div>
                 <div class="tab" id="tab-config">Configuración del sitio</div>
             </div>
@@ -1179,6 +1372,15 @@
                     <h2 style="margin-top:0">Solicitudes de recarga</h2>
                     <p class="muted">Cuando confirmes una recarga, se abona el saldo del cliente automáticamente.</p>
                     <div id="lista-recargas"><p class="muted">Cargando…</p></div>
+                </div>
+            </div>
+
+            <!-- Retiros -->
+            <div id="panel-retiros" class="oculto">
+                <div class="tarjeta">
+                    <h2 style="margin-top:0">Solicitudes de retiro</h2>
+                    <p class="muted">Aquí verás los retiros pendientes. Al completarlos, la solicitud se marcará como completada. Si los rechazas, el dinero se reembolsará al cliente.</p>
+                    <div id="lista-retiros"><p class="muted">Cargando…</p></div>
                 </div>
             </div>
 

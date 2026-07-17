@@ -353,7 +353,18 @@ function movimientosCliente(destino, movimientos) {
         tr.appendChild(tdConcepto);
 
         const estado = el('div', 'estado-mov');
-        estado.append(el('span', 'punto-ok'), 'Completado');
+        let textoEstado = 'Completado';
+        let clasePunto = 'punto-ok';
+        
+        if (m.retiro_estado === 'pendiente') {
+            textoEstado = 'Pendiente';
+            clasePunto = 'punto-wait';
+        } else if (m.retiro_estado === 'rechazado') {
+            textoEstado = 'Rechazado';
+            clasePunto = 'punto-err';
+        }
+        
+        estado.append(el('span', clasePunto), textoEstado);
         const tdEstado = document.createElement('td');
         tdEstado.appendChild(estado);
         tr.appendChild(tdEstado);
@@ -663,6 +674,248 @@ async function copiar(texto, btn) {
     } catch { /* el navegador puede bloquear el portapapeles; se copia a mano */ }
 }
 
+// ---------- Retiros ----------
+let metodosRetiro = [];
+let metodoRetiroSel = null;
+
+async function cargarMetodosRetiro() {
+    try {
+        const { metodos } = await api('/api/retiros/metodos', { auth: true });
+        metodosRetiro = metodos;
+        renderizarMetodosRetiro();
+    } catch (err) {
+        $('retiro-metodos-lista').innerHTML = '<p class="error">Error al cargar métodos</p>';
+    }
+}
+
+function renderizarMetodosRetiro() {
+    const cont = $('retiro-metodos-lista');
+    cont.innerHTML = '';
+    if (metodosRetiro.length === 0) {
+        cont.innerHTML = '<p class="muted" style="grid-column: span 2; font-size:13px;">No tienes cuentas añadidas. Añade una para retirar.</p>';
+        metodoRetiroSel = null;
+        return;
+    }
+
+    if (!metodoRetiroSel || !metodosRetiro.find(m => m.id === metodoRetiroSel)) {
+        metodoRetiroSel = metodosRetiro[0].id;
+    }
+
+    for (const m of metodosRetiro) {
+        const lbl = document.createElement('label');
+        lbl.className = 'metodo-retiro-card';
+        lbl.style.cssText = 'position:relative; display:flex; flex-direction:column; padding:16px; border:1px solid #333; background:var(--superficie); border-radius:8px; cursor:pointer; transition:all 0.2s;';
+        
+        const radio = document.createElement('input');
+        radio.type = 'radio';
+        radio.name = 'metodo_retiro';
+        radio.className = 'sr-only metodo-retiro-radio';
+        radio.style.display = 'none';
+        radio.checked = m.id === metodoRetiroSel;
+        radio.onchange = () => { metodoRetiroSel = m.id; };
+        
+        const div = document.createElement('div');
+        div.style.cssText = 'height:100%; display:flex; flex-direction:column; padding:16px; margin:-16px; border-radius:8px; transition:all 0.2s; border:1px solid transparent;';
+        
+        const top = document.createElement('div');
+        top.style.cssText = 'display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;';
+        
+        let iconName = 'account_balance';
+        if (m.tipo === 'movil') iconName = 'smartphone';
+        if (m.tipo === 'cripto') iconName = 'currency_bitcoin';
+
+        top.innerHTML = `
+            <span class="material-symbols-outlined" style="color:var(--texto-suave);">${iconName}</span>
+            <span class="material-symbols-outlined metodo-check" style="font-size:18px; color:transparent; transition:color 0.2s;">check_circle</span>
+        `;
+        
+        let titulo = '';
+        let subtitulo = '';
+        if (m.tipo === 'banco') {
+            titulo = m.banco_nombre;
+            subtitulo = m.numero_cuenta;
+        } else if (m.tipo === 'movil') {
+            titulo = m.banco_nombre || 'Billetera Móvil';
+            subtitulo = m.telefono_movil;
+        } else if (m.tipo === 'cripto') {
+            titulo = m.cripto_red;
+            subtitulo = m.cripto_direccion;
+        }
+
+        const titleEl = document.createElement('span');
+        titleEl.style.cssText = 'font-size:14px; font-weight:500; color:var(--texto-principal); margin-bottom:4px;';
+        titleEl.textContent = titulo;
+        
+        const subEl = document.createElement('span');
+        subEl.style.cssText = 'font-size:12px; color:var(--texto-suave); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;';
+        subEl.textContent = subtitulo;
+
+        div.append(top, titleEl, subEl);
+        lbl.append(radio, div);
+        cont.appendChild(lbl);
+    }
+}
+
+function inicializarRetiro() {
+    const btnAbrir = $('abrir-retiro');
+    const btnVolver = $('retiro-volver');
+    
+    if (btnAbrir) {
+        btnAbrir.onclick = () => {
+            mostrar('vista-panel', false);
+            mostrar('vista-retiro', true);
+            $('retiro-monto').value = '';
+            actualizarResumenRetiro();
+            $('error-solicitud-retiro').textContent = '';
+            $('ok-solicitud-retiro').textContent = '';
+            
+            // Actualizar balance
+            const saldoEl = $('cliente-saldo');
+            if (saldoEl) $('retiro-balance-disponible').textContent = saldoEl.textContent;
+            
+            cargarMetodosRetiro();
+        };
+    }
+    
+    if (btnVolver) {
+        btnVolver.onclick = () => {
+            mostrar('vista-retiro', false);
+            mostrar('vista-panel', true);
+        };
+    }
+
+    const inputMonto = $('retiro-monto');
+    if (inputMonto) {
+        inputMonto.oninput = actualizarResumenRetiro;
+        $('retiro-max').onclick = () => {
+            const saldoEl = $('cliente-saldo');
+            if (!saldoEl) return;
+            const val = parseFloat(saldoEl.textContent.replace(/[^0-9.-]+/g, ''));
+            if (!isNaN(val)) {
+                inputMonto.value = val.toFixed(2);
+                actualizarResumenRetiro();
+            }
+        };
+    }
+
+    // Modal Nuevo Método
+    const btnNuevoMetodo = $('btn-nuevo-metodo');
+    if (btnNuevoMetodo) {
+        btnNuevoMetodo.onclick = () => {
+            $('form-nuevo-metodo').reset();
+            $('metodo-tipo').dispatchEvent(new Event('change'));
+            $('error-nuevo-metodo').textContent = '';
+            mostrar('modal-nuevo-metodo', true);
+        };
+    }
+    
+    const btnCerrarModal = $('cerrar-modal-metodo');
+    if (btnCerrarModal) {
+        btnCerrarModal.onclick = () => mostrar('modal-nuevo-metodo', false);
+    }
+
+    const selTipo = $('metodo-tipo');
+    if (selTipo) {
+        selTipo.onchange = () => {
+            const tipo = selTipo.value;
+            mostrar('campos-banco-retiro', tipo === 'banco');
+            mostrar('campos-movil-retiro', tipo === 'movil');
+            mostrar('campos-cripto-retiro', tipo === 'cripto');
+        };
+    }
+
+    const formNuevoMetodo = $('form-nuevo-metodo');
+    if (formNuevoMetodo) {
+        formNuevoMetodo.onsubmit = async (e) => {
+            e.preventDefault();
+            const btn = $('btn-guardar-metodo');
+            $('error-nuevo-metodo').textContent = '';
+            btn.disabled = true;
+            btn.textContent = 'Guardando...';
+
+            try {
+                const tipo = $('metodo-tipo').value;
+                const body = { tipo };
+                
+                if (tipo === 'banco') {
+                    body.banco_nombre = $('metodo-banco-nombre').value;
+                    body.titular = $('metodo-banco-titular').value;
+                    body.numero_cuenta = $('metodo-banco-cuenta').value;
+                } else if (tipo === 'movil') {
+                    body.banco_nombre = $('metodo-movil-nombre').value;
+                    body.titular = $('metodo-movil-titular').value;
+                    body.telefono_movil = $('metodo-movil-telefono').value;
+                } else if (tipo === 'cripto') {
+                    body.cripto_red = $('metodo-cripto-red').value;
+                    body.cripto_direccion = $('metodo-cripto-direccion').value;
+                }
+
+                await api('/api/retiros/metodos', { method: 'POST', auth: true, body });
+                mostrar('modal-nuevo-metodo', false);
+                await cargarMetodosRetiro();
+            } catch (err) {
+                $('error-nuevo-metodo').textContent = err.message;
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Guardar Cuenta';
+            }
+        };
+    }
+
+    const btnSolicitar = $('btn-solicitar-retiro');
+    if (btnSolicitar) {
+        btnSolicitar.onclick = async () => {
+            const monto = parseFloat($('retiro-monto').value);
+            $('error-solicitud-retiro').textContent = '';
+            $('ok-solicitud-retiro').textContent = '';
+            
+            if (isNaN(monto) || monto < 30) {
+                $('error-solicitud-retiro').textContent = 'El monto mínimo de retiro es $30.00';
+                return;
+            }
+            if (!metodoRetiroSel) {
+                $('error-solicitud-retiro').textContent = 'Selecciona una cuenta de destino';
+                return;
+            }
+
+            btnSolicitar.disabled = true;
+            btnSolicitar.textContent = 'Procesando...';
+            try {
+                const res = await api('/api/retiros', { 
+                    method: 'POST', auth: true, 
+                    body: { monto, metodo_retiro_id: metodoRetiroSel } 
+                });
+                $('ok-solicitud-retiro').textContent = res.mensaje;
+                $('retiro-monto').value = '';
+                actualizarResumenRetiro();
+                
+                // Actualizar saldo visual en el dashboard
+                await cargarCliente(); 
+                const saldoEl = $('cliente-saldo');
+                if (saldoEl) $('retiro-balance-disponible').textContent = saldoEl.textContent;
+                
+            } catch (err) {
+                $('error-solicitud-retiro').textContent = err.message;
+            } finally {
+                btnSolicitar.disabled = false;
+                btnSolicitar.innerHTML = 'Solicitar Retiro <span class="material-symbols-outlined" style="font-size:20px;">arrow_forward</span>';
+            }
+        };
+    }
+}
+
+function actualizarResumenRetiro() {
+    const input = $('retiro-monto');
+    if (!input) return;
+    const monto = parseFloat(input.value) || 0;
+    const comision = monto * 0.05;
+    const total = monto - comision;
+
+    $('retiro-resumen-monto').textContent = dinero(monto);
+    $('retiro-resumen-comision').textContent = '-' + dinero(comision);
+    $('retiro-resumen-total').textContent = dinero(total);
+}
+
 // ---------- Lógica de arranque ----------
 async function arrancar() {
     const autenticado = !!sesion.token;
@@ -704,6 +957,7 @@ document.addEventListener('DOMContentLoaded', () => {
     inicializarLogin();
     inicializarCerrarSesion();
     inicializarRecarga();
+    inicializarRetiro();
     inicializarMenuLateral();
     arrancar();
 });

@@ -106,19 +106,35 @@ export function inicializarAdmin() {
         listarClientes();
     };
     
-    $('tab-config').onclick = () => {
-        ['tab-clientes', 'tab-config', 'tab-metodos', 'tab-recargas'].forEach(t => $(t)?.classList.remove('activa'));
-        $('tab-config').classList.add('activa');
-        ['panel-clientes', 'panel-config', 'panel-metodos', 'panel-recargas'].forEach(p => mostrar(p, false));
-        mostrar('panel-config', true);
-        cargarConfig();
-    };
+    // Manejo de pestañas
+    const tabs = ['tab-clientes', 'tab-config', 'tab-metodos', 'tab-recargas', 'tab-retiros'];
+    const paneles = ['panel-clientes', 'panel-config', 'panel-metodos', 'panel-recargas', 'panel-retiros'];
+
+    if ($('tab-clientes')) {
+        $('tab-clientes').onclick = () => {
+            tabs.forEach(t => $(t)?.classList.remove('activa'));
+            $('tab-clientes').classList.add('activa');
+            paneles.forEach(p => mostrar(p, false));
+            mostrar('panel-clientes', true);
+            listarClientes($('buscar').value);
+        };
+    }
+
+    if ($('tab-config')) {
+        $('tab-config').onclick = () => {
+            tabs.forEach(t => $(t)?.classList.remove('activa'));
+            $('tab-config').classList.add('activa');
+            paneles.forEach(p => mostrar(p, false));
+            mostrar('panel-config', true);
+            cargarConfig();
+        };
+    }
 
     if ($('tab-metodos')) {
         $('tab-metodos').onclick = () => {
-            ['tab-clientes', 'tab-config', 'tab-metodos', 'tab-recargas'].forEach(t => $(t)?.classList.remove('activa'));
+            tabs.forEach(t => $(t)?.classList.remove('activa'));
             $('tab-metodos').classList.add('activa');
-            ['panel-clientes', 'panel-config', 'panel-metodos', 'panel-recargas'].forEach(p => mostrar(p, false));
+            paneles.forEach(p => mostrar(p, false));
             mostrar('panel-metodos', true);
             listarMetodos();
         };
@@ -126,11 +142,21 @@ export function inicializarAdmin() {
 
     if ($('tab-recargas')) {
         $('tab-recargas').onclick = () => {
-            ['tab-clientes', 'tab-config', 'tab-metodos', 'tab-recargas'].forEach(t => $(t)?.classList.remove('activa'));
+            tabs.forEach(t => $(t)?.classList.remove('activa'));
             $('tab-recargas').classList.add('activa');
-            ['panel-clientes', 'panel-config', 'panel-metodos', 'panel-recargas'].forEach(p => mostrar(p, false));
+            paneles.forEach(p => mostrar(p, false));
             mostrar('panel-recargas', true);
             listarRecargas();
+        };
+    }
+
+    if ($('tab-retiros')) {
+        $('tab-retiros').onclick = () => {
+            tabs.forEach(t => $(t)?.classList.remove('activa'));
+            $('tab-retiros').classList.add('activa');
+            paneles.forEach(p => mostrar(p, false));
+            mostrar('panel-retiros', true);
+            listarRetiros();
         };
     }
 
@@ -454,4 +480,96 @@ async function borrarMetodo(id, btn) {
         await api(`/api/pagos/metodos/${id}`, { method: 'DELETE', auth: true });
         listarMetodos();
     } catch (err) { alert(err.message); btn.disabled = false; }
+}
+
+// ---------- Retiros ----------
+async function listarRetiros() {
+    const cont = $('lista-retiros');
+    if (!cont) return;
+    cont.innerHTML = '<p class="muted">Cargando…</p>';
+    try {
+        const { retiros } = await api('/api/retiros/admin/lista', { auth: true });
+        cont.innerHTML = '';
+        if (!retiros.length) {
+            cont.innerHTML = '<p class="muted">No hay solicitudes de retiro.</p>';
+            return;
+        }
+
+        for (const r of retiros) {
+            const row = document.createElement('div');
+            row.className = 'recarga-item'; // Reusamos el CSS de recargas
+            
+            let htmlDetalles = '';
+            if (r.metodo_tipo === 'banco') {
+                htmlDetalles = `<b>Banco:</b> ${r.banco_nombre}<br><b>Titular:</b> ${r.titular}<br><b>Cuenta:</b> ${r.numero_cuenta}`;
+            } else if (r.metodo_tipo === 'movil') {
+                htmlDetalles = `<b>Billetera Móvil:</b> ${r.banco_nombre}<br><b>Titular:</b> ${r.titular}<br><b>Telf:</b> ${r.telefono_movil}`;
+            } else if (r.metodo_tipo === 'cripto') {
+                htmlDetalles = `<b>Red:</b> ${r.cripto_red}<br><b>Billetera:</b> <span style="font-size:11px;word-break:break-all;">${r.cripto_direccion}</span>`;
+            }
+
+            row.innerHTML = `
+                <div class="info">
+                    <strong>${r.nombre} ${r.apellido}</strong> <span class="muted">(${r.usuario})</span><br>
+                    <small>Tel: ${r.telefono}</small><br>
+                    <small class="muted">${fecha(r.creado_en)}</small>
+                </div>
+                <div class="info" style="min-width: 200px">
+                    <div style="font-size:14px; margin-bottom:4px">${htmlDetalles}</div>
+                </div>
+                <div class="info der" style="min-width: 120px">
+                    <div><b>Pide:</b> ${dinero(r.monto)}</div>
+                    <div style="color:var(--error); font-size:12px;">Comisión: -${dinero(r.comision)}</div>
+                    <div style="color:var(--primario);"><b>A Enviar:</b> ${dinero(r.total_recibir)}</div>
+                </div>
+            `;
+
+            const acciones = document.createElement('div');
+            acciones.className = 'acciones';
+            
+            if (r.estado === 'pendiente') {
+                const btnOk = document.createElement('button');
+                btnOk.className = 'btn';
+                btnOk.innerHTML = '<span class="material-symbols-outlined" style="font-size:18px">check</span> Completar';
+                btnOk.onclick = () => procesarRetiro(r.id, 'completar', btnOk);
+                
+                const btnErr = document.createElement('button');
+                btnErr.className = 'btn sec';
+                btnErr.innerHTML = '<span class="material-symbols-outlined" style="font-size:18px">close</span> Rechazar';
+                btnErr.onclick = () => {
+                    if (confirm('¿Estás seguro de RECHAZAR este retiro? El dinero se devolverá a su saldo.')) {
+                        procesarRetiro(r.id, 'rechazar', btnErr);
+                    }
+                };
+                
+                acciones.append(btnOk, btnErr);
+            } else {
+                const label = document.createElement('span');
+                label.style.fontWeight = 'bold';
+                label.style.color = r.estado === 'completado' ? '#4ade80' : '#ef4444';
+                label.textContent = r.estado.toUpperCase();
+                acciones.appendChild(label);
+            }
+
+            row.appendChild(acciones);
+            cont.appendChild(row);
+        }
+    } catch (err) {
+        cont.innerHTML = `<p class="error">${err.message}</p>`;
+    }
+}
+
+async function procesarRetiro(id, accion, btn) {
+    if (btn) btn.disabled = true;
+    try {
+        await api('/api/retiros/admin/' + id + '/procesar', {
+            method: 'POST',
+            auth: true,
+            body: { accion }
+        });
+        listarRetiros();
+    } catch (err) {
+        alert(err.message);
+        if (btn) btn.disabled = false;
+    }
 }

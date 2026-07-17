@@ -56,6 +56,7 @@ CREATE TABLE IF NOT EXISTS movimientos (
   importe       NUMERIC(18,2) NOT NULL CHECK (importe <> 0),
   descripcion   TEXT          NOT NULL CHECK (length(trim(descripcion)) > 0),
   inversion_id  BIGINT        REFERENCES inversiones(id) ON DELETE RESTRICT,
+  retiro_id     BIGINT,       -- Migracion posterior para enlazar con la tabla retiros
   -- Quien registro el movimiento. Deja rastro para auditoria.
   creado_por    BIGINT        REFERENCES clientes(id) ON DELETE RESTRICT,
   creado_en     TIMESTAMPTZ   NOT NULL DEFAULT now()
@@ -152,6 +153,52 @@ CREATE TABLE IF NOT EXISTS metodos_pago (
 );
 
 CREATE INDEX IF NOT EXISTS idx_metodos_pago ON metodos_pago (tipo, activo, orden, id);
+
+-- Metodos de retiro configurados por cada cliente
+CREATE TABLE IF NOT EXISTS metodos_retiro_cliente (
+  id               BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  cliente_id       BIGINT      NOT NULL REFERENCES clientes(id) ON DELETE CASCADE,
+  tipo             TEXT        NOT NULL CHECK (tipo IN ('banco', 'movil', 'cripto')),
+  -- Banco / Movil
+  banco_nombre     TEXT,       -- Ej. 'Lafise', 'BAC', 'Banpro', 'Billetera Movil'
+  titular          TEXT,
+  numero_cuenta    TEXT,
+  -- Cripto
+  cripto_red       TEXT,
+  cripto_direccion TEXT,
+  
+  creado_en        TIMESTAMPTZ NOT NULL DEFAULT now(),
+  activo           BOOLEAN     NOT NULL DEFAULT TRUE
+);
+
+-- Registro de solicitudes de retiro
+CREATE TABLE IF NOT EXISTS retiros (
+  id               BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  cliente_id       BIGINT        NOT NULL REFERENCES clientes(id) ON DELETE CASCADE,
+  metodo_retiro_id BIGINT        NOT NULL REFERENCES metodos_retiro_cliente(id) ON DELETE RESTRICT,
+  monto            NUMERIC(18,2) NOT NULL CHECK (monto >= 30),
+  comision         NUMERIC(18,2) NOT NULL CHECK (comision >= 0),
+  total_recibir    NUMERIC(18,2) NOT NULL CHECK (total_recibir > 0),
+  estado           TEXT          NOT NULL DEFAULT 'pendiente' CHECK (estado IN ('pendiente', 'completado', 'rechazado')),
+  creado_en        TIMESTAMPTZ   NOT NULL DEFAULT now(),
+  procesado_en     TIMESTAMPTZ,
+  procesado_por    BIGINT        REFERENCES clientes(id) ON DELETE SET NULL
+);
+
+-- Enlazar la tabla movimientos con la tabla retiros (si no existe la constraint)
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'movimientos' AND column_name = 'retiro_id') THEN
+    ALTER TABLE movimientos ADD COLUMN retiro_id BIGINT REFERENCES retiros(id) ON DELETE RESTRICT;
+  ELSE
+    -- Asegurar la Foreign Key si la columna ya existía
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'movimientos_retiro_id_fkey'
+    ) THEN
+        ALTER TABLE movimientos ADD CONSTRAINT movimientos_retiro_id_fkey FOREIGN KEY (retiro_id) REFERENCES retiros(id) ON DELETE RESTRICT;
+    END IF;
+  END IF;
+END $$;
 
 -- Migracion: la comision se añadio despues. En las filas que ya existian (p. ej. la
 -- cripto creada antes) se rellena con 0.50 por defecto, que es lo pactado.

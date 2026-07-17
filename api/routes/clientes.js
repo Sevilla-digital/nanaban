@@ -189,9 +189,11 @@ router.get('/me/movimientos', requiereAuth, async (req, res, next) => {
   try {
     const limite = Math.min(Number(req.query.limite) || 50, 200);
     const { rows } = await query(
-      `SELECT id, tipo, importe, descripcion, inversion_id, creado_en
-       FROM movimientos WHERE cliente_id = $1
-       ORDER BY creado_en DESC, id DESC
+      `SELECT m.id, m.tipo, m.importe, m.descripcion, m.inversion_id, m.creado_en, r.estado AS retiro_estado
+       FROM movimientos m
+       LEFT JOIN retiros r ON m.retiro_id = r.id
+       WHERE m.cliente_id = $1
+       ORDER BY m.creado_en DESC, m.id DESC
        LIMIT $2`,
       [req.cliente.id, limite]
     );
@@ -264,8 +266,11 @@ router.get('/:id', requiereAuth, requiereAdmin, async (req, res, next) => {
       [id]
     );
     const movimientos = await query(
-      `SELECT id, tipo, importe, descripcion, inversion_id, creado_en
-       FROM movimientos WHERE cliente_id = $1 ORDER BY creado_en DESC, id DESC LIMIT 200`,
+      `SELECT m.id, m.tipo, m.importe, m.descripcion, m.inversion_id, m.creado_en, r.estado AS retiro_estado
+       FROM movimientos m
+       LEFT JOIN retiros r ON m.retiro_id = r.id
+       WHERE m.cliente_id = $1
+       ORDER BY m.creado_en DESC, m.id DESC LIMIT 200`,
       [id]
     );
 

@@ -6,6 +6,7 @@ import { router as clientes } from './routes/clientes.js';
 import { router as sitio } from './routes/sitio.js';
 import { router as inversiones } from './routes/inversiones.js';
 import { router as pagos } from './routes/pagos.js';
+import { router as retiros } from './routes/retiros.js';
 import { iniciarCron } from './cron.js';
 
 const app = express();
@@ -52,6 +53,7 @@ app.use('/api/clientes', clientes);
 app.use('/api/sitio', sitio);
 app.use('/api/inversiones', inversiones);
 app.use('/api/pagos', pagos);
+app.use('/api/retiros', retiros);
 
 app.use((_req, res) => res.status(404).json({ error: 'Ruta no encontrada' }));
 
