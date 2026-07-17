@@ -166,7 +166,7 @@ export function inicializarAdmin() {
             try {
                 await api('/api/clientes/movimientos', {
                     method: 'POST', auth: true,
-                    cuerpo: { clienteId: clienteAbierto, tipo, importeEur, descripcion: f.descripcion.value },
+                    body: { clienteId: clienteAbierto, tipo, importeEur, descripcion: f.descripcion.value },
                 });
                 $('ok-movimiento').textContent = 'Movimiento registrado.';
                 f.reset();
@@ -196,7 +196,7 @@ export function inicializarAdmin() {
             const btn = f.querySelector('button');
             btn.disabled = true;
             try {
-                const c = await api('/api/sitio', { method: 'PUT', auth: true, cuerpo });
+                const c = await api('/api/sitio', { method: 'PUT', auth: true, body: cuerpo });
                 document.documentElement.style.setProperty('--primario', c.color_primario);
                 document.documentElement.style.setProperty('--fondo', c.color_fondo);
                 $('ok-config').textContent = 'Guardado. Se verá en la web pública.';
@@ -242,13 +242,14 @@ export function inicializarAdmin() {
                 cuerpo = {
                     tipo, etiqueta: f.etiqueta_cripto.value, red: f.red.value,
                     direccion: f.direccion.value, notas: f.notas.value,
+                    comision: f.comision ? f.comision.value : '0.50',
                 };
             }
 
             const btn = f.querySelector('button[type=submit]');
             btn.disabled = true;
             try {
-                await api('/api/pagos/metodos', { method: 'POST', auth: true, cuerpo });
+                await api('/api/pagos/metodos', { method: 'POST', auth: true, body: cuerpo });
                 $('ok-metodo').textContent = 'Método añadido.';
                 f.reset();
                 $('metodo-tipo').dispatchEvent(new Event('change'));
@@ -375,7 +376,7 @@ function cuerpoMetodo(m, cambios = {}) {
     const base = m.tipo === 'banco'
         ? { tipo: 'banco', etiqueta: m.etiqueta, titular: m.titular,
             numero_cuenta: m.numero_cuenta, moneda: m.moneda }
-        : { tipo: 'cripto', etiqueta: m.etiqueta, red: m.red, direccion: m.direccion };
+        : { tipo: 'cripto', etiqueta: m.etiqueta, red: m.red, direccion: m.direccion, comision: m.comision };
     return { ...base, notas: m.notas || '', activo: m.activo, orden: m.orden || 0, ...cambios };
 }
 
@@ -419,7 +420,7 @@ async function cambiarActivo(m, btn) {
     btn.disabled = true;
     try {
         await api(`/api/pagos/metodos/${m.id}`, {
-            method: 'PUT', auth: true, cuerpo: cuerpoMetodo(m, { activo: !m.activo }),
+            method: 'PUT', auth: true, body: cuerpoMetodo(m, { activo: !m.activo }),
         });
         listarMetodos();
     } catch (err) { alert(err.message); btn.disabled = false; }
