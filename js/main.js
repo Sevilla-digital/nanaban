@@ -172,7 +172,7 @@ function inicializarLogin() {
                 method: 'POST',
                 body: { usuario: form.usuario.value, password: form.password.value },
             });
-            sesion.guardar(r.token, { ...r.cliente, esAdmin: r.cliente.es_admin === true });
+            sesion.guardar(r.token, { ...r.cliente, esAdmin: r.cliente.esAdmin === true || r.cliente.es_admin === true });
             arrancar();
         } catch (err) {
             $('error-login').textContent = err.message;
