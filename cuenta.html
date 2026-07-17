@@ -414,6 +414,47 @@
         .cliente-movil h1 { font-size: 20px; color: var(--primario); }
         .cliente-movil button { background: none; border: none; color: var(--primario); cursor: pointer; padding: 4px; }
 
+        /* Dock de navegación inferior (solo móvil). En escritorio se usa la barra lateral. */
+        .dock-movil {
+            display: flex;
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            z-index: 50;
+            background: #1a1c1c;
+            border-top: 1px solid rgba(77, 70, 53, 0.3);
+            padding: 8px 4px;
+            padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+            justify-content: space-around;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.35);
+        }
+        @media (min-width: 768px) { .dock-movil { display: none; } }
+        .dock-enlace {
+            flex: 1 1 0;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3px;
+            padding: 6px 2px;
+            color: var(--texto-suave);
+            text-decoration: none;
+            font-family: Inter, sans-serif;
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 0.01em;
+            white-space: nowrap;
+            border-radius: 8px;
+            transition: color 0.2s;
+        }
+        .dock-enlace:active { background: #282a2b; }
+        .dock-enlace .material-symbols-outlined { font-size: 24px; }
+        .dock-enlace.activo { color: var(--primario); }
+        .dock-enlace.activo .material-symbols-outlined { font-variation-settings: 'FILL' 1; }
+        /* El contenido deja hueco abajo para no quedar tapado por el dock. */
+        @media (max-width: 767px) {
+            #vista-cliente .cliente-main-int { padding-bottom: 88px; }
+        }
+
         .cliente-main { flex: 1; min-width: 0; }
         .cliente-main-int {
             max-width: 1440px;
@@ -1207,6 +1248,30 @@
                 </main>
             </div>
         </div>
+
+        <!-- Dock de navegación (solo móvil) -->
+        <nav class="dock-movil">
+            <a class="dock-enlace activo" href="#resumen">
+                <span class="material-symbols-outlined">dashboard</span>
+                <span>Resumen</span>
+            </a>
+            <a class="dock-enlace" href="#sec-inversiones">
+                <span class="material-symbols-outlined">account_balance_wallet</span>
+                <span>Inversión</span>
+            </a>
+            <a class="dock-enlace" href="#sec-movimientos">
+                <span class="material-symbols-outlined">receipt_long</span>
+                <span>Movim.</span>
+            </a>
+            <a class="dock-enlace" href="#sec-referidos">
+                <span class="material-symbols-outlined">group</span>
+                <span>Referidos</span>
+            </a>
+            <a class="dock-enlace" href="#sec-perfil">
+                <span class="material-symbols-outlined">person</span>
+                <span>Perfil</span>
+            </a>
+        </nav>
     </div>
 
     <!-- ================= RECARGAR SALDO (cliente) ================= -->
@@ -1622,6 +1687,6 @@
         </div>
     </div>
 
-    <script type="module" src="js/main.js?v=2"></script>
+    <script type="module" src="js/main.js?v=3"></script>
 </body>
 </html>

@@ -236,7 +236,7 @@ function inicializarMenuLateral() {
     window.addEventListener('hashchange', () => {
         actualizarVista(window.location.hash);
         const hash = window.location.hash || enlaces[ruta];
-        for (const enlace of document.querySelectorAll('.lateral-enlace')) {
+        for (const enlace of document.querySelectorAll('.lateral-enlace, .dock-enlace')) {
             const href = enlace.getAttribute('href');
             if (href === hash || (href === 'cuenta.html' && hash === enlaces['cuenta.html'])) {
                 enlace.classList.add('activo');
@@ -249,7 +249,7 @@ function inicializarMenuLateral() {
     actualizarVista(window.location.hash);
 
     const currentHash = window.location.hash || enlaces[ruta];
-    for (const enlace of document.querySelectorAll('.lateral-enlace')) {
+    for (const enlace of document.querySelectorAll('.lateral-enlace, .dock-enlace')) {
         const href = enlace.getAttribute('href');
         if (href === currentHash || (href.includes('cuenta.html') && ruta === 'cuenta.html' && !window.location.hash)) {
             enlace.classList.add('activo');
@@ -257,7 +257,7 @@ function inicializarMenuLateral() {
             enlace.classList.remove('activo');
         }
         enlace.addEventListener('click', () => {
-            document.querySelectorAll('.lateral-enlace').forEach(e => e.classList.remove('activo'));
+            document.querySelectorAll('.lateral-enlace, .dock-enlace').forEach(e => e.classList.remove('activo'));
             enlace.classList.add('activo');
         });
     }
