@@ -99,6 +99,12 @@ END $$;
 -- Migracion para añadir el plan a inversiones existentes (si las hubiera).
 ALTER TABLE inversiones ADD COLUMN IF NOT EXISTS plan TEXT;
 
+-- Rentabilidad diaria (en %, ej. 1.20) y plazo del contrato (en dias) con los que
+-- se firmo la inversion. Se guardan al contratar para que queden "congelados": si
+-- en el futuro cambian las ofertas, las inversiones ya abiertas conservan lo pactado.
+ALTER TABLE inversiones ADD COLUMN IF NOT EXISTS rentabilidad_diaria NUMERIC(6,4);
+ALTER TABLE inversiones ADD COLUMN IF NOT EXISTS plazo_dias INTEGER;
+
 -- Los movimientos no se editan ni se borran: un libro contable que se puede reescribir
 -- no sirve como prueba de nada.
 CREATE OR REPLACE RULE movimientos_no_update AS ON UPDATE TO movimientos DO INSTEAD NOTHING;

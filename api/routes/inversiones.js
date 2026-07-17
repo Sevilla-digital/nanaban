@@ -14,12 +14,16 @@ const nuevaInversionSchema = z.object({
   importe: z.string().regex(/^\d{1,15}(\.\d{1,2})?$/, 'Importe con formato "100.00"'),
 });
 
-const REQUISITOS_MINIMOS = {
-  '10 Kilates': 10,
-  '14 Kilates': 300,
-  '18 Kilates': 1000,
-  '22 Kilates': 1600,
-  '24 Kilates': 3000
+// Condiciones de cada plan: importe minimo, rentabilidad diaria (en %) y plazo del
+// contrato (en dias). Estos valores deben coincidir con los publicados en la pagina
+// de contratacion (nueva-inversion.html). La rentabilidad y el plazo se guardan en
+// cada inversion al contratar, para que no cambien si se actualizan las ofertas.
+const PLANES = {
+  '10 Kilates': { minimo: 10,   rentabilidad: 1.2, plazoDias: 30 },
+  '14 Kilates': { minimo: 300,  rentabilidad: 1.4, plazoDias: 60 },
+  '18 Kilates': { minimo: 1000, rentabilidad: 1.8, plazoDias: 90 },
+  '22 Kilates': { minimo: 1600, rentabilidad: 2.0, plazoDias: 180 },
+  '24 Kilates': { minimo: 3000, rentabilidad: 2.4, plazoDias: 30 },
 };
 
 /**
@@ -44,7 +48,8 @@ router.post('/', requiereAuth, async (req, res, next) => {
       return res.status(400).json({ error: 'El importe debe ser mayor a cero.' });
     }
 
-    const minimo = REQUISITOS_MINIMOS[plan] || 10;
+    const condiciones = PLANES[plan] ?? { minimo: 10, rentabilidad: null, plazoDias: null };
+    const minimo = condiciones.minimo;
     if (importeNum < minimo) {
       return res.status(400).json({ error: `El importe mínimo para el plan ${plan} es de $${minimo}.` });
     }
@@ -65,10 +70,11 @@ router.post('/', requiereAuth, async (req, res, next) => {
       // 2. Calcular gramos y crear la inversión
       const gramosOro = (importeNum / PRECIO_ORO_GRAMO).toFixed(4);
       const inv = await client.query(
-        `INSERT INTO inversiones (cliente_id, gramos_oro, importe, plan)
-         VALUES ($1, $2, $3, $4)
-         RETURNING id, gramos_oro, importe, plan, abierta_en`,
-        [clienteId, gramosOro, importe, plan]
+        `INSERT INTO inversiones (cliente_id, gramos_oro, importe, plan, rentabilidad_diaria, plazo_dias)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         RETURNING id, gramos_oro, importe, plan, rentabilidad_diaria, plazo_dias, abierta_en,
+                   (abierta_en + (plazo_dias || ' days')::interval) AS vencimiento`,
+        [clienteId, gramosOro, importe, plan, condiciones.rentabilidad, condiciones.plazoDias]
       );
       const inversionCreada = inv.rows[0];
 

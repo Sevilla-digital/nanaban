@@ -280,6 +280,49 @@ function pintarSaldo(destino, valor) {
 
 const ESTADO_INVERSION = { abierta: 'Abierta', cerrada: 'Cerrada', cancelada: 'Cancelada' };
 
+// Rentabilidad diaria (en %) y plazo de contrato (en días) de cada plan, según la
+// página de contratación (nueva-inversion.html). Solo se usa como respaldo para
+// inversiones antiguas que no guardaron estos datos; las nuevas los traen del servidor.
+const PLANES = {
+    '10 Kilates': { rentabilidad: 1.2, plazoDias: 30 },
+    '14 Kilates': { rentabilidad: 1.4, plazoDias: 60 },
+    '18 Kilates': { rentabilidad: 1.8, plazoDias: 90 },
+    '22 Kilates': { rentabilidad: 2.0, plazoDias: 180 },
+    '24 Kilates': { rentabilidad: 2.4, plazoDias: 30 },
+};
+
+// Formatea una fecha (ISO) mostrando solo el día, sin la hora.
+function soloFecha(iso) {
+    if (!iso) return '—';
+    return new Date(iso).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+// Suma un plazo (días) a la fecha de apertura para obtener el vencimiento.
+function fechaVencimiento(abiertaEn, plazoDias) {
+    if (!abiertaEn || plazoDias == null) return '—';
+    const d = new Date(abiertaEn);
+    d.setDate(d.getDate() + plazoDias);
+    return soloFecha(d.toISOString());
+}
+
+// Devuelve el texto de rentabilidad y vencimiento de una inversión, prefiriendo los
+// valores guardados por el servidor y cayendo al mapa de planes si no existen.
+function condicionesInversion(i) {
+    const info = PLANES[i.plan];
+    const rent = i.rentabilidad_diaria != null ? Number(i.rentabilidad_diaria) : info?.rentabilidad;
+    const rentabilidad = rent != null ? `${rent}% diario` : '—';
+
+    let vencimiento;
+    if (i.vencimiento) {
+        vencimiento = soloFecha(i.vencimiento);
+    } else if (info) {
+        vencimiento = fechaVencimiento(i.abierta_en, info.plazoDias);
+    } else {
+        vencimiento = '—';
+    }
+    return { rentabilidad, vencimiento };
+}
+
 function tarjetasInversiones(destino, inversiones) {
     const cont = $(destino);
     if (!cont) return;
@@ -300,9 +343,12 @@ function tarjetasInversiones(destino, inversiones) {
         cima.append(titulos, icono);
         tarjeta.appendChild(cima);
 
+        const { rentabilidad, vencimiento } = condicionesInversion(i);
         const datos = [
             ['Invertido', dinero(i.importe)],
             ['Oro', `${i.gramos_oro} g`],
+            ['Rentabilidad', rentabilidad],
+            ['Vencimiento', vencimiento],
             ['Estado', ESTADO_INVERSION[i.estado] ?? i.estado],
         ];
         for (const [etiqueta, valor] of datos) {

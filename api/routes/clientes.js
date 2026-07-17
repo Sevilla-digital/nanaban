@@ -174,7 +174,9 @@ router.get('/me', requiereAuth, async (req, res, next) => {
     if (rows.length === 0) return res.status(404).json({ error: 'Cliente no encontrado' });
 
     const inversiones = await query(
-      `SELECT id, gramos_oro, importe, estado, abierta_en, cerrada_en
+      `SELECT id, gramos_oro, importe, plan, estado, abierta_en, cerrada_en,
+              rentabilidad_diaria, plazo_dias,
+              (abierta_en + (plazo_dias || ' days')::interval) AS vencimiento
        FROM inversiones WHERE cliente_id = $1 ORDER BY abierta_en DESC`,
       [req.cliente.id]
     );
@@ -261,7 +263,9 @@ router.get('/:id', requiereAuth, requiereAdmin, async (req, res, next) => {
     // admin puntual, la latencia extra es un round-trip, y asi no dependemos de que
     // haya varias conexiones libres en el pool.
     const inversiones = await query(
-      `SELECT id, gramos_oro, importe, estado, abierta_en, cerrada_en
+      `SELECT id, gramos_oro, importe, plan, estado, abierta_en, cerrada_en,
+              rentabilidad_diaria, plazo_dias,
+              (abierta_en + (plazo_dias || ' days')::interval) AS vencimiento
        FROM inversiones WHERE cliente_id = $1 ORDER BY abierta_en DESC`,
       [id]
     );
