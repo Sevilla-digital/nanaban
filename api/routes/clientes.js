@@ -165,7 +165,7 @@ router.post('/bootstrap-admin', limiteAuth, async (req, res, next) => {
 router.get('/me', requiereAuth, async (req, res, next) => {
   try {
     const { rows } = await query(
-      `SELECT c.id, c.nombre, c.apellido, c.usuario, c.telefono, c.es_admin, c.creado_en, s.saldo
+      `SELECT c.id, c.nombre, c.apellido, c.usuario, c.telefono, c.avatar, c.es_admin, c.creado_en, s.saldo
        FROM clientes c
        JOIN saldos s ON s.cliente_id = c.id
        WHERE c.id = $1`,
@@ -182,6 +182,49 @@ router.get('/me', requiereAuth, async (req, res, next) => {
     );
 
     res.json({ ...rows[0], inversiones: inversiones.rows });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// El cliente solo puede cambiar su nombre, apellido y foto. El usuario y el telefono
+// son credenciales institucionales: se validan aparte y no se editan desde aqui.
+const actualizarPerfilSchema = z.object({
+  nombre: z.string().trim().min(2, 'El nombre debe tener al menos 2 caracteres').max(120),
+  apellido: z.string().trim().max(120).optional().default(''),
+  // Foto como data URL (o null para quitarla). Se acota el tamaño; el cliente ya
+  // redimensiona antes de enviar, esto es solo un tope de seguridad (~1.5MB).
+  avatar: z
+    .string()
+    .regex(/^data:image\/(png|jpe?g|gif|webp);base64,/, 'Formato de imagen no valido')
+    .max(1_500_000, 'La imagen es demasiado grande')
+    .nullable()
+    .optional(),
+});
+
+router.patch('/me', requiereAuth, async (req, res, next) => {
+  try {
+    const datos = actualizarPerfilSchema.safeParse(req.body);
+    if (!datos.success) {
+      return res.status(400).json({ error: 'Datos invalidos', detalle: datos.error.flatten() });
+    }
+    const { nombre, apellido } = datos.data;
+
+    // Solo tocamos el avatar si el cliente lo mando en la peticion (string o null):
+    // asi un guardado de nombre/apellido no borra la foto por accidente.
+    const tocarAvatar = Object.prototype.hasOwnProperty.call(req.body, 'avatar');
+    const sql = tocarAvatar
+      ? `UPDATE clientes SET nombre = $1, apellido = $2, avatar = $3 WHERE id = $4
+         RETURNING id, nombre, apellido, usuario, telefono, avatar`
+      : `UPDATE clientes SET nombre = $1, apellido = $2 WHERE id = $3
+         RETURNING id, nombre, apellido, usuario, telefono, avatar`;
+    const params = tocarAvatar
+      ? [nombre, apellido, datos.data.avatar ?? null, req.cliente.id]
+      : [nombre, apellido, req.cliente.id];
+
+    const { rows } = await query(sql, params);
+    if (rows.length === 0) return res.status(404).json({ error: 'Cliente no encontrado' });
+    res.json(rows[0]);
   } catch (err) {
     next(err);
   }

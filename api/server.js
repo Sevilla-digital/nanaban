@@ -38,6 +38,8 @@ app.use(
 // necesita un limite mayor. El primer parser que consume el body marca req._body,
 // y el global de 100kb lo salta. El resto de la API se queda en 100kb.
 app.use('/api/pagos/recargas', express.json({ limit: '7mb' }));
+// El perfil puede incluir la foto (avatar) como data URL: necesita mas de 100kb.
+app.use('/api/clientes/me', express.json({ limit: '2mb' }));
 app.use(express.json({ limit: '100kb' }));
 
 app.get('/health', async (_req, res) => {

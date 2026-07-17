@@ -21,6 +21,9 @@ CREATE TABLE IF NOT EXISTS clientes (
 ALTER TABLE clientes ADD COLUMN IF NOT EXISTS apellido TEXT NOT NULL DEFAULT '';
 ALTER TABLE clientes ADD COLUMN IF NOT EXISTS usuario TEXT;
 ALTER TABLE clientes ADD COLUMN IF NOT EXISTS referido_por BIGINT REFERENCES clientes(id) ON DELETE SET NULL;
+-- Foto de perfil opcional, guardada como data URL (base64). El cliente la puede
+-- subir o quitar desde su perfil; se limita el tamaño al subirla (redimension en cliente).
+ALTER TABLE clientes ADD COLUMN IF NOT EXISTS avatar TEXT;
 
 -- La unicidad del usuario vive SOLO en este indice (no en la columna) para que
 -- el nombre del constraint sea el mismo en instalaciones nuevas y migradas:

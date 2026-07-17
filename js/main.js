@@ -207,19 +207,29 @@ function inicializarMenuLateral() {
         const resumen = document.getElementById('resumen');
         const inversiones = document.getElementById('sec-inversiones');
         const movimientos = document.getElementById('sec-movimientos');
-        
+        const perfil = document.getElementById('sec-perfil');
+
         if (!referidos || !resumen) return;
 
+        // Referidos y Perfil son vistas "solas": ocultan el resto del panel.
         if (hash === '#sec-referidos') {
             resumen.style.display = 'none';
             inversiones.style.display = 'none';
             movimientos.style.display = 'none';
             referidos.style.display = 'block';
+            if (perfil) perfil.style.display = 'none';
+        } else if (hash === '#sec-perfil') {
+            resumen.style.display = 'none';
+            inversiones.style.display = 'none';
+            movimientos.style.display = 'none';
+            referidos.style.display = 'none';
+            if (perfil) perfil.style.display = 'block';
         } else {
             resumen.style.display = ''; // Se usa la clase original
             inversiones.style.display = '';
             movimientos.style.display = '';
             referidos.style.display = 'none';
+            if (perfil) perfil.style.display = 'none';
         }
     };
 
@@ -448,12 +458,40 @@ function referidosCliente(destino, referidos) {
     cont.appendChild(tabla);
 }
 
+// Datos del cliente en sesión (para el guardado de perfil sepamos su avatar actual).
+let clienteActual = null;
+
+// Pinta un avatar: si hay foto, la muestra de fondo; si no, las iniciales.
+function pintarAvatar(elem, avatar, ini) {
+    if (!elem) return;
+    if (avatar) {
+        elem.style.backgroundImage = `url("${avatar}")`;
+        elem.style.backgroundSize = 'cover';
+        elem.style.backgroundPosition = 'center';
+        elem.classList.add('con-foto');
+    } else {
+        elem.style.backgroundImage = '';
+        elem.classList.remove('con-foto');
+    }
+    // El avatar del resumen es un div simple (texto = iniciales). El del perfil tiene
+    // hijos (span de iniciales + overlay de la cámara), así que solo tocamos el span.
+    if (elem.id === 'perfil-avatar') {
+        const span = $('perfil-avatar-iniciales');
+        if (span) span.textContent = ini; // la clase .con-foto lo vuelve transparente
+    } else {
+        elem.textContent = avatar ? '' : ini;
+    }
+}
+
 async function cargarCliente() {
     try {
         const yo = await api('/api/clientes/me', { auth: true });
+        clienteActual = yo;
+        const ini = iniciales(yo.nombre, yo.apellido);
         if ($('cliente-nombre')) $('cliente-nombre').textContent = `${yo.nombre} ${yo.apellido || ''}`.trim();
         if ($('cliente-usuario')) $('cliente-usuario').textContent = '@' + (yo.usuario ?? '');
-        if ($('cliente-avatar')) $('cliente-avatar').textContent = iniciales(yo.nombre, yo.apellido);
+        pintarAvatar($('cliente-avatar'), yo.avatar, ini);
+        rellenarPerfil(yo);
         pintarSaldo('cliente-saldo', yo.saldo);
         tarjetasInversiones('cliente-inversiones', yo.inversiones);
         const mov = await api('/api/clientes/me/movimientos', { auth: true });
@@ -476,6 +514,121 @@ async function cargarCliente() {
         if (!sesion.token) { arrancar(); return; }
         alert(err.message);
     }
+}
+
+// ---------- Mi perfil ----------
+// undefined = la foto no cambió; string = foto nueva; null = quitar la foto.
+let avatarPendiente = undefined;
+
+function rellenarPerfil(yo) {
+    if ($('perfil-nombre')) $('perfil-nombre').value = yo.nombre ?? '';
+    if ($('perfil-apellido')) $('perfil-apellido').value = yo.apellido ?? '';
+    if ($('perfil-usuario')) $('perfil-usuario').value = yo.usuario ? '@' + yo.usuario : '—';
+    if ($('perfil-telefono')) $('perfil-telefono').value = yo.telefono ?? '—';
+    avatarPendiente = undefined;
+    pintarAvatar($('perfil-avatar'), yo.avatar, iniciales(yo.nombre, yo.apellido));
+    togglQuitarFoto(!!yo.avatar);
+}
+
+function togglQuitarFoto(hayFoto) {
+    const btn = $('perfil-quitar-foto');
+    if (btn) btn.classList.toggle('oculto', !hayFoto);
+}
+
+function mostrarMsgPerfil(texto, ok) {
+    const el = $('perfil-msg');
+    if (!el) return;
+    el.textContent = texto;
+    el.className = 'perfil-msg' + (texto ? (ok ? ' ok' : ' error') : '');
+    if (ok && texto) {
+        setTimeout(() => {
+            if (el.textContent === texto) { el.textContent = ''; el.className = 'perfil-msg'; }
+        }, 3000);
+    }
+}
+
+// Redimensiona la imagen a un máximo de 320px de lado y la devuelve como data URL
+// JPEG comprimido: mantiene la foto pequeña (unos KB) para no saturar la BD.
+function redimensionarImagen(file, max = 320) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        const url = URL.createObjectURL(file);
+        img.onload = () => {
+            URL.revokeObjectURL(url);
+            let { width, height } = img;
+            if (width >= height && width > max) { height = Math.round(height * max / width); width = max; }
+            else if (height > max) { width = Math.round(width * max / height); height = max; }
+            const canvas = document.createElement('canvas');
+            canvas.width = width; canvas.height = height;
+            canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+            resolve(canvas.toDataURL('image/jpeg', 0.85));
+        };
+        img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('No se pudo leer la imagen.')); };
+        img.src = url;
+    });
+}
+
+function inicializarPerfil() {
+    const avatar = $('perfil-avatar');
+    const input = $('perfil-foto-input');
+    const btnSubir = $('perfil-subir-foto');
+    const btnQuitar = $('perfil-quitar-foto');
+    const btnGuardar = $('perfil-guardar');
+    if (!avatar || !input || !btnGuardar) return;
+
+    const abrir = () => input.click();
+    avatar.onclick = abrir;
+    btnSubir.onclick = abrir;
+
+    input.onchange = async () => {
+        const file = input.files?.[0];
+        input.value = ''; // permite reelegir la misma imagen
+        if (!file) return;
+        if (!file.type.startsWith('image/')) { mostrarMsgPerfil('Selecciona un archivo de imagen.', false); return; }
+        if (file.size > 8 * 1024 * 1024) { mostrarMsgPerfil('La imagen no puede superar los 8MB.', false); return; }
+        try {
+            const dataUrl = await redimensionarImagen(file);
+            avatarPendiente = dataUrl;
+            pintarAvatar(avatar, dataUrl, iniciales($('perfil-nombre').value, $('perfil-apellido').value));
+            togglQuitarFoto(true);
+            mostrarMsgPerfil('', true);
+        } catch (e) {
+            mostrarMsgPerfil(e.message || 'No se pudo procesar la imagen.', false);
+        }
+    };
+
+    btnQuitar.onclick = () => {
+        avatarPendiente = null;
+        pintarAvatar(avatar, null, iniciales($('perfil-nombre').value, $('perfil-apellido').value));
+        togglQuitarFoto(false);
+    };
+
+    btnGuardar.onclick = async () => {
+        const nombre = $('perfil-nombre').value.trim();
+        const apellido = $('perfil-apellido').value.trim();
+        if (nombre.length < 2) { mostrarMsgPerfil('El nombre debe tener al menos 2 caracteres.', false); return; }
+
+        const body = { nombre, apellido };
+        if (avatarPendiente !== undefined) body.avatar = avatarPendiente; // string (nueva) o null (quitar)
+
+        btnGuardar.disabled = true;
+        try {
+            const act = await api('/api/clientes/me', { method: 'PATCH', auth: true, body });
+            clienteActual = { ...clienteActual, ...act };
+            avatarPendiente = undefined;
+            // Refresca la cabecera del resumen (nombre + avatar).
+            const ini = iniciales(act.nombre, act.apellido);
+            if ($('cliente-nombre')) $('cliente-nombre').textContent = `${act.nombre} ${act.apellido || ''}`.trim();
+            pintarAvatar($('cliente-avatar'), act.avatar, ini);
+            pintarAvatar(avatar, act.avatar, ini);
+            togglQuitarFoto(!!act.avatar);
+            mostrarMsgPerfil('Cambios guardados ✓', true);
+        } catch (e) {
+            mostrarMsgPerfil(e.message || 'No se pudieron guardar los cambios.', false);
+        } finally {
+            btnGuardar.disabled = false;
+        }
+    };
 }
 
 // ---------- Recargar saldo (cliente) ----------
@@ -1005,5 +1158,6 @@ document.addEventListener('DOMContentLoaded', () => {
     inicializarRecarga();
     inicializarRetiro();
     inicializarMenuLateral();
+    inicializarPerfil();
     arrancar();
 });

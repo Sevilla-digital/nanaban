@@ -538,6 +538,70 @@
         }
         .seccion-cliente .linea h2 { margin: 0; }
 
+        /* ---------- Perfil ---------- */
+        .perfil-rejilla { display: grid; grid-template-columns: 1fr; gap: 24px; }
+        @media (min-width: 900px) { .perfil-rejilla { grid-template-columns: 300px 1fr; align-items: start; } }
+        .perfil-foto {
+            display: flex; flex-direction: column; align-items: center; gap: 16px; text-align: center;
+        }
+        .perfil-avatar {
+            position: relative;
+            width: 150px; height: 150px; border-radius: 9999px;
+            background: rgba(212, 175, 55, 0.12);
+            border: 2px solid rgba(212, 175, 55, 0.3);
+            color: var(--primario);
+            display: flex; align-items: center; justify-content: center;
+            font-family: Montserrat, sans-serif; font-weight: 700; font-size: 48px;
+            background-size: cover; background-position: center;
+            cursor: pointer; overflow: hidden; user-select: none;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .perfil-avatar:hover { transform: scale(1.03); box-shadow: 0 0 24px rgba(212, 175, 55, 0.2); }
+        .perfil-avatar.con-foto { color: transparent; }
+        .perfil-avatar-overlay {
+            position: absolute; inset: 0; border-radius: 9999px;
+            background: rgba(12, 15, 15, 0.55);
+            display: flex; align-items: center; justify-content: center;
+            color: var(--primario); opacity: 0; transition: opacity 0.25s;
+        }
+        .perfil-avatar:hover .perfil-avatar-overlay { opacity: 1; }
+        .perfil-avatar-overlay .material-symbols-outlined { font-size: 34px; }
+        .perfil-quitar {
+            background: none; border: none; color: var(--texto-suave);
+            font-family: Inter, sans-serif; font-size: 12px; letter-spacing: 0.04em;
+            text-transform: uppercase; cursor: pointer; text-decoration: underline;
+        }
+        .perfil-quitar:hover { color: var(--error); }
+
+        .perfil-datos { display: flex; flex-direction: column; gap: 24px; }
+        .perfil-titulo {
+            font-family: Montserrat, sans-serif; font-size: 18px; font-weight: 600;
+            color: var(--texto); margin: 0 0 20px; padding-bottom: 12px;
+            border-bottom: 1px solid var(--borde);
+            display: flex; align-items: center; gap: 8px;
+        }
+        .perfil-titulo .material-symbols-outlined { font-size: 20px; color: var(--texto-suave); }
+        .perfil-campos { display: grid; grid-template-columns: 1fr; gap: 8px 20px; }
+        @media (min-width: 560px) { .perfil-campos { grid-template-columns: 1fr 1fr; } }
+        .perfil-campos label { margin-top: 0; }
+        .campo-bloqueado { position: relative; }
+        .campo-bloqueado input { padding-right: 40px; }
+        .campo-bloqueado input:disabled {
+            background: #16191a; color: var(--texto-suave);
+            cursor: not-allowed; opacity: 0.75;
+        }
+        .campo-bloqueado .material-symbols-outlined {
+            position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+            font-size: 18px; color: var(--texto-suave); pointer-events: none;
+        }
+        .perfil-acciones {
+            display: flex; align-items: center; justify-content: flex-end; gap: 16px; flex-wrap: wrap;
+        }
+        .perfil-acciones .btn { margin-top: 0; }
+        .perfil-msg { font-size: 0.9em; }
+        .perfil-msg.ok { color: var(--ok); }
+        .perfil-msg.error { color: var(--error); }
+
         .rejilla-inversiones { display: grid; grid-template-columns: 1fr; gap: 24px; }
         @media (min-width: 768px) { .rejilla-inversiones { grid-template-columns: repeat(2, 1fr); } }
         @media (min-width: 1280px) { .rejilla-inversiones { grid-template-columns: repeat(3, 1fr); } }
@@ -987,6 +1051,10 @@
                         <span class="material-symbols-outlined">group</span>
                         <span>Referidos</span>
                     </a>
+                    <a class="lateral-enlace" href="#sec-perfil">
+                        <span class="material-symbols-outlined">person</span>
+                        <span>Mi perfil</span>
+                    </a>
                 </nav>
                 <div class="lateral-pie">
                     <a class="btn ancho" href="nueva-inversion.html">Nueva inversión</a>
@@ -1063,6 +1131,78 @@
                         </div>
                         <header class="linea"><h3>Tus referidos directos</h3></header>
                         <div class="tabla-panel" id="cliente-referidos"></div>
+                    </section>
+
+                    <!-- Mi perfil -->
+                    <section class="seccion-cliente" id="sec-perfil">
+                        <header class="linea"><h2>Mi perfil</h2></header>
+                        <div class="perfil-rejilla">
+                            <!-- Foto de perfil -->
+                            <div class="tarjeta perfil-foto">
+                                <div class="perfil-avatar" id="perfil-avatar" title="Cambiar foto de perfil">
+                                    <span id="perfil-avatar-iniciales">·</span>
+                                    <div class="perfil-avatar-overlay">
+                                        <span class="material-symbols-outlined">photo_camera</span>
+                                    </div>
+                                </div>
+                                <input type="file" id="perfil-foto-input"
+                                       accept="image/png,image/jpeg,image/gif,image/webp" hidden />
+                                <button class="btn sec" type="button" id="perfil-subir-foto">Cargar foto de perfil</button>
+                                <button class="perfil-quitar oculto" type="button" id="perfil-quitar-foto">Quitar foto</button>
+                                <p class="muted">JPG, PNG, GIF o WEBP. Se ajusta automáticamente.</p>
+                            </div>
+
+                            <!-- Datos -->
+                            <div class="perfil-datos">
+                                <div class="tarjeta">
+                                    <h3 class="perfil-titulo">Detalles personales</h3>
+                                    <div class="perfil-campos">
+                                        <div>
+                                            <label for="perfil-nombre">Nombre</label>
+                                            <input id="perfil-nombre" type="text" maxlength="120" autocomplete="given-name" />
+                                        </div>
+                                        <div>
+                                            <label for="perfil-apellido">Apellido</label>
+                                            <input id="perfil-apellido" type="text" maxlength="120" autocomplete="family-name" />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="tarjeta">
+                                    <h3 class="perfil-titulo">
+                                        <span class="material-symbols-outlined">lock</span>
+                                        Seguridad de la cuenta
+                                    </h3>
+                                    <div class="perfil-campos">
+                                        <div>
+                                            <label for="perfil-usuario">Usuario</label>
+                                            <div class="campo-bloqueado">
+                                                <input id="perfil-usuario" type="text" disabled />
+                                                <span class="material-symbols-outlined">lock</span>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label for="perfil-telefono">Número de teléfono</label>
+                                            <div class="campo-bloqueado">
+                                                <input id="perfil-telefono" type="text" disabled />
+                                                <span class="material-symbols-outlined">lock</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <p class="muted" style="margin-top:16px">
+                                        Para modificar tu usuario o teléfono, por favor contacta con tu asesor asignado.
+                                    </p>
+                                </div>
+
+                                <div class="perfil-acciones">
+                                    <span class="perfil-msg" id="perfil-msg"></span>
+                                    <button class="btn" type="button" id="perfil-guardar">
+                                        <span class="material-symbols-outlined" style="font-size:18px">save</span>
+                                        <span class="texto-btn">Guardar cambios</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </section>
                 </main>
             </div>
