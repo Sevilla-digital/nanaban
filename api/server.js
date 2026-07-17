@@ -57,10 +57,10 @@ app.use('/api/retiros', retiros);
 
 app.use((_req, res) => res.status(404).json({ error: 'Ruta no encontrada' }));
 
-app.use((err, _req, res, _next) => {
+app.use((err, req, res, next) => {
   console.error(err);
-  // Nunca devolvemos err.message al cliente: puede filtrar estructura de la BD.
-  res.status(500).json({ error: 'Error interno del servidor' });
+  // TEMPORAL PARA DEPURAR
+  res.status(500).json({ error: 'Error 500: ' + (err.message || 'Error interno') });
 });
 
 const puerto = process.env.PORT || 3000;
