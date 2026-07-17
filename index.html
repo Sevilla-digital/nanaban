@@ -382,9 +382,9 @@
                 <a href="#seguridad">Seguridad</a>
                 <a href="#nosotros">Nosotros</a>
             </div>
-            <a class="btn btn-oro" href="cuenta.html">
-                Acceso clientes
-                <span class="material-symbols-outlined" style="font-size:18px">login</span>
+            <a class="btn btn-oro" id="btn-acceso" href="cuenta.html">
+                <span id="btn-acceso-texto">Acceso clientes</span>
+                <span class="material-symbols-outlined" id="btn-acceso-icono" style="font-size:18px">login</span>
             </a>
         </div>
     </nav>
@@ -485,7 +485,15 @@
 
     <script type="module">
         // La ?v= debe subir a la vez que en cuenta.html cuando cambie js/api.js.
-        import { api } from './js/api.js?v=3';
+        import { api, sesion } from './js/api.js?v=3';
+
+        // Si el cliente ya tiene sesion iniciada, el boton pasa de "Acceso clientes"
+        // a "Mi perfil" con un icono de usuario, para que sepa que esta dentro. El
+        // enlace sigue apuntando a cuenta.html, que le mostrara su panel.
+        if (sesion.token) {
+            document.getElementById('btn-acceso-texto').textContent = 'Mi perfil';
+            document.getElementById('btn-acceso-icono').textContent = 'account_circle';
+        }
 
         // La pagina ya se ve completa con los textos por defecto. Si la API responde,
         // se aplican el nombre, logo, colores y textos que el admin haya guardado en
