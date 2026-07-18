@@ -238,21 +238,25 @@
 
         <!-- Navigation Links -->
         <nav class="flex-1 space-y-2">
-            <a class="flex items-center px-4 py-3 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-bright/5 hover:bg-surface-container-high transition-all font-label-md text-label-md group" href="cuenta.html">
+            <a class="flex items-center px-4 py-3 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-bright/5 hover:bg-surface-container-high transition-all font-label-md text-label-md group" href="cuenta.html#resumen">
                 <span class="material-symbols-outlined mr-4 opacity-80 group-hover:opacity-100 transition-opacity">dashboard</span>
-                Portfolio
+                Resumen
             </a>
             <a aria-current="page" class="flex items-center px-4 py-3 rounded-lg text-primary border-r-2 border-primary bg-primary-container/10 font-label-md text-label-md group hover:bg-surface-container-high transition-all" href="nueva-inversion.html">
                 <span class="material-symbols-outlined mr-4" style="font-variation-settings: 'FILL' 1;">account_balance_wallet</span>
                 Inversiones
             </a>
-            <a class="flex items-center px-4 py-3 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-bright/5 hover:bg-surface-container-high transition-all font-label-md text-label-md group" href="cuenta.html">
-                <span class="material-symbols-outlined mr-4 opacity-80 group-hover:opacity-100 transition-opacity">pie_chart</span>
-                Cartera
+            <a class="flex items-center px-4 py-3 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-bright/5 hover:bg-surface-container-high transition-all font-label-md text-label-md group" href="cuenta.html#sec-movimientos">
+                <span class="material-symbols-outlined mr-4 opacity-80 group-hover:opacity-100 transition-opacity">receipt_long</span>
+                Movimientos
             </a>
-            <a class="flex items-center px-4 py-3 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-bright/5 hover:bg-surface-container-high transition-all font-label-md text-label-md group" href="cuenta.html">
+            <a class="flex items-center px-4 py-3 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-bright/5 hover:bg-surface-container-high transition-all font-label-md text-label-md group" href="cuenta.html#sec-referidos">
+                <span class="material-symbols-outlined mr-4 opacity-80 group-hover:opacity-100 transition-opacity">group</span>
+                Referidos
+            </a>
+            <a class="flex items-center px-4 py-3 rounded-lg text-on-surface-variant hover:text-primary hover:bg-surface-bright/5 hover:bg-surface-container-high transition-all font-label-md text-label-md group" href="cuenta.html#sec-perfil">
                 <span class="material-symbols-outlined mr-4 opacity-80 group-hover:opacity-100 transition-opacity">person</span>
-                Perfil
+                Mi perfil
             </a>
         </nav>
 
@@ -477,20 +481,24 @@
     </main>
 
     <!-- Bottom Navigation (Mobile) -->
-    <nav class="md:hidden fixed bottom-0 left-0 w-full bg-surface-container border-t border-outline-variant/20 z-40 px-4 py-3 flex justify-between items-center">
-        <a class="flex flex-col items-center text-on-surface-variant hover:text-primary transition-colors" href="cuenta.html">
+    <nav class="md:hidden fixed bottom-0 left-0 w-full bg-surface-container border-t border-outline-variant/20 z-40 px-2 py-3 flex justify-around items-center">
+        <a class="flex flex-col items-center text-on-surface-variant hover:text-primary transition-colors" href="cuenta.html#resumen">
             <span class="material-symbols-outlined mb-1 text-[24px]">dashboard</span>
-            <span class="font-label-sm text-[10px]">Portfolio</span>
+            <span class="font-label-sm text-[10px]">Resumen</span>
         </a>
         <a class="flex flex-col items-center text-primary transition-colors" href="nueva-inversion.html">
             <span class="material-symbols-outlined mb-1 text-[24px]" style="font-variation-settings: 'FILL' 1;">account_balance_wallet</span>
-            <span class="font-label-sm text-[10px] font-bold">Inversiones</span>
+            <span class="font-label-sm text-[10px] font-bold">Inversión</span>
         </a>
-        <a class="flex flex-col items-center text-on-surface-variant hover:text-primary transition-colors" href="cuenta.html">
-            <span class="material-symbols-outlined mb-1 text-[24px]">pie_chart</span>
-            <span class="font-label-sm text-[10px]">Cartera</span>
+        <a class="flex flex-col items-center text-on-surface-variant hover:text-primary transition-colors" href="cuenta.html#sec-movimientos">
+            <span class="material-symbols-outlined mb-1 text-[24px]">receipt_long</span>
+            <span class="font-label-sm text-[10px]">Movim.</span>
         </a>
-        <a class="flex flex-col items-center text-on-surface-variant hover:text-primary transition-colors" href="cuenta.html">
+        <a class="flex flex-col items-center text-on-surface-variant hover:text-primary transition-colors" href="cuenta.html#sec-referidos">
+            <span class="material-symbols-outlined mb-1 text-[24px]">group</span>
+            <span class="font-label-sm text-[10px]">Referidos</span>
+        </a>
+        <a class="flex flex-col items-center text-on-surface-variant hover:text-primary transition-colors" href="cuenta.html#sec-perfil">
             <span class="material-symbols-outlined mb-1 text-[24px]">person</span>
             <span class="font-label-sm text-[10px]">Perfil</span>
         </a>
