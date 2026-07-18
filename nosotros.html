@@ -453,7 +453,9 @@
         .dock-lobby {
             display: flex;
             position: fixed;
-            bottom: 0; left: 0; right: 0;
+            /* top: auto anula el `nav { top: 0 }` global; sin esto el dock se estira
+               a toda la altura (top:0 + bottom:0) y tapa la página. */
+            top: auto; bottom: 0; left: 0; right: 0;
             z-index: 60;
             background: #1a1a1a;
             border-top: 1px solid var(--borde);
