@@ -483,10 +483,14 @@ function pintarAvatar(elem, avatar, ini) {
     }
 }
 
+// Último saldo mostrado, para detectar cambios y refrescar solo cuando toca.
+let ultimoSaldoConocido = null;
+
 async function cargarCliente() {
     try {
         const yo = await api('/api/clientes/me', { auth: true });
         clienteActual = yo;
+        ultimoSaldoConocido = String(yo.saldo);
         const ini = iniciales(yo.nombre, yo.apellido);
         if ($('cliente-nombre')) $('cliente-nombre').textContent = `${yo.nombre} ${yo.apellido || ''}`.trim();
         if ($('cliente-usuario')) $('cliente-usuario').textContent = '@' + (yo.usuario ?? '');
@@ -514,6 +518,34 @@ async function cargarCliente() {
         if (!sesion.token) { arrancar(); return; }
         alert(err.message);
     }
+}
+
+// Actualiza el saldo (y las tablas) en tiempo real sin recargar la página. Solo
+// vuelve a pintar si el saldo cambió, para no parpadear ni perder el scroll. Así,
+// cuando se acredita una recarga, el cliente lo ve solo en unos segundos.
+async function refrescarPanel() {
+    if (document.hidden || !sesion.token) return;
+    const vc = $('vista-cliente');
+    if (!vc || vc.classList.contains('oculto')) return; // solo en el panel del cliente
+    try {
+        const yo = await api('/api/clientes/me', { auth: true });
+        if (String(yo.saldo) === ultimoSaldoConocido) return; // sin cambios
+        ultimoSaldoConocido = String(yo.saldo);
+        clienteActual = yo;
+        pintarSaldo('cliente-saldo', yo.saldo);
+        tarjetasInversiones('cliente-inversiones', yo.inversiones);
+        const mov = await api('/api/clientes/me/movimientos', { auth: true });
+        movimientosCliente('cliente-movimientos', mov.movimientos);
+    } catch {
+        // Fallo puntual (API dormida, red): se reintenta en el siguiente ciclo.
+    }
+}
+
+// Arranca la actualización en vivo: sondea cada pocos segundos y también al volver
+// a la pestaña (cambio de visibilidad), para que el saldo aparezca sin recargar.
+function iniciarActualizacionEnVivo() {
+    setInterval(refrescarPanel, 12000);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) refrescarPanel(); });
 }
 
 // ---------- Mi perfil ----------
@@ -1160,4 +1192,5 @@ document.addEventListener('DOMContentLoaded', () => {
     inicializarMenuLateral();
     inicializarPerfil();
     arrancar();
+    iniciarActualizacionEnVivo();
 });
