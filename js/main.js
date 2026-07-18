@@ -494,6 +494,8 @@ async function cargarCliente() {
         const ini = iniciales(yo.nombre, yo.apellido);
         if ($('cliente-nombre')) $('cliente-nombre').textContent = `${yo.nombre} ${yo.apellido || ''}`.trim();
         if ($('cliente-usuario')) $('cliente-usuario').textContent = '@' + (yo.usuario ?? '');
+        // Insignia dorada bajo el perfil, solo para cuentas premium.
+        if ($('insignia-premium')) $('insignia-premium').classList.toggle('oculto', yo.premium !== true);
         pintarAvatar($('cliente-avatar'), yo.avatar, ini);
         rellenarPerfil(yo);
         pintarSaldo('cliente-saldo', yo.saldo);
@@ -996,6 +998,7 @@ function inicializarRetiro() {
             mostrar('vista-cliente', false);
             mostrar('vista-retiro', true);
             $('retiro-monto').value = '';
+            pintarCondicionesRetiro();
             actualizarResumenRetiro();
             $('error-solicitud-retiro').textContent = '';
             $('ok-solicitud-retiro').textContent = '';
@@ -1138,13 +1141,31 @@ function inicializarRetiro() {
 function actualizarResumenRetiro() {
     const input = $('retiro-monto');
     if (!input) return;
+    const esPremium = clienteActual?.premium === true;
     const monto = parseFloat(input.value) || 0;
-    const comision = monto * 0.05;
+    const comision = esPremium ? 0 : monto * 0.05;
     const total = monto - comision;
 
     $('retiro-resumen-monto').textContent = dinero(monto);
     $('retiro-resumen-comision').textContent = '-' + dinero(comision);
     $('retiro-resumen-total').textContent = dinero(total);
+}
+
+// Ajusta los textos de la vista de retiro según el tipo de cuenta. Las cuentas
+// normales pagan 5% y cobran el día 25 de cada mes; las premium están exentas
+// de la comisión y cobran en un máximo de 24 horas, cualquier día.
+function pintarCondicionesRetiro() {
+    const esPremium = clienteActual?.premium === true;
+    const info = $('retiro-info-comision');
+    const etiqueta = $('retiro-etiqueta-comision');
+    const nota = $('retiro-nota-plazo');
+    if (info) info.textContent = esPremium ? 'Cuenta premium: sin comisión' : 'Comisión por retiro: 5%';
+    if (etiqueta) etiqueta.textContent = esPremium ? 'Comisión (0% · exenta)' : 'Comisión (5%)';
+    if (nota) {
+        nota.textContent = esPremium
+            ? 'Cuenta premium: tus retiros se procesan en un máximo de 24 horas, cualquier día, sujetos a verificación AML/KYC.'
+            : 'Los retiros se pagan el día 25 de cada mes. Puedes dejar tu solicitud registrada y quedará programada; una vez llegada la fecha, el pago puede tardar hasta 24 horas en llegar.';
+    }
 }
 
 // ---------- Lógica de arranque ----------
@@ -1167,7 +1188,8 @@ async function arrancar() {
     try {
         if (sesion.esAdmin) {
             mostrar('vista-admin', true);
-            const { inicializarAdmin } = await import('./admin.js');
+            // La ?v= debe subir cuando cambie admin.js, para que el navegador no use la version vieja.
+            const { inicializarAdmin } = await import('./admin.js?v=2');
             inicializarAdmin();
         } else {
             mostrar('vista-cliente', true);

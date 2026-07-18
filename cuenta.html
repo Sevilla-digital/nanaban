@@ -522,6 +522,25 @@
         }
         .insignia .punto { width: 6px; height: 6px; border-radius: 9999px; background: var(--primario); }
 
+        /* Insignia dorada de cuenta premium (solo la ven las cuentas marcadas por el admin). */
+        .insignia-premium {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 10px;
+            font-family: Inter, sans-serif;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #241a00;
+            padding: 5px 14px;
+            background: linear-gradient(135deg, #f2ca50, #d4af37);
+            border-radius: 9999px;
+            box-shadow: 0 2px 12px rgba(212, 175, 55, 0.4);
+        }
+        .insignia-premium .material-symbols-outlined { font-size: 16px; font-variation-settings: 'FILL' 1; }
+
         .tarjeta-saldo {
             background: var(--tarjeta);
             border: 1px solid rgba(212, 175, 55, 0.3);
@@ -1123,6 +1142,11 @@
                             <div style="text-align:center;z-index:1">
                                 <h2 id="cliente-nombre">—</h2>
                                 <span class="insignia"><span class="punto"></span><span id="cliente-usuario"></span></span>
+                                <br>
+                                <span class="insignia-premium oculto" id="insignia-premium">
+                                    <span class="material-symbols-outlined">workspace_premium</span>
+                                    Cuenta Premium
+                                </span>
                             </div>
                         </div>
                         <div class="tarjeta-saldo">
@@ -1386,7 +1410,7 @@
                             <span style="font-size:11px; color:var(--texto-suave);">Mínimo de retiro: $30.00 USD</span>
                             <span style="font-size:11px; color:var(--primario); display:flex; align-items:center; gap:4px;">
                                 <span class="material-symbols-outlined" style="font-size:12px;">info</span>
-                                Comisión por retiro: 5%
+                                <span id="retiro-info-comision">Comisión por retiro: 5%</span>
                             </span>
                         </div>
                     </div>
@@ -1412,7 +1436,7 @@
                             <span id="retiro-resumen-monto">$0.00</span>
                         </div>
                         <div style="display:flex; justify-content:space-between; color:#ef4444; margin-bottom:16px;">
-                            <span>Comisión (5%)</span>
+                            <span id="retiro-etiqueta-comision">Comisión (5%)</span>
                             <span id="retiro-resumen-comision">-$0.00</span>
                         </div>
                         <div style="display:flex; justify-content:space-between; align-items:flex-end; padding-top:16px; border-top:1px solid #333;">
@@ -1432,7 +1456,7 @@
                         <span class="material-symbols-outlined" style="color:var(--primario); font-size:20px; opacity:0.8;">lock</span>
                         <div>
                             <p style="margin:0 0 4px 0; font-size:12px; font-weight:600; color:var(--texto-suave);">Seguridad Institucional</p>
-                            <p style="margin:0; font-size:11px; color:rgba(255,255,255,0.5); line-height:1.5;">Las solicitudes de retiro tardan un lapso de 24 horas en llegar, sujetos a verificación AML/KYC.</p>
+                            <p style="margin:0; font-size:11px; color:rgba(255,255,255,0.5); line-height:1.5;" id="retiro-nota-plazo">Las solicitudes de retiro tardan un lapso de 24 horas en llegar, sujetos a verificación AML/KYC.</p>
                         </div>
                     </div>
                 </div>
@@ -1539,6 +1563,7 @@
                 <div class="tab activa" id="tab-clientes">Clientes</div>
                 <div class="tab" id="tab-recargas">Recargas</div>
                 <div class="tab" id="tab-retiros">Retiros</div>
+                <div class="tab" id="tab-premium">Premium</div>
                 <div class="tab" id="tab-metodos">Métodos de pago</div>
                 <div class="tab" id="tab-config">Configuración del sitio</div>
             </div>
@@ -1607,6 +1632,22 @@
                     <h2 style="margin-top:0">Solicitudes de retiro</h2>
                     <p class="muted">Aquí verás los retiros pendientes. Al completarlos, la solicitud se marcará como completada. Si los rechazas, el dinero se reembolsará al cliente.</p>
                     <div id="lista-retiros"><p class="muted">Cargando…</p></div>
+                </div>
+            </div>
+
+            <!-- Cuentas Premium -->
+            <div id="panel-premium" class="oculto">
+                <div class="tarjeta">
+                    <h2 style="margin-top:0">Cuentas premium</h2>
+                    <p class="muted">
+                        Las cuentas premium están <strong>exentas de la comisión del 5%</strong> por retiro,
+                        <strong>cobran sus retiros en 24 horas cualquier día</strong> (sin esperar al día 25 del mes)
+                        y <strong>ganan siempre el 6%</strong> por las recargas de toda su cadena de referidos,
+                        sin límite de nivel. El cliente verá una insignia dorada "Cuenta Premium" en su perfil.
+                    </p>
+                    <input id="buscar-premium" placeholder="Buscar cliente por nombre, usuario o teléfono para añadirlo…">
+                    <div class="error" id="error-premium"></div>
+                    <div id="lista-premium"><p class="muted">Cargando…</p></div>
                 </div>
             </div>
 
@@ -1687,6 +1728,6 @@
         </div>
     </div>
 
-    <script type="module" src="js/main.js?v=4"></script>
+    <script type="module" src="js/main.js?v=5"></script>
 </body>
 </html>

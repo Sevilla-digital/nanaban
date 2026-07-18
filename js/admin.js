@@ -44,6 +44,13 @@ const ESTADO_RECARGA = {
     rechazada: 'Rechazada',
 };
 
+// Formatea una fecha (DATE de la BD, "2026-07-25...") como 25/07/2026, sin
+// pasar por Date para evitar corrimientos de zona horaria.
+function fechaCorta(v) {
+    const m = String(v ?? '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+    return m ? `${m[3]}/${m[2]}/${m[1]}` : String(v ?? '');
+}
+
 // Necesitaremos regenerar las tablas
 function tablaInversiones(destino, inversiones) {
     const cont = $(destino);
@@ -107,8 +114,8 @@ export function inicializarAdmin() {
     };
     
     // Manejo de pestañas
-    const tabs = ['tab-clientes', 'tab-config', 'tab-metodos', 'tab-recargas', 'tab-retiros'];
-    const paneles = ['panel-clientes', 'panel-config', 'panel-metodos', 'panel-recargas', 'panel-retiros'];
+    const tabs = ['tab-clientes', 'tab-config', 'tab-metodos', 'tab-recargas', 'tab-retiros', 'tab-premium'];
+    const paneles = ['panel-clientes', 'panel-config', 'panel-metodos', 'panel-recargas', 'panel-retiros', 'panel-premium'];
 
     if ($('tab-clientes')) {
         $('tab-clientes').onclick = () => {
@@ -157,6 +164,24 @@ export function inicializarAdmin() {
             paneles.forEach(p => mostrar(p, false));
             mostrar('panel-retiros', true);
             listarRetiros();
+        };
+    }
+
+    if ($('tab-premium')) {
+        $('tab-premium').onclick = () => {
+            tabs.forEach(t => $(t)?.classList.remove('activa'));
+            $('tab-premium').classList.add('activa');
+            paneles.forEach(p => mostrar(p, false));
+            mostrar('panel-premium', true);
+            listarPremium($('buscar-premium')?.value || '');
+        };
+    }
+
+    let debouncePremium;
+    if ($('buscar-premium')) {
+        $('buscar-premium').oninput = (e) => {
+            clearTimeout(debouncePremium);
+            debouncePremium = setTimeout(() => listarPremium(e.target.value), 300);
         };
     }
 
@@ -325,7 +350,9 @@ async function listarClientes(buscar = '') {
         tabla.innerHTML = '<thead><tr><th>Cliente</th><th>Teléfono</th><th>Saldo</th></tr></thead>';
         const tbody = document.createElement('tbody');
         for (const c of clientes) {
-            const nombre = `${c.nombre} ${c.apellido || ''}`.trim() + (c.es_admin ? ' ⭐' : '');
+            const nombre = `${c.nombre} ${c.apellido || ''}`.trim()
+                + (c.es_admin ? ' ⭐' : '')
+                + (c.premium ? ' 👑' : '');
             // Si el backend devuelve c.saldo en lugar de c.saldo_eur, usamos c.saldo
             const saldoUsar = c.saldo !== undefined ? c.saldo : c.saldo_eur;
             tbody.appendChild(fila([nombre, c.telefono, dinero(saldoUsar)], () => abrirCliente(c.id)));
@@ -334,6 +361,67 @@ async function listarClientes(buscar = '') {
         cont.appendChild(tabla);
     } catch (err) {
         cont.innerHTML = `<p class="error">${err.message}</p>`;
+    }
+}
+
+// ---------- Cuentas premium ----------
+
+// Sin búsqueda: muestra las cuentas premium actuales. Con búsqueda: muestra las
+// coincidencias con un botón para hacer o quitar premium a cada una.
+async function listarPremium(buscar = '') {
+    const cont = $('lista-premium');
+    if (!cont) return;
+    try {
+        const q = buscar ? `?buscar=${encodeURIComponent(buscar)}` : '';
+        const { clientes } = await api('/api/clientes' + q, { auth: true });
+        const lista = buscar ? clientes : clientes.filter(c => c.premium);
+        cont.innerHTML = '';
+
+        if (!lista.length) {
+            cont.innerHTML = buscar
+                ? '<p class="muted">Sin resultados para esa búsqueda.</p>'
+                : '<p class="muted">Todavía no hay cuentas premium. Busca un cliente arriba para añadirlo.</p>';
+            return;
+        }
+
+        const tabla = document.createElement('table');
+        tabla.innerHTML = '<thead><tr><th>Cliente</th><th>Usuario</th><th>Estado</th><th></th></tr></thead>';
+        const tbody = document.createElement('tbody');
+        for (const c of lista) {
+            const tr = document.createElement('tr');
+            const nombre = `${c.nombre} ${c.apellido || ''}`.trim();
+
+            const tdNombre = document.createElement('td');
+            tdNombre.textContent = nombre + (c.premium ? ' 👑' : '');
+            const tdUsuario = document.createElement('td');
+            tdUsuario.textContent = c.usuario ? '@' + c.usuario : '—';
+            const tdEstado = document.createElement('td');
+            tdEstado.textContent = c.premium ? 'Premium' : 'Normal';
+            if (c.premium) tdEstado.style.color = 'var(--primario)';
+
+            const tdBoton = document.createElement('td');
+            const btn = botonAccion(c.premium ? 'Quitar premium' : 'Hacer premium', 'btn' + (c.premium ? ' sec' : ''));
+            btn.style.marginTop = '0';
+            btn.onclick = () => cambiarPremium(c.id, !c.premium, buscar);
+            tdBoton.appendChild(btn);
+
+            tr.append(tdNombre, tdUsuario, tdEstado, tdBoton);
+            tbody.appendChild(tr);
+        }
+        tabla.appendChild(tbody);
+        cont.appendChild(tabla);
+    } catch (err) {
+        cont.innerHTML = `<p class="error">${err.message}</p>`;
+    }
+}
+
+async function cambiarPremium(id, premium, buscar) {
+    if ($('error-premium')) $('error-premium').textContent = '';
+    try {
+        await api(`/api/clientes/${id}/premium`, { method: 'PATCH', auth: true, body: { premium } });
+        listarPremium(buscar);
+    } catch (err) {
+        if ($('error-premium')) $('error-premium').textContent = err.message;
     }
 }
 
@@ -521,6 +609,11 @@ async function listarRetiros() {
                     <div><b>Pide:</b> ${dinero(r.monto)}</div>
                     <div style="color:var(--error); font-size:12px;">Comisión: -${dinero(r.comision)}</div>
                     <div style="color:var(--primario);"><b>A Enviar:</b> ${dinero(r.total_recibir)}</div>
+                    ${r.premium
+                        ? '<div style="font-size:11px; color:var(--primario);">👑 Premium · pago en 24h</div>'
+                        : (r.programado_para
+                            ? `<div style="font-size:11px; color:#99907c;">Pago programado: ${fechaCorta(r.programado_para)}</div>`
+                            : '')}
                 </div>
             `;
 

@@ -165,7 +165,7 @@ router.post('/bootstrap-admin', limiteAuth, async (req, res, next) => {
 router.get('/me', requiereAuth, async (req, res, next) => {
   try {
     const { rows } = await query(
-      `SELECT c.id, c.nombre, c.apellido, c.usuario, c.telefono, c.avatar, c.es_admin, c.creado_en, s.saldo
+      `SELECT c.id, c.nombre, c.apellido, c.usuario, c.telefono, c.avatar, c.es_admin, c.premium, c.creado_en, s.saldo
        FROM clientes c
        JOIN saldos s ON s.cliente_id = c.id
        WHERE c.id = $1`,
@@ -271,7 +271,7 @@ router.get('/', requiereAuth, requiereAdmin, async (req, res, next) => {
     const limite = Math.min(Number(req.query.limite) || 100, 500);
     const { rows } = await query(
       `SELECT c.id, c.nombre, c.apellido, c.usuario, c.telefono, c.es_admin, c.activo,
-              c.creado_en, s.saldo
+              c.premium, c.creado_en, s.saldo
        FROM clientes c
        JOIN saldos s ON s.cliente_id = c.id
        WHERE ($1 = '' OR c.nombre ILIKE '%'||$1||'%' OR c.apellido ILIKE '%'||$1||'%'
@@ -286,6 +286,30 @@ router.get('/', requiereAuth, requiereAdmin, async (req, res, next) => {
   }
 });
 
+/**
+ * Admin: marca o desmarca una cuenta como premium. Las cuentas premium quedan
+ * exentas de la comision del 5% al retirar, cobran en 24h (sin esperar al dia 25)
+ * y ganan el 6% por las recargas de toda su cadena de referidos sin limite de nivel.
+ */
+router.patch('/:id/premium', requiereAuth, requiereAdmin, async (req, res, next) => {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: 'Id invalido' });
+    const datos = z.object({ premium: z.boolean() }).safeParse(req.body);
+    if (!datos.success) return res.status(400).json({ error: 'Datos invalidos' });
+
+    const { rows } = await query(
+      `UPDATE clientes SET premium = $1 WHERE id = $2
+       RETURNING id, nombre, apellido, usuario, premium`,
+      [datos.data.premium, id]
+    );
+    if (rows.length === 0) return res.status(404).json({ error: 'Cliente no encontrado' });
+    res.json(rows[0]);
+  } catch (err) {
+    next(err);
+  }
+});
+
 /** Detalle de un cliente cualquiera: perfil, saldo, inversiones y movimientos. Solo admin. */
 router.get('/:id', requiereAuth, requiereAdmin, async (req, res, next) => {
   try {
@@ -294,7 +318,7 @@ router.get('/:id', requiereAuth, requiereAdmin, async (req, res, next) => {
 
     const { rows } = await query(
       `SELECT c.id, c.nombre, c.apellido, c.usuario, c.telefono, c.es_admin, c.activo,
-              c.creado_en, s.saldo
+              c.premium, c.creado_en, s.saldo
        FROM clientes c
        JOIN saldos s ON s.cliente_id = c.id
        WHERE c.id = $1`,

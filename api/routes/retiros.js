@@ -69,15 +69,42 @@ const solicitarRetiroEsquema = z.object({
   metodo_retiro_id: z.coerce.number().int().positive()
 });
 
-/** Solicitar un retiro */
+// Dia del mes en que se pagan los retiros de las cuentas normales.
+const DIA_PAGO_RETIROS = 25;
+
+/**
+ * Proximo dia 25: si hoy es antes del 25, el 25 de este mes; si no, el del mes
+ * que viene. Devuelve un YYYY-MM-DD (tipo DATE, sin hora ni zona horaria).
+ */
+function proximoDiaPago(hoy = new Date()) {
+  const anio = hoy.getFullYear();
+  const mes = hoy.getMonth();
+  const fecha = hoy.getDate() < DIA_PAGO_RETIROS
+    ? new Date(Date.UTC(anio, mes, DIA_PAGO_RETIROS))
+    : new Date(Date.UTC(anio, mes + 1, DIA_PAGO_RETIROS));
+  return fecha.toISOString().slice(0, 10);
+}
+
+/**
+ * Solicitar un retiro.
+ * - Cuentas normales: comision del 5% y pago programado para el dia 25 del mes
+ *   (una vez llegada la fecha, puede tardar hasta 24h en llegar).
+ * - Cuentas premium: sin comision y pago en un maximo de 24h, cualquier dia.
+ */
 router.post('/', requiereAuth, async (req, res, next) => {
   try {
     const d = solicitarRetiroEsquema.parse(req.body);
-    const COMISION_PCT = 0.05; // 5%
-    const comision = d.monto * COMISION_PCT;
-    const total_recibir = d.monto - comision;
 
+    let respuesta = null;
     await withTransaction(async (client) => {
+      // 0. Condiciones de la cuenta (premium o normal)
+      const cli = await client.query('SELECT premium FROM clientes WHERE id = $1', [req.cliente.id]);
+      const esPremium = cli.rows[0]?.premium === true;
+
+      const comision = esPremium ? 0 : d.monto * 0.05;
+      const total_recibir = d.monto - comision;
+      const programadoPara = esPremium ? null : proximoDiaPago();
+
       // 1. Validar método de retiro
       const mrc = await client.query(
         `SELECT id FROM metodos_retiro_cliente WHERE id = $1 AND cliente_id = $2 AND activo = TRUE`,
@@ -95,10 +122,10 @@ router.post('/', requiereAuth, async (req, res, next) => {
 
       // 3. Crear solicitud de retiro
       const { rows } = await client.query(
-        `INSERT INTO retiros (cliente_id, metodo_retiro_id, monto, comision, total_recibir, estado)
-         VALUES ($1, $2, $3, $4, $5, 'pendiente')
+        `INSERT INTO retiros (cliente_id, metodo_retiro_id, monto, comision, total_recibir, estado, programado_para)
+         VALUES ($1, $2, $3, $4, $5, 'pendiente', $6)
          RETURNING id`,
-        [req.cliente.id, d.metodo_retiro_id, d.monto, comision, total_recibir]
+        [req.cliente.id, d.metodo_retiro_id, d.monto, comision, total_recibir, programadoPara]
       );
       const retiro_id = rows[0].id;
 
@@ -108,9 +135,22 @@ router.post('/', requiereAuth, async (req, res, next) => {
          VALUES ($1, 'retiro', $2, $3, $4, $1)`,
         [req.cliente.id, -d.monto, 'Solicitud de retiro', retiro_id]
       );
+
+      if (esPremium) {
+        respuesta = { mensaje: 'Retiro solicitado. Recibirás tu dinero en un máximo de 24 horas.', premium: true };
+      } else {
+        const [a, m, dia] = programadoPara.split('-');
+        respuesta = {
+          mensaje: `Retiro programado. Los pagos se realizan el día ${DIA_PAGO_RETIROS} de cada mes: `
+            + `el tuyo queda programado para el ${dia}/${m}/${a} y, una vez llegada la fecha, `
+            + `puede tardar hasta 24 horas en llegar.`,
+          premium: false,
+          programado_para: programadoPara,
+        };
+      }
     });
 
-    res.status(201).json({ mensaje: 'Retiro solicitado. Procesamiento en 24h.' });
+    res.status(201).json(respuesta);
   } catch (err) {
     if (err instanceof z.ZodError) {
       return res.status(400).json({ error: err.errors.map(e => e.message).join(', ') });
@@ -128,8 +168,8 @@ router.post('/', requiereAuth, async (req, res, next) => {
 router.get('/admin/lista', requiereAuth, requiereAdmin, async (req, res, next) => {
   try {
     const { rows } = await query(
-      `SELECT r.id, r.monto, r.comision, r.total_recibir, r.estado, r.creado_en,
-              c.nombre, c.apellido, c.usuario, c.telefono,
+      `SELECT r.id, r.monto, r.comision, r.total_recibir, r.estado, r.creado_en, r.programado_para,
+              c.nombre, c.apellido, c.usuario, c.telefono, c.premium,
               mrc.tipo AS metodo_tipo, mrc.banco_nombre, mrc.titular, mrc.numero_cuenta, 
               mrc.cripto_red, mrc.cripto_direccion, mrc.telefono_movil
        FROM retiros r

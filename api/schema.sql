@@ -25,6 +25,11 @@ ALTER TABLE clientes ADD COLUMN IF NOT EXISTS referido_por BIGINT REFERENCES cli
 -- subir o quitar desde su perfil; se limita el tamaño al subirla (redimension en cliente).
 ALTER TABLE clientes ADD COLUMN IF NOT EXISTS avatar TEXT;
 
+-- Cuentas premium (las marca el admin): exentas de la comision del 5% al retirar,
+-- exentas de la regla de pago el dia 25 (retiran a diario, 24h) y ganan siempre el
+-- 6% de comision por las recargas de TODA su cadena de referidos, sin limite de nivel.
+ALTER TABLE clientes ADD COLUMN IF NOT EXISTS premium BOOLEAN NOT NULL DEFAULT FALSE;
+
 -- La unicidad del usuario vive SOLO en este indice (no en la columna) para que
 -- el nombre del constraint sea el mismo en instalaciones nuevas y migradas:
 -- la API distingue por ese nombre que UNIQUE fallo al registrar.
@@ -200,6 +205,10 @@ CREATE TABLE IF NOT EXISTS retiros (
   procesado_en     TIMESTAMPTZ,
   procesado_por    BIGINT        REFERENCES clientes(id) ON DELETE SET NULL
 );
+
+-- Fecha en la que esta programado pagar el retiro. Las cuentas normales cobran el
+-- dia 25 de cada mes (NULL en las premium, que cobran en 24h).
+ALTER TABLE retiros ADD COLUMN IF NOT EXISTS programado_para DATE;
 
 -- Enlazar la tabla movimientos con la tabla retiros (si no existe la constraint)
 DO $$

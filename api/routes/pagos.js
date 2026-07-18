@@ -293,26 +293,38 @@ router.post('/recargas/:id/confirmar', requiereAuth, requiereAdmin, async (req, 
         [recarga.cliente_id, recarga.monto, `Recarga confirmada · ${recarga.metodo_desc}`, req.cliente.id]
       );
 
+      // Comisiones de referidos: se recorre la cadena hacia arriba desde el cliente
+      // que recargo. Cuentas normales: 6% el referidor directo (nivel 1) y 3% el de
+      // segundo nivel, nada mas alla. Cuentas PREMIUM: 6% en CUALQUIER nivel de su
+      // cadena, sin limite de profundidad. El set de visitados evita bucles.
       const cRes = await client.query('SELECT referido_por, usuario FROM clientes WHERE id = $1', [recarga.cliente_id]);
       if (cRes.rows.length > 0 && cRes.rows[0].referido_por) {
-        const nivel1Id = cRes.rows[0].referido_por;
         const nombreRef = cRes.rows[0].usuario || 'usuario_desconocido';
-        const comision1 = Number(recarga.monto) * 0.06;
-        await client.query(
-          `INSERT INTO movimientos (cliente_id, tipo, importe, descripcion, creado_por)
-           VALUES ($1, 'comision_referido', $2::numeric, $3, $4)`,
-          [nivel1Id, comision1, `Comision (6%) por referido directo (@${nombreRef})`, req.cliente.id]
-        );
+        const visitados = new Set([recarga.cliente_id]);
+        let padreId = cRes.rows[0].referido_por;
+        let nivel = 0;
 
-        const r2Res = await client.query('SELECT referido_por FROM clientes WHERE id = $1', [nivel1Id]);
-        if (r2Res.rows.length > 0 && r2Res.rows[0].referido_por) {
-          const nivel2Id = r2Res.rows[0].referido_por;
-          const comision2 = Number(recarga.monto) * 0.03;
-          await client.query(
-            `INSERT INTO movimientos (cliente_id, tipo, importe, descripcion, creado_por)
-             VALUES ($1, 'comision_referido', $2::numeric, $3, $4)`,
-            [nivel2Id, comision2, `Comision (3%) por referido indirecto (@${nombreRef})`, req.cliente.id]
-          );
+        while (padreId && nivel < 30 && !visitados.has(padreId)) {
+          nivel++;
+          visitados.add(padreId);
+          const p = await client.query('SELECT referido_por, premium FROM clientes WHERE id = $1', [padreId]);
+          if (p.rows.length === 0) break;
+
+          let pct = 0;
+          if (p.rows[0].premium === true) pct = 0.06; // premium: 6% siempre, a cualquier nivel
+          else if (nivel === 1) pct = 0.06;
+          else if (nivel === 2) pct = 0.03;
+
+          if (pct > 0) {
+            const comision = Number(recarga.monto) * pct;
+            const etiquetaNivel = nivel === 1 ? 'directo' : `nivel ${nivel}`;
+            await client.query(
+              `INSERT INTO movimientos (cliente_id, tipo, importe, descripcion, creado_por)
+               VALUES ($1, 'comision_referido', $2::numeric, $3, $4)`,
+              [padreId, comision, `Comision (${pct * 100}%) por referido ${etiquetaNivel} (@${nombreRef})`, req.cliente.id]
+            );
+          }
+          padreId = p.rows[0].referido_por;
         }
       }
       await client.query(
