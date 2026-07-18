@@ -448,6 +448,45 @@
         .nosotros-cta { text-align: center; padding-top: 80px; padding-bottom: 40px; }
         .nosotros-cta h3 { font-family: Montserrat, sans-serif; font-size: 26px; font-weight: 600; margin-bottom: 32px; }
         @media (min-width: 768px) { .nosotros-cta h3 { font-size: 32px; } }
+
+        /* ---- Dock de navegación inferior (solo móvil) ---- */
+        .dock-lobby {
+            display: flex;
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            z-index: 60;
+            background: #1a1a1a;
+            border-top: 1px solid var(--borde);
+            padding: 8px 4px;
+            padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+            justify-content: space-around;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.35);
+        }
+        @media (min-width: 768px) { .dock-lobby { display: none; } }
+        .dock-lobby a {
+            flex: 1 1 0;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3px;
+            padding: 6px 2px;
+            color: var(--texto-suave);
+            text-decoration: none;
+            font-family: Inter, sans-serif;
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 0.01em;
+            white-space: nowrap;
+            border-radius: 8px;
+            transition: color 0.2s;
+        }
+        .dock-lobby a .material-symbols-outlined { font-size: 24px; }
+        .dock-lobby a:hover { color: var(--oro); }
+        .dock-lobby a.activo { color: var(--oro); }
+        .dock-lobby a.activo .material-symbols-outlined { font-variation-settings: 'FILL' 1; }
+        /* En móvil, deja hueco abajo para que el dock no tape el pie. */
+        @media (max-width: 767px) { body { padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px)); } }
     </style>
 </head>
 <body>
@@ -592,6 +631,26 @@
             </div>
         </div>
     </footer>
+
+    <!-- Dock de navegación (solo móvil) -->
+    <nav class="dock-lobby">
+        <a href="index.html">
+            <span class="material-symbols-outlined">home</span>
+            <span>Inicio</span>
+        </a>
+        <a href="index.html#inversiones">
+            <span class="material-symbols-outlined">trending_up</span>
+            <span>Inversiones</span>
+        </a>
+        <a href="index.html#seguridad">
+            <span class="material-symbols-outlined">verified_user</span>
+            <span>Seguridad</span>
+        </a>
+        <a class="activo" href="nosotros.html">
+            <span class="material-symbols-outlined">groups</span>
+            <span>Nosotros</span>
+        </a>
+    </nav>
 
     <script type="module">
         // La ?v= debe subir a la vez que en cuenta.html cuando cambie js/api.js.
