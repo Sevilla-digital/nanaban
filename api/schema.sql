@@ -156,6 +156,11 @@ ALTER TABLE configuracion_sitio ADD COLUMN IF NOT EXISTS legal_terminos     TEXT
 ALTER TABLE configuracion_sitio ADD COLUMN IF NOT EXISTS legal_privacidad   TEXT NOT NULL DEFAULT '';
 ALTER TABLE configuracion_sitio ADD COLUMN IF NOT EXISTS legal_cumplimiento TEXT NOT NULL DEFAULT '';
 
+-- Tasa de cambio Cordoba/Dolar (cuantos cordobas por 1 USD) que fija el admin segun
+-- la tasa de LAFISE. Se usa para convertir el monto en la pantalla de recarga para
+-- clientes con numero de Nicaragua (+505). Por defecto ~36.80.
+ALTER TABLE configuracion_sitio ADD COLUMN IF NOT EXISTS tasa_cordoba NUMERIC(10,4) NOT NULL DEFAULT 36.80;
+
 -- Metodos de pago para recargar saldo. Los gestiona el admin desde el panel y el
 -- cliente los ve al recargar. Una sola tabla para bancos y cripto: la columna 'tipo'
 -- decide que campos aplican (la API valida cada tipo con un esquema distinto).

@@ -32,9 +32,14 @@ function popularPaises() {
 }
 
 // Aplica la marca y colores guardados, para que combine con la web publica.
+// Tasa Córdoba/Dólar (C$ por 1 USD) que fija el admin. La usa la recarga de los
+// clientes de Nicaragua. Se rellena al cargar la config; 36.80 como respaldo.
+let tasaCordoba = 36.80;
+
 async function aplicarBranding() {
     try {
         const c = await api('/api/sitio');
+        if (Number(c.tasa_cordoba) > 0) tasaCordoba = Number(c.tasa_cordoba);
         if (c.color_primario) document.documentElement.style.setProperty('--primario', c.color_primario);
         if (c.color_fondo) document.documentElement.style.setProperty('--fondo', c.color_fondo);
         if (c.nombre_sitio) {
@@ -702,8 +707,25 @@ function inicializarRecarga() {
             mostrar('vista-cliente', false);
             mostrar('vista-recarga', true);
             $('error-recarga').textContent = '';
+            prepararRecargaCordoba();
             cargarMetodosRecarga();
         };
+    }
+
+    // Conversión automática Córdoba ⇄ Dólar (solo para clientes de Nicaragua).
+    // Al escribir en un campo se recalcula el otro; fijar .value no dispara 'input',
+    // así que no hay bucle.
+    const inUsd = $('recarga-monto');
+    const inCord = $('recarga-cordoba');
+    if (inUsd && inCord) {
+        inUsd.addEventListener('input', () => {
+            const usd = parseFloat(inUsd.value.replace(',', '.'));
+            inCord.value = Number.isFinite(usd) && usd > 0 ? (usd * tasaCordoba).toFixed(2) : '';
+        });
+        inCord.addEventListener('input', () => {
+            const cor = parseFloat(inCord.value.replace(',', '.'));
+            inUsd.value = Number.isFinite(cor) && cor > 0 ? (cor / tasaCordoba).toFixed(2) : '';
+        });
     }
     if (btnVolver) {
         btnVolver.onclick = () => {
@@ -738,6 +760,9 @@ function inicializarRecarga() {
             if (!recargaEnCurso) return;
             $('error-modal').textContent = ''; $('ok-modal').textContent = '';
             const cuerpo = { metodoId: recargaEnCurso.metodo.id, monto: recargaEnCurso.monto };
+            // Referencia con el detalle en córdobas (clientes de Nicaragua), para que
+            // el admin sepa cuánto llegó en C$ y cuánto acreditar en USD.
+            if (recargaEnCurso.referencia) cuerpo.referencia = recargaEnCurso.referencia;
             if (recargaEnCurso.metodo.tipo === 'banco') {
                 if (!comprobanteDataUrl) {
                     $('error-modal').textContent = 'Sube tu comprobante de pago antes de continuar.';
@@ -826,6 +851,27 @@ function tarjetaMetodos(titulo, desc, icono, metodos) {
     return tarjeta;
 }
 
+// Muestra el campo de Córdobas solo para clientes con número de Nicaragua (+505)
+// y pone la nota con la tasa vigente. Limpia ambos campos al abrir la recarga.
+function prepararRecargaCordoba() {
+    if ($('recarga-monto')) $('recarga-monto').value = '';
+    if ($('recarga-cordoba')) $('recarga-cordoba').value = '';
+    const wrap = $('recarga-cordoba-wrap');
+    if (!wrap) return;
+    const esNica = String(clienteActual?.telefono || '').startsWith('+505');
+    if (esNica) {
+        wrap.classList.remove('oculto');
+        const nota = $('recarga-tasa-nota');
+        if (nota) nota.textContent =
+            `Tasa LAFISE: C$${tasaCordoba.toFixed(2)} = $1. Escribe en dólares o en córdobas: se convierte solo.`;
+    } else {
+        wrap.classList.add('oculto');
+    }
+}
+
+// Formatea un número como "C$3,680.00".
+const cordobasFmt = (n) => 'C$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
 function abrirModalPago(metodo) {
     const montoInput = $('recarga-monto');
     const monto = (montoInput.value || '').trim().replace(',', '.');
@@ -840,17 +886,34 @@ function abrirModalPago(metodo) {
     const esBanco = metodo.tipo === 'banco';
     $('modal-titulo').textContent = esBanco ? 'Transferencia bancaria' : 'Depósito en cripto';
 
+    // Córdobas: solo tiene sentido en el pago por banco (LAFISE es en córdobas) y
+    // para clientes de Nicaragua. Se usa el valor que el cliente escribió en el campo
+    // de córdobas si existe (para no arrastrar redondeos), o el equivalente del monto.
+    const esNica = String(clienteActual?.telefono || '').startsWith('+505');
+    const mostrarCordoba = esNica && esBanco;
+    let cordobas = null;
+    if (mostrarCordoba) {
+        const cordVal = parseFloat(($('recarga-cordoba')?.value || '').replace(',', '.'));
+        cordobas = Number.isFinite(cordVal) && cordVal > 0 ? cordVal : Number(monto) * tasaCordoba;
+        recargaEnCurso.referencia =
+            `Pago en Córdobas: ${cordobasFmt(cordobas)} (tasa C$${tasaCordoba.toFixed(2)} = $1) → acreditar ${dinero(monto)}`;
+    }
+
     const comision = esBanco ? '0' : (metodo.comision ?? '0');
     const total = sumarDolares(monto, comision);
-    $('modal-sub').textContent = `Envía exactamente ${dinero(esBanco ? monto : total)} a estos datos:`;
+    const textoEnviar = mostrarCordoba ? cordobasFmt(cordobas) : dinero(esBanco ? monto : total);
+    $('modal-sub').textContent = `Envía exactamente ${textoEnviar} a estos datos:`;
 
     const datos = $('modal-datos');
     datos.innerHTML = '';
+    const filasMonto = mostrarCordoba
+        ? [['Monto a enviar', cordobasFmt(cordobas), true], ['Se acreditará', dinero(monto), false]]
+        : [['Monto', dinero(monto), true]];
     const filas = esBanco
         ? [['Banco', metodo.etiqueta, false], ['Titular', metodo.titular, false],
            ['Cuenta', metodo.numero_cuenta, true], ['Moneda', metodo.moneda, false],
            ...(metodo.notas ? [['Nota', metodo.notas, false]] : []),
-           ['Monto', dinero(monto), true]]
+           ...filasMonto]
         : [['Moneda', metodo.etiqueta, false], ['Red', metodo.red, false],
            ['Dirección', metodo.direccion, true],
            ...(metodo.notas ? [['Nota', metodo.notas, false]] : []),
@@ -1208,7 +1271,7 @@ async function arrancar() {
         if (sesion.esAdmin) {
             mostrar('vista-admin', true);
             // La ?v= debe subir cuando cambie admin.js, para que el navegador no use la version vieja.
-            const { inicializarAdmin } = await import('./admin.js?v=4');
+            const { inicializarAdmin } = await import('./admin.js?v=5');
             inicializarAdmin();
         } else {
             mostrar('vista-cliente', true);

@@ -298,6 +298,7 @@ export function inicializarAdmin() {
                 legal_terminos: f.legal_terminos.value,
                 legal_privacidad: f.legal_privacidad.value,
                 legal_cumplimiento: f.legal_cumplimiento.value,
+                tasa_cordoba: f.tasa_cordoba.value,
             };
             const btn = f.querySelector('button');
             btn.disabled = true;
@@ -600,6 +601,7 @@ async function cargarConfig() {
         if (f.legal_terminos) f.legal_terminos.value = c.legal_terminos || '';
         if (f.legal_privacidad) f.legal_privacidad.value = c.legal_privacidad || '';
         if (f.legal_cumplimiento) f.legal_cumplimiento.value = c.legal_cumplimiento || '';
+        if (f.tasa_cordoba) f.tasa_cordoba.value = c.tasa_cordoba || '36.80';
     } catch (err) {
         if ($('error-config')) $('error-config').textContent = err.message;
     }
@@ -622,7 +624,14 @@ async function listarRecargas() {
             tr.appendChild(el('td', '', fecha(r.creada_en)));
             const quien = `${r.nombre} ${r.apellido || ''}`.trim() + (r.usuario ? ` (@${r.usuario})` : '');
             tr.appendChild(el('td', '', quien));
-            tr.appendChild(el('td', '', r.metodo_desc));
+            const tdMetodo = el('td', '', r.metodo_desc);
+            if (r.referencia) {
+                tdMetodo.appendChild(document.createElement('br'));
+                const ref = el('span', 'muted', r.referencia);
+                ref.style.fontSize = '12px';
+                tdMetodo.appendChild(ref);
+            }
+            tr.appendChild(tdMetodo);
             tr.appendChild(el('td', 'monto-pos', dinero(r.monto)));
             tr.appendChild(el('td', '', ESTADO_RECARGA[r.estado] ?? r.estado));
             const acc = document.createElement('td');
