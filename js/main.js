@@ -1,7 +1,7 @@
 // La ?v= debe subir cada vez que cambie js/api.js: fuerza al navegador a
 // pedir el modulo nuevo en vez de servir uno viejo de la cache. Sin esto,
 // un HTML nuevo con un js/api.js cacheado viejo rompe todos los botones.
-import { api, apiBlob, sesion, dinero, fecha } from './api.js?v=4';
+import { api, apiBlob, sesion, dinero, fecha } from './api.js?v=5';
 
 const $ = (id) => document.getElementById(id);
 const mostrar = (id, si) => $(id)?.classList.toggle('oculto', !si);
@@ -178,11 +178,26 @@ function inicializarLogin() {
             sesion.guardar(r.token, { ...r.cliente, esAdmin: r.cliente.esAdmin === true || r.cliente.es_admin === true });
             arrancar();
         } catch (err) {
+            if (err.baneado) { mostrarBaneado(err.razon); return; }
             $('error-login').textContent = err.message;
         } finally {
             btn.disabled = false; btn.textContent = 'Entrar';
         }
     };
+}
+
+// ---------- Cuenta baneada ----------
+// Pantalla completa con la razón que escribió el admin. Cierra la sesión para
+// que al volver solo quede el formulario de login.
+function mostrarBaneado(razon) {
+    sesion.cerrar();
+    for (const id of ['vista-auth', 'vista-cliente', 'vista-recarga', 'vista-retiro', 'vista-admin', 'barra-top']) {
+        mostrar(id, false);
+    }
+    if ($('baneado-razon')) $('baneado-razon').textContent = razon || 'No se indicó una razón.';
+    mostrar('vista-baneado', true);
+    const btn = $('baneado-volver');
+    if (btn) btn.onclick = () => { location.href = 'cuenta.html'; };
 }
 
 // ---------- Cerrar sesión (barra de admin, lateral y móvil) ----------
@@ -516,6 +531,8 @@ async function cargarCliente() {
         }
         referidosCliente('cliente-referidos', ref.referidos);
     } catch (err) {
+        // Cuenta baneada: pantalla completa con la razón del admin.
+        if (err.baneado) { mostrarBaneado(err.razon); return; }
         // Token caducado u otro fallo: api() ya limpia la sesion en un 401.
         if (!sesion.token) { arrancar(); return; }
         alert(err.message);
@@ -538,8 +555,10 @@ async function refrescarPanel() {
         tarjetasInversiones('cliente-inversiones', yo.inversiones);
         const mov = await api('/api/clientes/me/movimientos', { auth: true });
         movimientosCliente('cliente-movimientos', mov.movimientos);
-    } catch {
-        // Fallo puntual (API dormida, red): se reintenta en el siguiente ciclo.
+    } catch (err) {
+        // Baneado con la sesión abierta: se muestra la pantalla al momento.
+        if (err.baneado) { mostrarBaneado(err.razon); return; }
+        // Otro fallo puntual (API dormida, red): se reintenta en el siguiente ciclo.
     }
 }
 
@@ -1189,7 +1208,7 @@ async function arrancar() {
         if (sesion.esAdmin) {
             mostrar('vista-admin', true);
             // La ?v= debe subir cuando cambie admin.js, para que el navegador no use la version vieja.
-            const { inicializarAdmin } = await import('./admin.js?v=2');
+            const { inicializarAdmin } = await import('./admin.js?v=3');
             inicializarAdmin();
         } else {
             mostrar('vista-cliente', true);

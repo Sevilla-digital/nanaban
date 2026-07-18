@@ -95,7 +95,7 @@ router.post('/login', limiteAuth, async (req, res, next) => {
     if (!datos.success) return res.status(400).json({ error: 'Datos invalidos' });
 
     const { rows } = await query(
-      `SELECT id, nombre, apellido, usuario, telefono, password_hash, es_admin, activo
+      `SELECT id, nombre, apellido, usuario, telefono, password_hash, es_admin, activo, ban_razon
        FROM clientes WHERE usuario = $1`,
       [datos.data.usuario.toLowerCase()]
     );
@@ -106,7 +106,11 @@ router.post('/login', limiteAuth, async (req, res, next) => {
     const ok = await verificarPassword(datos.data.password, cliente?.password_hash ?? HASH_SENUELO);
 
     if (!cliente || !ok) return res.status(401).json({ error: 'Usuario o contrasena incorrectos' });
-    if (!cliente.activo) return res.status(403).json({ error: 'Cuenta desactivada' });
+    if (!cliente.activo) {
+      // Cuenta baneada: se devuelve la razon que escribio el admin para que el
+      // cliente la vea en la pantalla de "Cuenta baneada".
+      return res.status(403).json({ error: 'Cuenta baneada', baneado: true, razon: cliente.ban_razon || '' });
+    }
 
     res.json({
       token: firmarToken(cliente),
@@ -165,13 +169,19 @@ router.post('/bootstrap-admin', limiteAuth, async (req, res, next) => {
 router.get('/me', requiereAuth, async (req, res, next) => {
   try {
     const { rows } = await query(
-      `SELECT c.id, c.nombre, c.apellido, c.usuario, c.telefono, c.avatar, c.es_admin, c.premium, c.creado_en, s.saldo
+      `SELECT c.id, c.nombre, c.apellido, c.usuario, c.telefono, c.avatar, c.es_admin, c.premium,
+              c.activo, c.ban_razon, c.creado_en, s.saldo
        FROM clientes c
        JOIN saldos s ON s.cliente_id = c.id
        WHERE c.id = $1`,
       [req.cliente.id]
     );
     if (rows.length === 0) return res.status(404).json({ error: 'Cliente no encontrado' });
+    if (rows[0].activo === false) {
+      // Baneado con la sesion abierta: el panel lo detecta (sondea /me) y muestra
+      // la pantalla de cuenta baneada con la razon.
+      return res.status(403).json({ error: 'Cuenta baneada', baneado: true, razon: rows[0].ban_razon || '' });
+    }
 
     const inversiones = await query(
       `SELECT id, gramos_oro, importe, plan, estado, abierta_en, cerrada_en,
@@ -271,7 +281,7 @@ router.get('/', requiereAuth, requiereAdmin, async (req, res, next) => {
     const limite = Math.min(Number(req.query.limite) || 100, 500);
     const { rows } = await query(
       `SELECT c.id, c.nombre, c.apellido, c.usuario, c.telefono, c.es_admin, c.activo,
-              c.premium, c.creado_en, s.saldo
+              c.premium, c.ban_razon, c.creado_en, s.saldo
        FROM clientes c
        JOIN saldos s ON s.cliente_id = c.id
        WHERE ($1 = '' OR c.nombre ILIKE '%'||$1||'%' OR c.apellido ILIKE '%'||$1||'%'
@@ -310,6 +320,52 @@ router.patch('/:id/premium', requiereAuth, requiereAdmin, async (req, res, next)
   }
 });
 
+const banSchema = z.object({
+  baneado: z.boolean(),
+  // La razon es obligatoria al banear (es lo que vera el cliente); al quitar el baneo no.
+  razon: z.string().trim().max(500).optional().default(''),
+});
+
+/**
+ * Admin: banea o desbanea una cuenta. Al banear se guarda la razon y el cliente
+ * la vera al intentar entrar (o en el momento, si tiene la sesion abierta).
+ * No se puede banear a un administrador ni a uno mismo.
+ */
+router.patch('/:id/ban', requiereAuth, requiereAdmin, async (req, res, next) => {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: 'Id invalido' });
+    const datos = banSchema.safeParse(req.body);
+    if (!datos.success) return res.status(400).json({ error: 'Datos invalidos' });
+    const { baneado, razon } = datos.data;
+
+    if (baneado && razon.length < 3) {
+      return res.status(400).json({ error: 'Escribe la razon del baneo (minimo 3 caracteres).' });
+    }
+    if (id === req.cliente.id) {
+      return res.status(400).json({ error: 'No puedes banearte a ti mismo.' });
+    }
+
+    const objetivo = await query('SELECT es_admin FROM clientes WHERE id = $1', [id]);
+    if (objetivo.rows.length === 0) return res.status(404).json({ error: 'Cliente no encontrado' });
+    if (baneado && objetivo.rows[0].es_admin) {
+      return res.status(400).json({ error: 'No se puede banear a un administrador.' });
+    }
+
+    const { rows } = await query(
+      baneado
+        ? `UPDATE clientes SET activo = FALSE, ban_razon = $2, baneado_en = now() WHERE id = $1
+           RETURNING id, nombre, apellido, usuario, activo, ban_razon`
+        : `UPDATE clientes SET activo = TRUE, ban_razon = NULL, baneado_en = NULL WHERE id = $1
+           RETURNING id, nombre, apellido, usuario, activo, ban_razon`,
+      baneado ? [id, razon] : [id]
+    );
+    res.json(rows[0]);
+  } catch (err) {
+    next(err);
+  }
+});
+
 /** Detalle de un cliente cualquiera: perfil, saldo, inversiones y movimientos. Solo admin. */
 router.get('/:id', requiereAuth, requiereAdmin, async (req, res, next) => {
   try {
@@ -318,7 +374,7 @@ router.get('/:id', requiereAuth, requiereAdmin, async (req, res, next) => {
 
     const { rows } = await query(
       `SELECT c.id, c.nombre, c.apellido, c.usuario, c.telefono, c.es_admin, c.activo,
-              c.premium, c.creado_en, s.saldo
+              c.premium, c.ban_razon, c.creado_en, s.saldo
        FROM clientes c
        JOIN saldos s ON s.cliente_id = c.id
        WHERE c.id = $1`,

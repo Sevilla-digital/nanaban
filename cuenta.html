@@ -973,6 +973,28 @@
     </header>
 
     <!-- ================= NO AUTENTICADO ================= -->
+    <!-- ================= CUENTA BANEADA ================= -->
+    <div id="vista-baneado" class="oculto">
+        <div style="min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px;">
+            <div style="max-width:480px; width:100%; background:var(--tarjeta); border:1px solid rgba(255,180,171,0.35); border-radius:12px; padding:40px 32px; text-align:center;">
+                <span class="material-symbols-outlined" style="font-size:56px; color:var(--error);">gavel</span>
+                <h1 style="margin:16px 0 8px; font-size:24px;">Cuenta baneada</h1>
+                <p class="muted" style="margin-bottom:20px;">
+                    Tu cuenta ha sido suspendida por el equipo de administración.
+                </p>
+                <div style="background:var(--campo); border:1px solid var(--borde); border-radius:8px; padding:16px; margin-bottom:24px; text-align:left;">
+                    <div style="font-family:Inter,sans-serif; font-size:11px; font-weight:600; letter-spacing:0.06em; text-transform:uppercase; color:var(--texto-suave); margin-bottom:6px;">Razón</div>
+                    <div id="baneado-razon" style="color:var(--texto);">—</div>
+                </div>
+                <p class="muted" style="font-size:0.9em; margin-bottom:24px;">
+                    Si crees que se trata de un error, escríbenos a
+                    <a href="mailto:support@sevilladigitall.com">support@sevilladigitall.com</a>.
+                </p>
+                <button class="btn ancho" type="button" id="baneado-volver">Volver al inicio de sesión</button>
+            </div>
+        </div>
+    </div>
+
     <div id="vista-auth">
         <div class="auth">
             <!-- Lado visual (solo escritorio) -->
@@ -1564,6 +1586,7 @@
                 <div class="tab" id="tab-recargas">Recargas</div>
                 <div class="tab" id="tab-retiros">Retiros</div>
                 <div class="tab" id="tab-premium">Premium</div>
+                <div class="tab" id="tab-baneos">Baneos</div>
                 <div class="tab" id="tab-metodos">Métodos de pago</div>
                 <div class="tab" id="tab-config">Configuración del sitio</div>
             </div>
@@ -1651,6 +1674,36 @@
                 </div>
             </div>
 
+            <!-- Baneos -->
+            <div id="panel-baneos" class="oculto">
+                <div class="tarjeta">
+                    <h2 style="margin-top:0">Baneo de cuentas</h2>
+                    <p class="muted">
+                        Para cuentas que intenten cometer fraude (comprobantes falsos, etc.).
+                        Busca al cliente, escribe la razón y banéalo: al intentar entrar verá
+                        <strong>"Cuenta baneada"</strong> con la razón que escribas (y si tiene la sesión
+                        abierta, la verá al momento). Sin búsqueda se muestran las cuentas baneadas actuales.
+                    </p>
+                    <input id="buscar-baneo" placeholder="Buscar cliente por nombre, usuario o teléfono…">
+
+                    <div id="form-baneo" class="oculto" style="background:var(--campo); border:1px solid var(--borde); border-radius:8px; padding:16px 16px 20px; margin-top:16px;">
+                        <div style="margin-bottom:4px;">Banear a <strong id="baneo-nombre"></strong></div>
+                        <label for="baneo-razon">Razón del baneo (la verá el cliente)</label>
+                        <textarea id="baneo-razon" rows="3" maxlength="500"
+                                  placeholder="p. ej. Envío de comprobantes de pago falsos"></textarea>
+                        <div class="error" id="error-baneo"></div>
+                        <div style="display:flex; gap:12px; flex-wrap:wrap;">
+                            <button class="btn" type="button" id="btn-confirmar-baneo"
+                                    style="background:#dc3545; border-color:#dc3545; color:#fff;">Banear cuenta</button>
+                            <button class="btn sec" type="button" id="btn-cancelar-baneo">Cancelar</button>
+                        </div>
+                    </div>
+
+                    <div class="error" id="error-baneos-lista"></div>
+                    <div id="lista-baneos" style="margin-top:16px;"><p class="muted">Cargando…</p></div>
+                </div>
+            </div>
+
             <!-- Métodos de pago -->
             <div id="panel-metodos" class="oculto">
                 <div class="tarjeta">
@@ -1728,6 +1781,6 @@
         </div>
     </div>
 
-    <script type="module" src="js/main.js?v=5"></script>
+    <script type="module" src="js/main.js?v=6"></script>
 </body>
 </html>

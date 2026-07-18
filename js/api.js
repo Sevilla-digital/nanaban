@@ -63,7 +63,16 @@ export async function api(ruta, { method = 'GET', body, auth = false } = {}) {
     // Token caducado o invalido: limpiamos la sesion para no quedar en un limbo.
     sesion.cerrar();
   }
-  if (!resp.ok) throw new Error(datos?.error ?? `Error ${resp.statusText}`);
+  if (!resp.ok) {
+    const err = new Error(datos?.error ?? `Error ${resp.statusText}`);
+    // Cuenta baneada: se adjuntan los datos para que la web muestre la pantalla
+    // de "Cuenta baneada" con la razon que escribio el admin.
+    if (datos?.baneado) {
+      err.baneado = true;
+      err.razon = datos.razon || '';
+    }
+    throw err;
+  }
   return datos;
 }
 

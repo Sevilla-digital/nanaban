@@ -1,4 +1,4 @@
-import { api, dinero, fecha, sesion } from './api.js';
+import { api, dinero, fecha, sesion } from './api.js?v=5';
 
 // Utilidades locales para no depender de main.js
 function el(etiqueta, clase = '', texto = '') {
@@ -97,6 +97,7 @@ function tablaMovimientos(destino, movimientos) {
 
 let clienteAbierto = null;
 let adminInicializado = false;
+let baneoSeleccionado = null; // cliente elegido en la pestaña Baneos
 
 export function inicializarAdmin() {
     if (adminInicializado) {
@@ -114,8 +115,8 @@ export function inicializarAdmin() {
     };
     
     // Manejo de pestañas
-    const tabs = ['tab-clientes', 'tab-config', 'tab-metodos', 'tab-recargas', 'tab-retiros', 'tab-premium'];
-    const paneles = ['panel-clientes', 'panel-config', 'panel-metodos', 'panel-recargas', 'panel-retiros', 'panel-premium'];
+    const tabs = ['tab-clientes', 'tab-config', 'tab-metodos', 'tab-recargas', 'tab-retiros', 'tab-premium', 'tab-baneos'];
+    const paneles = ['panel-clientes', 'panel-config', 'panel-metodos', 'panel-recargas', 'panel-retiros', 'panel-premium', 'panel-baneos'];
 
     if ($('tab-clientes')) {
         $('tab-clientes').onclick = () => {
@@ -182,6 +183,57 @@ export function inicializarAdmin() {
         $('buscar-premium').oninput = (e) => {
             clearTimeout(debouncePremium);
             debouncePremium = setTimeout(() => listarPremium(e.target.value), 300);
+        };
+    }
+
+    if ($('tab-baneos')) {
+        $('tab-baneos').onclick = () => {
+            tabs.forEach(t => $(t)?.classList.remove('activa'));
+            $('tab-baneos').classList.add('activa');
+            paneles.forEach(p => mostrar(p, false));
+            mostrar('panel-baneos', true);
+            listarBaneos($('buscar-baneo')?.value || '');
+        };
+    }
+
+    let debounceBaneo;
+    if ($('buscar-baneo')) {
+        $('buscar-baneo').oninput = (e) => {
+            clearTimeout(debounceBaneo);
+            debounceBaneo = setTimeout(() => listarBaneos(e.target.value), 300);
+        };
+    }
+
+    if ($('btn-cancelar-baneo')) {
+        $('btn-cancelar-baneo').onclick = () => {
+            baneoSeleccionado = null;
+            mostrar('form-baneo', false);
+        };
+    }
+
+    if ($('btn-confirmar-baneo')) {
+        $('btn-confirmar-baneo').onclick = async () => {
+            if (!baneoSeleccionado) return;
+            const razon = $('baneo-razon').value.trim();
+            $('error-baneo').textContent = '';
+            if (razon.length < 3) {
+                $('error-baneo').textContent = 'Escribe la razón del baneo (mínimo 3 caracteres).';
+                return;
+            }
+            const btn = $('btn-confirmar-baneo');
+            btn.disabled = true; btn.textContent = 'Baneando…';
+            try {
+                await api(`/api/clientes/${baneoSeleccionado.id}/ban`, {
+                    method: 'PATCH', auth: true, body: { baneado: true, razon },
+                });
+                baneoSeleccionado = null;
+                mostrar('form-baneo', false);
+                listarBaneos($('buscar-baneo')?.value || '');
+            } catch (err) {
+                $('error-baneo').textContent = err.message;
+            } finally {
+                btn.disabled = false; btn.textContent = 'Banear cuenta';
+            }
         };
     }
 
@@ -352,7 +404,8 @@ async function listarClientes(buscar = '') {
         for (const c of clientes) {
             const nombre = `${c.nombre} ${c.apellido || ''}`.trim()
                 + (c.es_admin ? ' ⭐' : '')
-                + (c.premium ? ' 👑' : '');
+                + (c.premium ? ' 👑' : '')
+                + (c.activo === false ? ' 🚫' : '');
             // Si el backend devuelve c.saldo en lugar de c.saldo_eur, usamos c.saldo
             const saldoUsar = c.saldo !== undefined ? c.saldo : c.saldo_eur;
             tbody.appendChild(fila([nombre, c.telefono, dinero(saldoUsar)], () => abrirCliente(c.id)));
@@ -422,6 +475,95 @@ async function cambiarPremium(id, premium, buscar) {
         listarPremium(buscar);
     } catch (err) {
         if ($('error-premium')) $('error-premium').textContent = err.message;
+    }
+}
+
+// ---------- Baneo de cuentas ----------
+
+// Sin búsqueda: muestra las cuentas baneadas (con su razón). Con búsqueda: las
+// coincidencias, con botón para banear o quitar el baneo.
+async function listarBaneos(buscar = '') {
+    const cont = $('lista-baneos');
+    if (!cont) return;
+    if ($('error-baneos-lista')) $('error-baneos-lista').textContent = '';
+    try {
+        const q = buscar ? `?buscar=${encodeURIComponent(buscar)}` : '';
+        const { clientes } = await api('/api/clientes' + q, { auth: true });
+        const lista = buscar ? clientes : clientes.filter(c => c.activo === false);
+        cont.innerHTML = '';
+
+        if (!lista.length) {
+            cont.innerHTML = buscar
+                ? '<p class="muted">Sin resultados para esa búsqueda.</p>'
+                : '<p class="muted">No hay cuentas baneadas. Busca un cliente arriba para banearlo.</p>';
+            return;
+        }
+
+        const tabla = document.createElement('table');
+        tabla.innerHTML = '<thead><tr><th>Cliente</th><th>Usuario</th><th>Estado</th><th>Razón</th><th></th></tr></thead>';
+        const tbody = document.createElement('tbody');
+        for (const c of lista) {
+            const tr = document.createElement('tr');
+            const baneada = c.activo === false;
+            const nombre = `${c.nombre} ${c.apellido || ''}`.trim();
+
+            const tdNombre = document.createElement('td');
+            tdNombre.textContent = nombre + (c.es_admin ? ' ⭐' : '') + (baneada ? ' 🚫' : '');
+            const tdUsuario = document.createElement('td');
+            tdUsuario.textContent = c.usuario ? '@' + c.usuario : '—';
+            const tdEstado = document.createElement('td');
+            tdEstado.textContent = baneada ? 'Baneada' : 'Activa';
+            if (baneada) tdEstado.style.color = 'var(--error)';
+            const tdRazon = document.createElement('td');
+            tdRazon.textContent = baneada ? (c.ban_razon || '—') : '';
+            tdRazon.style.maxWidth = '280px';
+
+            const tdBoton = document.createElement('td');
+            if (c.es_admin) {
+                tdBoton.appendChild(el('span', 'muted', 'Admin'));
+            } else if (baneada) {
+                const btn = botonAccion('Quitar baneo', 'btn sec');
+                btn.style.marginTop = '0';
+                btn.onclick = () => quitarBaneo(c.id, buscar);
+                tdBoton.appendChild(btn);
+            } else {
+                const btn = botonAccion('Banear', 'btn');
+                btn.style.marginTop = '0';
+                btn.style.background = '#dc3545';
+                btn.style.borderColor = '#dc3545';
+                btn.style.color = '#fff';
+                btn.onclick = () => seleccionarBaneo(c);
+                tdBoton.appendChild(btn);
+            }
+
+            tr.append(tdNombre, tdUsuario, tdEstado, tdRazon, tdBoton);
+            tbody.appendChild(tr);
+        }
+        tabla.appendChild(tbody);
+        cont.appendChild(tabla);
+    } catch (err) {
+        cont.innerHTML = `<p class="error">${err.message}</p>`;
+    }
+}
+
+function seleccionarBaneo(c) {
+    baneoSeleccionado = c;
+    const nombre = `${c.nombre} ${c.apellido || ''}`.trim();
+    $('baneo-nombre').textContent = `${nombre}${c.usuario ? ' (@' + c.usuario + ')' : ''}`;
+    $('baneo-razon').value = '';
+    $('error-baneo').textContent = '';
+    mostrar('form-baneo', true);
+    $('baneo-razon').focus();
+}
+
+async function quitarBaneo(id, buscar) {
+    if (!confirm('¿Quitar el baneo a esta cuenta? El cliente podrá volver a entrar.')) return;
+    if ($('error-baneos-lista')) $('error-baneos-lista').textContent = '';
+    try {
+        await api(`/api/clientes/${id}/ban`, { method: 'PATCH', auth: true, body: { baneado: false } });
+        listarBaneos(buscar);
+    } catch (err) {
+        if ($('error-baneos-lista')) $('error-baneos-lista').textContent = err.message;
     }
 }
 

@@ -30,6 +30,11 @@ ALTER TABLE clientes ADD COLUMN IF NOT EXISTS avatar TEXT;
 -- 6% de comision por las recargas de TODA su cadena de referidos, sin limite de nivel.
 ALTER TABLE clientes ADD COLUMN IF NOT EXISTS premium BOOLEAN NOT NULL DEFAULT FALSE;
 
+-- Baneo de cuentas: el flag es `activo = FALSE` (ya existia). El admin escribe la
+-- razon al banear y el cliente la ve al intentar entrar ("Cuenta baneada: <razon>").
+ALTER TABLE clientes ADD COLUMN IF NOT EXISTS ban_razon TEXT;
+ALTER TABLE clientes ADD COLUMN IF NOT EXISTS baneado_en TIMESTAMPTZ;
+
 -- La unicidad del usuario vive SOLO en este indice (no en la columna) para que
 -- el nombre del constraint sea el mismo en instalaciones nuevas y migradas:
 -- la API distingue por ese nombre que UNIQUE fallo al registrar.
