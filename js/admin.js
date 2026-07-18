@@ -295,6 +295,9 @@ export function inicializarAdmin() {
                 logo_url: f.logo_url.value,
                 color_primario: f.color_primario.value,
                 color_fondo: f.color_fondo.value,
+                legal_terminos: f.legal_terminos.value,
+                legal_privacidad: f.legal_privacidad.value,
+                legal_cumplimiento: f.legal_cumplimiento.value,
             };
             const btn = f.querySelector('button');
             btn.disabled = true;
@@ -594,6 +597,9 @@ async function cargarConfig() {
         f.logo_url.value = c.logo_url || '';
         f.color_primario.value = c.color_primario || '#ffd700';
         f.color_fondo.value = c.color_fondo || '#1a1a1a';
+        if (f.legal_terminos) f.legal_terminos.value = c.legal_terminos || '';
+        if (f.legal_privacidad) f.legal_privacidad.value = c.legal_privacidad || '';
+        if (f.legal_cumplimiento) f.legal_cumplimiento.value = c.legal_cumplimiento || '';
     } catch (err) {
         if ($('error-config')) $('error-config').textContent = err.message;
     }

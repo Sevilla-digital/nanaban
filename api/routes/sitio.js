@@ -6,7 +6,8 @@ import { requiereAdmin, requiereAuth } from '../auth.js';
 export const router = Router();
 
 const CAMPOS = `nombre_sitio, eslogan, texto_header, texto_footer,
-                logo_url, color_primario, color_fondo, actualizado_en`;
+                logo_url, color_primario, color_fondo,
+                legal_terminos, legal_privacidad, legal_cumplimiento, actualizado_en`;
 
 /** Configuracion del sitio. Publica: la landing la lee para pintarse. */
 router.get('/', async (_req, res, next) => {
@@ -32,6 +33,10 @@ const actualizacion = z
     logo_url: z.union([z.string().url().max(1000), z.literal('')]),
     color_primario: color,
     color_fondo: color,
+    // Textos legales (pueden ser largos). Se guardan como texto plano.
+    legal_terminos: z.string().max(20000),
+    legal_privacidad: z.string().max(20000),
+    legal_cumplimiento: z.string().max(20000),
   })
   .partial()
   .strict();

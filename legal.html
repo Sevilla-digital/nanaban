@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Información legal - Gold Corp Financial</title>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@400;600;700&family=Source+Serif+4:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --fondo: #121414;
+            --tarjeta: #1a1a1a;
+            --texto: #e2e2e2;
+            --texto-suave: #d0c5af;
+            --oro: #f2ca50;
+            --oro-oscuro: #d4af37;
+            --borde: #2a2a2a;
+            --ancho-max: 900px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * { scrollbar-width: thin; scrollbar-color: #3a3d3d transparent; }
+        *::-webkit-scrollbar { width: 8px; height: 8px; }
+        *::-webkit-scrollbar-track { background: transparent; }
+        *::-webkit-scrollbar-thumb { background: #3a3d3d; border-radius: 8px; border: 2px solid transparent; background-clip: padding-box; }
+        *::-webkit-scrollbar-thumb:hover { background: #4d5050; }
+        body {
+            background: var(--fondo);
+            color: var(--texto);
+            font-family: 'Source Serif 4', Georgia, serif;
+            font-size: 16px;
+            line-height: 1.7;
+            -webkit-font-smoothing: antialiased;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .material-symbols-outlined {
+            font-family: 'Material Symbols Outlined';
+            font-weight: normal; font-style: normal; line-height: 1;
+            display: inline-block; vertical-align: middle;
+        }
+        nav {
+            position: sticky; top: 0; z-index: 50;
+            background: var(--fondo); border-bottom: 1px solid #333535;
+        }
+        .nav-fila {
+            max-width: 1440px; margin: 0 auto;
+            padding: 12px 16px;
+            display: flex; justify-content: space-between; align-items: center; gap: 16px;
+        }
+        @media (min-width: 768px) { .nav-fila { padding: 12px 64px; } }
+        .marca {
+            font-family: Montserrat, sans-serif; font-weight: 700; font-size: 20px;
+            color: var(--texto); text-decoration: none; letter-spacing: -0.01em;
+        }
+        @media (min-width: 768px) { .marca { font-size: 24px; } }
+        .volver {
+            display: inline-flex; align-items: center; gap: 6px;
+            font-family: Inter, sans-serif; font-size: 14px; font-weight: 500;
+            color: var(--texto-suave); text-decoration: none; transition: color 0.2s;
+        }
+        .volver:hover { color: var(--oro); }
+        main {
+            flex-grow: 1; width: 100%;
+            max-width: var(--ancho-max); margin: 0 auto;
+            padding: 48px 16px 80px;
+        }
+        @media (min-width: 768px) { main { padding: 72px 32px 96px; } }
+        .eyebrow {
+            font-family: Inter, sans-serif; font-size: 12px; font-weight: 600;
+            letter-spacing: 0.18em; text-transform: uppercase; color: var(--oro);
+            display: inline-block; padding-bottom: 8px;
+            border-bottom: 1px solid rgba(212, 175, 55, 0.3); margin-bottom: 20px;
+        }
+        h1 {
+            font-family: Montserrat, sans-serif; font-size: 28px; font-weight: 600;
+            line-height: 1.2; margin-bottom: 8px;
+        }
+        @media (min-width: 768px) { h1 { font-size: 40px; } }
+        .actualizado { color: var(--texto-suave); font-size: 14px; margin-bottom: 32px; }
+        .contenido {
+            white-space: pre-wrap; word-wrap: break-word;
+            color: var(--texto); font-size: 17px;
+            background: var(--tarjeta); border: 1px solid var(--borde);
+            border-radius: 12px; padding: 28px 24px;
+        }
+        @media (min-width: 768px) { .contenido { padding: 40px; } }
+        .vacio { color: var(--texto-suave); font-style: italic; }
+        footer {
+            background: #0c0f0f; border-top: 1px solid #333535;
+            text-align: center; padding: 32px 16px;
+            font-family: Inter, sans-serif; font-size: 12px; color: #8a8a88;
+        }
+        footer a { color: var(--oro-oscuro); }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="nav-fila">
+            <a class="marca" href="index.html" id="marca-nombre">Gold Corp Financial</a>
+            <a class="volver" href="index.html">
+                <span class="material-symbols-outlined" style="font-size:18px">arrow_back</span>
+                Volver al inicio
+            </a>
+        </div>
+    </nav>
+
+    <main>
+        <span class="eyebrow">Información legal</span>
+        <h1 id="legal-titulo">Cargando…</h1>
+        <div class="actualizado" id="legal-actualizado"></div>
+        <div class="contenido" id="legal-contenido"><span class="vacio">Cargando contenido…</span></div>
+    </main>
+
+    <footer>
+        <span id="pie-marca-nombre">Gold Corp Financial</span> ·
+        ¿Dudas? <a href="index.html">Volver al inicio</a>
+    </footer>
+
+    <script type="module">
+        import { api } from './js/api.js?v=5';
+
+        const DOCS = {
+            terminos:     { titulo: 'Términos y Servicio',       campo: 'legal_terminos' },
+            privacidad:   { titulo: 'Política de Privacidad',     campo: 'legal_privacidad' },
+            cumplimiento: { titulo: 'Cumplimiento',               campo: 'legal_cumplimiento' },
+        };
+
+        const doc = new URLSearchParams(location.search).get('doc');
+        const info = DOCS[doc] || DOCS.terminos;
+
+        document.getElementById('legal-titulo').textContent = info.titulo;
+        document.title = info.titulo + ' - Gold Corp Financial';
+
+        try {
+            const c = await api('/api/sitio');
+            // Nombre del sitio (si el admin lo cambió) en la marca y el pie.
+            if (c.nombre_sitio) {
+                document.getElementById('marca-nombre').textContent = c.nombre_sitio;
+                document.getElementById('pie-marca-nombre').textContent = c.nombre_sitio;
+            }
+            if (c.color_primario) {
+                document.documentElement.style.setProperty('--oro', c.color_primario);
+                document.documentElement.style.setProperty('--oro-oscuro', c.color_primario);
+            }
+            if (c.color_fondo) document.documentElement.style.setProperty('--fondo', c.color_fondo);
+
+            const texto = (c[info.campo] || '').trim();
+            const cont = document.getElementById('legal-contenido');
+            if (texto) {
+                // textContent (no innerHTML): el texto viene de la BD y no debe inyectar HTML.
+                cont.textContent = texto;
+            } else {
+                cont.innerHTML = '<span class="vacio">Esta sección todavía no tiene contenido. Vuelve pronto.</span>';
+            }
+            if (c.actualizado_en) {
+                const f = new Date(c.actualizado_en);
+                document.getElementById('legal-actualizado').textContent =
+                    'Última actualización: ' + f.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            }
+        } catch {
+            document.getElementById('legal-contenido').innerHTML =
+                '<span class="vacio">No se pudo cargar el contenido. Inténtalo de nuevo en un momento.</span>';
+        }
+    </script>
+</body>
+</html>

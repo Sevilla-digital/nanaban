@@ -150,6 +150,12 @@ CREATE TABLE IF NOT EXISTS configuracion_sitio (
 -- Garantiza que la fila unica exista siempre, sin duplicarla en re-ejecuciones.
 INSERT INTO configuracion_sitio (id) VALUES (1) ON CONFLICT (id) DO NOTHING;
 
+-- Textos legales editables desde el panel de admin. Cada uno se muestra en su
+-- propia pagina (legal.html?doc=...) enlazada desde el pie del sitio.
+ALTER TABLE configuracion_sitio ADD COLUMN IF NOT EXISTS legal_terminos     TEXT NOT NULL DEFAULT '';
+ALTER TABLE configuracion_sitio ADD COLUMN IF NOT EXISTS legal_privacidad   TEXT NOT NULL DEFAULT '';
+ALTER TABLE configuracion_sitio ADD COLUMN IF NOT EXISTS legal_cumplimiento TEXT NOT NULL DEFAULT '';
+
 -- Metodos de pago para recargar saldo. Los gestiona el admin desde el panel y el
 -- cliente los ve al recargar. Una sola tabla para bancos y cripto: la columna 'tipo'
 -- decide que campos aplican (la API valida cada tipo con un esquema distinto).
