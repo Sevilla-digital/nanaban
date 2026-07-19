@@ -17,7 +17,7 @@ const iniciales = (nombre, apellido) =>
 document.addEventListener('DOMContentLoaded', () => {
     const token = sesion.token;
     if (!token) {
-        window.location.href = 'cuenta.html';
+        window.location.href = '/cuenta';
         return;
     }
 
@@ -127,7 +127,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Redirigir al dashboard después de 2.5 segundos
             setTimeout(() => {
-                window.location.href = 'cuenta.html#sec-inversiones';
+                window.location.href = '/cuenta#sec-inversiones';
             }, 2500);
         } catch (err) {
             console.error(err);

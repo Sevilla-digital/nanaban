@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gold Corp Financial - Inversión en Oro</title>
+    <script>
+        // URL limpia: quita el ".html" de la barra de direcciones (/cuenta.html -> /cuenta).
+        if (location.protocol.startsWith("http") && /.html$/.test(location.pathname)) {
+            history.replaceState(null, "", location.pathname.replace(/index.html$/, "").replace(/.html$/, "") + location.search + location.hash);
+        }
+    </script>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@400;600;700&family=Source+Serif+4:wght@400;600&display=swap" rel="stylesheet">
     <style>
@@ -421,9 +427,9 @@
             <div class="nav-enlaces">
                 <a class="activo" href="#inversiones">Inversiones</a>
                 <a href="#seguridad">Seguridad</a>
-                <a href="nosotros.html">Nosotros</a>
+                <a href="/nosotros">Nosotros</a>
             </div>
-            <a class="btn btn-oro" id="btn-acceso" href="cuenta.html">
+            <a class="btn btn-oro" id="btn-acceso" href="/cuenta">
                 <span id="btn-acceso-texto">Acceso clientes</span>
                 <span class="material-symbols-outlined" id="btn-acceso-icono" style="font-size:18px">login</span>
             </a>
@@ -440,7 +446,7 @@
                 <h1 id="titulo">Inversión en Oro: <span class="dorado">Segura y Rentable</span></h1>
                 <p id="texto-header">Su patrimonio merece la solidez del metal más precioso. Gestión profesional y transparencia garantizada para asegurar su futuro financiero.</p>
                 <div class="hero-botones">
-                    <a class="btn btn-oro btn-grande" href="cuenta.html">Empezar ahora</a>
+                    <a class="btn btn-oro btn-grande" href="/cuenta">Empezar ahora</a>
                     <a class="btn btn-borde" href="https://t.me/Yahoskalaurrey" target="_blank" rel="noopener noreferrer">Contactar asesor</a>
                 </div>
             </div>
@@ -517,9 +523,9 @@
                 <div class="copyright" id="footer-texto">© 2026 Gold Corp Financial. Todos los derechos reservados.</div>
             </div>
             <div class="pie-enlaces">
-                <a href="legal.html?doc=privacidad">Privacidad</a>
-                <a href="legal.html?doc=terminos">Términos de Servicio</a>
-                <a href="legal.html?doc=cumplimiento">Cumplimiento</a>
+                <a href="/legal?doc=privacidad">Privacidad</a>
+                <a href="/legal?doc=terminos">Términos de Servicio</a>
+                <a href="/legal?doc=cumplimiento">Cumplimiento</a>
             </div>
         </div>
     </footer>
@@ -538,7 +544,7 @@
             <span class="material-symbols-outlined">verified_user</span>
             <span>Seguridad</span>
         </a>
-        <a href="nosotros.html">
+        <a href="/nosotros">
             <span class="material-symbols-outlined">groups</span>
             <span>Nosotros</span>
         </a>

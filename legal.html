@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Información legal - Gold Corp Financial</title>
+    <script>
+        // URL limpia: quita el ".html" de la barra de direcciones (/cuenta.html -> /cuenta).
+        if (location.protocol.startsWith("http") && /.html$/.test(location.pathname)) {
+            history.replaceState(null, "", location.pathname.replace(/index.html$/, "").replace(/.html$/, "") + location.search + location.hash);
+        }
+    </script>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@400;600;700&family=Source+Serif+4:wght@400;600&display=swap" rel="stylesheet">
     <style>
@@ -97,8 +103,8 @@
 <body>
     <nav>
         <div class="nav-fila">
-            <a class="marca" href="index.html" id="marca-nombre">Gold Corp Financial</a>
-            <a class="volver" href="index.html">
+            <a class="marca" href="/" id="marca-nombre">Gold Corp Financial</a>
+            <a class="volver" href="/">
                 <span class="material-symbols-outlined" style="font-size:18px">arrow_back</span>
                 Volver al inicio
             </a>
@@ -114,7 +120,7 @@
 
     <footer>
         <span id="pie-marca-nombre">Gold Corp Financial</span> ·
-        ¿Dudas? <a href="index.html">Volver al inicio</a>
+        ¿Dudas? <a href="/">Volver al inicio</a>
     </footer>
 
     <script type="module">

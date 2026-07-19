@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nosotros - Gold Corp Financial</title>
+    <script>
+        // URL limpia: quita el ".html" de la barra de direcciones (/cuenta.html -> /cuenta).
+        if (location.protocol.startsWith("http") && /.html$/.test(location.pathname)) {
+            history.replaceState(null, "", location.pathname.replace(/index.html$/, "").replace(/.html$/, "") + location.search + location.hash);
+        }
+    </script>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@400;600;700&family=Source+Serif+4:wght@400;600&display=swap" rel="stylesheet">
     <style>
@@ -494,16 +500,16 @@
 <body>
     <nav>
         <div class="contenedor nav-fila">
-            <a class="marca" href="index.html">
+            <a class="marca" href="/">
                 <img id="logo" alt="" hidden>
                 <span id="marca-nombre">Gold Corp Financial</span>
             </a>
             <div class="nav-enlaces">
-                <a href="index.html#inversiones">Inversiones</a>
-                <a href="index.html#seguridad">Seguridad</a>
-                <a class="activo" href="nosotros.html">Nosotros</a>
+                <a href="/#inversiones">Inversiones</a>
+                <a href="/#seguridad">Seguridad</a>
+                <a class="activo" href="/nosotros">Nosotros</a>
             </div>
-            <a class="btn btn-oro" id="btn-acceso" href="cuenta.html">
+            <a class="btn btn-oro" id="btn-acceso" href="/cuenta">
                 <span id="btn-acceso-texto">Acceso clientes</span>
                 <span class="material-symbols-outlined" id="btn-acceso-icono" style="font-size:18px">login</span>
             </a>
@@ -520,7 +526,7 @@
                     <span class="nosotros-eyebrow">Nosotros</span>
                     <h2>Conectando inversores con la riqueza de la tierra nicaragüense.</h2>
                     <p>Somos una firma de inversión de grado institucional dedicada a facilitar el acceso seguro y regulado a las minas de pequeña escala en Nicaragua, compartiendo beneficios tangibles a través de retornos diarios.</p>
-                    <a class="btn btn-oro btn-grande" href="index.html#inversiones">
+                    <a class="btn btn-oro btn-grande" href="/#inversiones">
                         Ver oportunidades
                         <span class="material-symbols-outlined" style="font-size:18px">arrow_forward</span>
                     </a>
@@ -611,7 +617,7 @@
             <!-- CTA final -->
             <div class="contenedor nosotros-cta">
                 <h2 style="font-family:Montserrat,sans-serif;font-size:26px;font-weight:600;margin-bottom:32px">Inicie su posición en oro físico</h2>
-                <a class="btn btn-borde" href="cuenta.html">
+                <a class="btn btn-borde" href="/cuenta">
                     Invertir ahora
                     <span class="material-symbols-outlined" style="font-size:18px">arrow_forward</span>
                 </a>
@@ -626,28 +632,28 @@
                 <div class="copyright" id="footer-texto">© 2026 Gold Corp Financial. Todos los derechos reservados.</div>
             </div>
             <div class="pie-enlaces">
-                <a href="legal.html?doc=privacidad">Privacidad</a>
-                <a href="legal.html?doc=terminos">Términos de Servicio</a>
-                <a href="legal.html?doc=cumplimiento">Cumplimiento</a>
+                <a href="/legal?doc=privacidad">Privacidad</a>
+                <a href="/legal?doc=terminos">Términos de Servicio</a>
+                <a href="/legal?doc=cumplimiento">Cumplimiento</a>
             </div>
         </div>
     </footer>
 
     <!-- Dock de navegación (solo móvil) -->
     <nav class="dock-lobby">
-        <a href="index.html">
+        <a href="/">
             <span class="material-symbols-outlined">home</span>
             <span>Inicio</span>
         </a>
-        <a href="index.html#inversiones">
+        <a href="/#inversiones">
             <span class="material-symbols-outlined">trending_up</span>
             <span>Inversiones</span>
         </a>
-        <a href="index.html#seguridad">
+        <a href="/#seguridad">
             <span class="material-symbols-outlined">verified_user</span>
             <span>Seguridad</span>
         </a>
-        <a class="activo" href="nosotros.html">
+        <a class="activo" href="/nosotros">
             <span class="material-symbols-outlined">groups</span>
             <span>Nosotros</span>
         </a>

@@ -202,26 +202,28 @@ function mostrarBaneado(razon) {
     if ($('baneado-razon')) $('baneado-razon').textContent = razon || 'No se indicó una razón.';
     mostrar('vista-baneado', true);
     const btn = $('baneado-volver');
-    if (btn) btn.onclick = () => { location.href = 'cuenta.html'; };
+    if (btn) btn.onclick = () => { location.href = '/cuenta'; };
 }
 
 // ---------- Cerrar sesión (barra de admin, lateral y móvil) ----------
 function inicializarCerrarSesion() {
     for (const b of document.querySelectorAll('.cerrar-sesion')) {
-        b.onclick = () => { sesion.cerrar(); location.href = 'cuenta.html'; };
+        b.onclick = () => { sesion.cerrar(); location.href = '/cuenta'; };
     }
 }
 
 // Marca el enlace pulsado de la barra lateral como activo.
 function inicializarMenuLateral() {
-    const ruta = window.location.pathname.split('/').pop();
+    // Nombre de la página sin ".html": las URLs limpias (/cuenta) y las antiguas
+    // (/cuenta.html) se tratan igual.
+    const ruta = (window.location.pathname.split('/').pop() || '').replace(/\.html$/, '');
     const enlaces = {
-        'cuenta.html': '#resumen',
-        'nueva-inversion.html': 'nueva-inversion.html'
+        'cuenta': '#resumen',
+        'nueva-inversion': '/nueva-inversion'
     };
-    
+
     const actualizarVista = (hash) => {
-        if (!window.location.pathname.endsWith('cuenta.html')) return;
+        if (ruta !== 'cuenta') return;
         
         const referidos = document.getElementById('sec-referidos');
         const resumen = document.getElementById('resumen');
@@ -258,7 +260,7 @@ function inicializarMenuLateral() {
         const hash = window.location.hash || enlaces[ruta];
         for (const enlace of document.querySelectorAll('.lateral-enlace, .dock-enlace')) {
             const href = enlace.getAttribute('href');
-            if (href === hash || (href === 'cuenta.html' && hash === enlaces['cuenta.html'])) {
+            if (href === hash || (href === '/cuenta' && hash === enlaces['cuenta'])) {
                 enlace.classList.add('activo');
             } else {
                 enlace.classList.remove('activo');
@@ -271,7 +273,7 @@ function inicializarMenuLateral() {
     const currentHash = window.location.hash || enlaces[ruta];
     for (const enlace of document.querySelectorAll('.lateral-enlace, .dock-enlace')) {
         const href = enlace.getAttribute('href');
-        if (href === currentHash || (href.includes('cuenta.html') && ruta === 'cuenta.html' && !window.location.hash)) {
+        if (href === currentHash || (href === '/cuenta' && ruta === 'cuenta' && !window.location.hash)) {
             enlace.classList.add('activo');
         } else {
             enlace.classList.remove('activo');
@@ -581,7 +583,7 @@ async function cargarCliente() {
         
         const ref = await api('/api/clientes/referidos', { auth: true });
         if ($('link-referido')) {
-            $('link-referido').value = `${window.location.origin}/cuenta.html?ref=${yo.usuario || ''}`;
+            $('link-referido').value = `${window.location.origin}/cuenta?ref=${yo.usuario || ''}`;
             $('btn-copiar-link').onclick = async () => {
                 try {
                     await navigator.clipboard.writeText($('link-referido').value);
