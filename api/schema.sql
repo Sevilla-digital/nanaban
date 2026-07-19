@@ -287,3 +287,14 @@ CREATE INDEX IF NOT EXISTS idx_recargas_cliente ON recargas (cliente_id, creada_
 -- Migraciones de las columnas de comprobante (se añadieron despues).
 ALTER TABLE recargas ADD COLUMN IF NOT EXISTS comprobante BYTEA;
 ALTER TABLE recargas ADD COLUMN IF NOT EXISTS comprobante_mime TEXT;
+
+-- Confirmacion automatica de recargas cripto (KuCoin): cada recarga cripto reserva
+-- un monto EXACTO y unico (monto + comision + centavos aleatorios). Cuando ese
+-- importe llega a la exchange, el cron identifica el pago y confirma solo.
+ALTER TABLE recargas ADD COLUMN IF NOT EXISTS monto_esperado NUMERIC(18,2);
+ALTER TABLE recargas ADD COLUMN IF NOT EXISTS tx_id TEXT;
+-- Un deposito de la exchange solo puede confirmar UNA recarga.
+CREATE UNIQUE INDEX IF NOT EXISTS recargas_tx_id_key ON recargas (tx_id) WHERE tx_id IS NOT NULL;
+-- Dos recargas pendientes nunca comparten monto esperado: es lo que identifica al pagador.
+CREATE UNIQUE INDEX IF NOT EXISTS recargas_monto_esperado_pendiente_key
+  ON recargas (monto_esperado) WHERE estado = 'pendiente' AND monto_esperado IS NOT NULL;

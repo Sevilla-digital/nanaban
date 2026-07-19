@@ -172,6 +172,64 @@ const nuevaRecarga = z.object({
   comprobante: z.string().max(8_000_000).optional(),
 });
 
+const iniciarCripto = z.object({
+  metodoId: z.coerce.number().int().positive(),
+  monto: z.string().regex(/^\d{1,15}(\.\d{1,2})?$/, 'Monto con formato "100.00"'),
+});
+
+/**
+ * Cliente: inicia una recarga CRIPTO antes de pagar. Reserva un monto exacto y
+ * unico (monto + comision de red + 1..99 centavos aleatorios): ese importe
+ * identifica el pago cuando llega a la exchange y permite confirmarlo solo.
+ * El indice unico de pendientes garantiza que no haya dos iguales a la vez.
+ */
+router.post('/recargas/iniciar', requiereAuth, limiteRecargas, async (req, res, next) => {
+  try {
+    const datos = iniciarCripto.safeParse(req.body);
+    if (!datos.success) {
+      return res.status(400).json({ error: 'Datos invalidos', detalle: datos.error.flatten() });
+    }
+    const { metodoId, monto } = datos.data;
+    if (Number(monto) < MIN_RECARGA) {
+      return res.status(400).json({ error: `El mínimo para recargar es $${MIN_RECARGA}.` });
+    }
+
+    const m = await query(
+      `SELECT ${CAMPOS_METODO} FROM metodos_pago WHERE id = $1 AND activo = TRUE`,
+      [metodoId]
+    );
+    if (m.rows.length === 0) return res.status(400).json({ error: 'Método de pago no disponible' });
+    const met = m.rows[0];
+    if (met.tipo !== 'cripto') {
+      return res.status(400).json({ error: 'Este método no usa confirmación automática' });
+    }
+
+    const desc = `${met.etiqueta} · ${met.red} · ${met.direccion} · comisión $${met.comision}`;
+    const baseCents = Math.round(Number(monto) * 100) + Math.round(Number(met.comision) * 100);
+
+    // Hasta 8 intentos: si el monto candidato choca con otra pendiente (23505 en
+    // el indice unico), se prueba con otros centavos.
+    for (let intento = 0; intento < 8; intento++) {
+      const offset = 1 + Math.floor(Math.random() * 99); // 1..99 centavos
+      const esperado = ((baseCents + offset) / 100).toFixed(2);
+      try {
+        const { rows } = await query(
+          `INSERT INTO recargas (cliente_id, monto, metodo_id, metodo_desc, referencia, monto_esperado)
+           VALUES ($1, $2::numeric, $3, $4, '', $5::numeric)
+           RETURNING id, monto, monto_esperado, metodo_desc, estado, creada_en`,
+          [req.cliente.id, monto, metodoId, desc, esperado]
+        );
+        return res.status(201).json(rows[0]);
+      } catch (e) {
+        if (e.code !== '23505') throw e;
+      }
+    }
+    res.status(409).json({ error: 'No se pudo reservar un monto único. Inténtalo de nuevo.' });
+  } catch (err) {
+    next(err);
+  }
+});
+
 /** Cliente: registra una solicitud de recarga ("ya realice el pago"). */
 router.post('/recargas', requiereAuth, limiteRecargas, async (req, res, next) => {
   try {
@@ -238,6 +296,7 @@ router.get('/recargas', requiereAuth, requiereAdmin, async (req, res, next) => {
     }
     const { rows } = await query(
       `SELECT r.id, r.monto, r.metodo_desc, r.referencia, r.estado, r.creada_en, r.atendida_en,
+              r.monto_esperado, r.tx_id,
               (r.comprobante IS NOT NULL) AS tiene_comprobante,
               c.id AS cliente_id, c.nombre, c.apellido, c.usuario
        FROM recargas r
@@ -274,6 +333,93 @@ router.get('/recargas/:id/comprobante', requiereAuth, requiereAdmin, async (req,
 });
 
 /**
+ * Confirma una recarga pendiente DENTRO de una transaccion ya abierta: deposito,
+ * regalia de bienvenida (si es la primera vez que entra dinero), comisiones de
+ * referidos y marca de confirmada. La usan el admin y la confirmacion automatica
+ * (KuCoin), que pasa atendidaPor = null y el tx del deposito en `extra`.
+ * Idempotente: bloquea la fila y exige que siga pendiente.
+ */
+export async function confirmarRecargaEnTx(client, id, atendidaPor, extra = {}) {
+  const r = await client.query('SELECT * FROM recargas WHERE id = $1 FOR UPDATE', [id]);
+  if (r.rows.length === 0) return { error: 404, mensaje: 'Recarga no encontrada' };
+  const recarga = r.rows[0];
+  if (recarga.estado !== 'pendiente') {
+    return { error: 409, mensaje: 'Esta recarga ya fue atendida' };
+  }
+
+  // Regalía de bienvenida: si es la primera vez que entra dinero a la cuenta
+  // (ni recargas confirmadas ni depósitos previos), la primera recarga regala
+  // $10 extra. Se comprueba ANTES de crear el depósito de esta recarga.
+  const esPrimeraRecarga = (await client.query(
+    `SELECT NOT (
+        EXISTS (SELECT 1 FROM recargas    WHERE cliente_id = $1 AND estado = 'confirmada')
+        OR EXISTS (SELECT 1 FROM movimientos WHERE cliente_id = $1 AND tipo = 'deposito')
+     ) AS primera`,
+    [recarga.cliente_id]
+  )).rows[0].primera;
+
+  const mov = await client.query(
+    `INSERT INTO movimientos (cliente_id, tipo, importe, descripcion, creado_por)
+     VALUES ($1, 'deposito', $2::numeric, $3, $4)
+     RETURNING id, cliente_id, tipo, importe, descripcion, creado_en`,
+    [recarga.cliente_id, recarga.monto, `Recarga confirmada · ${recarga.metodo_desc}`, atendidaPor]
+  );
+
+  if (esPrimeraRecarga) {
+    await client.query(
+      `INSERT INTO movimientos (cliente_id, tipo, importe, descripcion, creado_por)
+       VALUES ($1, 'deposito', $2::numeric, 'Regalía por recargar · Bono de bienvenida', $3)`,
+      [recarga.cliente_id, REGALIA_PRIMERA_RECARGA, atendidaPor]
+    );
+  }
+
+  // Comisiones de referidos: se recorre la cadena hacia arriba desde el cliente
+  // que recargo. Cuentas normales: 6% el referidor directo (nivel 1) y 3% el de
+  // segundo nivel, nada mas alla. Cuentas PREMIUM: 6% en CUALQUIER nivel de su
+  // cadena, sin limite de profundidad. El set de visitados evita bucles.
+  const cRes = await client.query('SELECT referido_por, usuario FROM clientes WHERE id = $1', [recarga.cliente_id]);
+  if (cRes.rows.length > 0 && cRes.rows[0].referido_por) {
+    const nombreRef = cRes.rows[0].usuario || 'usuario_desconocido';
+    const visitados = new Set([recarga.cliente_id]);
+    let padreId = cRes.rows[0].referido_por;
+    let nivel = 0;
+
+    while (padreId && nivel < 30 && !visitados.has(padreId)) {
+      nivel++;
+      visitados.add(padreId);
+      const p = await client.query('SELECT referido_por, premium FROM clientes WHERE id = $1', [padreId]);
+      if (p.rows.length === 0) break;
+
+      let pct = 0;
+      if (p.rows[0].premium === true) pct = 0.06; // premium: 6% siempre, a cualquier nivel
+      else if (nivel === 1) pct = 0.06;
+      else if (nivel === 2) pct = 0.03;
+
+      if (pct > 0) {
+        const comision = Number(recarga.monto) * pct;
+        const etiquetaNivel = nivel === 1 ? 'directo' : `nivel ${nivel}`;
+        await client.query(
+          `INSERT INTO movimientos (cliente_id, tipo, importe, descripcion, creado_por)
+           VALUES ($1, 'comision_referido', $2::numeric, $3, $4)`,
+          [padreId, comision, `Comision (${pct * 100}%) por referido ${etiquetaNivel} (@${nombreRef})`, atendidaPor]
+        );
+      }
+      padreId = p.rows[0].referido_por;
+    }
+  }
+  await client.query(
+    `UPDATE recargas SET estado='confirmada', movimiento_id=$1, atendida_por=$2, atendida_en=now(),
+            tx_id = COALESCE($4, tx_id),
+            referencia = CASE WHEN $5::text IS NULL THEN referencia
+                              WHEN referencia = '' THEN $5::text
+                              ELSE referencia || ' · ' || $5::text END
+     WHERE id=$3`,
+    [mov.rows[0].id, atendidaPor, id, extra.txId ?? null, extra.nota ?? null]
+  );
+  return { movimiento: mov.rows[0] };
+}
+
+/**
  * Admin: confirma una recarga y abona el saldo. Crea un deposito por el monto y
  * enlaza recarga y movimiento. Idempotente: bloquea la fila y comprueba que siga
  * pendiente, para que dos confirmaciones simultaneas no abonen dos veces.
@@ -283,81 +429,7 @@ router.post('/recargas/:id/confirmar', requiereAuth, requiereAdmin, async (req, 
     const id = Number(req.params.id);
     if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: 'Id invalido' });
 
-    const resultado = await withTransaction(async (client) => {
-      const r = await client.query('SELECT * FROM recargas WHERE id = $1 FOR UPDATE', [id]);
-      if (r.rows.length === 0) return { error: 404, mensaje: 'Recarga no encontrada' };
-      const recarga = r.rows[0];
-      if (recarga.estado !== 'pendiente') {
-        return { error: 409, mensaje: 'Esta recarga ya fue atendida' };
-      }
-
-      // Regalía de bienvenida: si es la primera vez que entra dinero a la cuenta
-      // (ni recargas confirmadas ni depósitos previos), la primera recarga regala
-      // $10 extra. Se comprueba ANTES de crear el depósito de esta recarga.
-      const esPrimeraRecarga = (await client.query(
-        `SELECT NOT (
-            EXISTS (SELECT 1 FROM recargas    WHERE cliente_id = $1 AND estado = 'confirmada')
-            OR EXISTS (SELECT 1 FROM movimientos WHERE cliente_id = $1 AND tipo = 'deposito')
-         ) AS primera`,
-        [recarga.cliente_id]
-      )).rows[0].primera;
-
-      const mov = await client.query(
-        `INSERT INTO movimientos (cliente_id, tipo, importe, descripcion, creado_por)
-         VALUES ($1, 'deposito', $2::numeric, $3, $4)
-         RETURNING id, cliente_id, tipo, importe, descripcion, creado_en`,
-        [recarga.cliente_id, recarga.monto, `Recarga confirmada · ${recarga.metodo_desc}`, req.cliente.id]
-      );
-
-      if (esPrimeraRecarga) {
-        await client.query(
-          `INSERT INTO movimientos (cliente_id, tipo, importe, descripcion, creado_por)
-           VALUES ($1, 'deposito', $2::numeric, 'Regalía por recargar · Bono de bienvenida', $3)`,
-          [recarga.cliente_id, REGALIA_PRIMERA_RECARGA, req.cliente.id]
-        );
-      }
-
-      // Comisiones de referidos: se recorre la cadena hacia arriba desde el cliente
-      // que recargo. Cuentas normales: 6% el referidor directo (nivel 1) y 3% el de
-      // segundo nivel, nada mas alla. Cuentas PREMIUM: 6% en CUALQUIER nivel de su
-      // cadena, sin limite de profundidad. El set de visitados evita bucles.
-      const cRes = await client.query('SELECT referido_por, usuario FROM clientes WHERE id = $1', [recarga.cliente_id]);
-      if (cRes.rows.length > 0 && cRes.rows[0].referido_por) {
-        const nombreRef = cRes.rows[0].usuario || 'usuario_desconocido';
-        const visitados = new Set([recarga.cliente_id]);
-        let padreId = cRes.rows[0].referido_por;
-        let nivel = 0;
-
-        while (padreId && nivel < 30 && !visitados.has(padreId)) {
-          nivel++;
-          visitados.add(padreId);
-          const p = await client.query('SELECT referido_por, premium FROM clientes WHERE id = $1', [padreId]);
-          if (p.rows.length === 0) break;
-
-          let pct = 0;
-          if (p.rows[0].premium === true) pct = 0.06; // premium: 6% siempre, a cualquier nivel
-          else if (nivel === 1) pct = 0.06;
-          else if (nivel === 2) pct = 0.03;
-
-          if (pct > 0) {
-            const comision = Number(recarga.monto) * pct;
-            const etiquetaNivel = nivel === 1 ? 'directo' : `nivel ${nivel}`;
-            await client.query(
-              `INSERT INTO movimientos (cliente_id, tipo, importe, descripcion, creado_por)
-               VALUES ($1, 'comision_referido', $2::numeric, $3, $4)`,
-              [padreId, comision, `Comision (${pct * 100}%) por referido ${etiquetaNivel} (@${nombreRef})`, req.cliente.id]
-            );
-          }
-          padreId = p.rows[0].referido_por;
-        }
-      }
-      await client.query(
-        `UPDATE recargas SET estado='confirmada', movimiento_id=$1, atendida_por=$2, atendida_en=now()
-         WHERE id=$3`,
-        [mov.rows[0].id, req.cliente.id, id]
-      );
-      return { movimiento: mov.rows[0] };
-    });
+    const resultado = await withTransaction((client) => confirmarRecargaEnTx(client, id, req.cliente.id));
 
     if (resultado.error) return res.status(resultado.error).json({ error: resultado.mensaje });
     res.status(201).json(resultado.movimiento);

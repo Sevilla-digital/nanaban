@@ -868,6 +868,26 @@ function inicializarRecarga() {
         btnYaPague.onclick = async () => {
             if (!recargaEnCurso) return;
             $('error-modal').textContent = ''; $('ok-modal').textContent = '';
+
+            // Cripto: la recarga ya quedó registrada al abrir el modal (con su monto
+            // único). No hay nada más que enviar: se detecta y acredita sola.
+            if (recargaEnCurso.recargaId) {
+                clearInterval(cronoInterval);
+                $('ok-modal').textContent =
+                    'Pago registrado. En cuanto la red lo confirme, tu saldo se acreditará automáticamente (normalmente unos minutos).';
+                btnYaPague.disabled = true;
+                btnYaPague.textContent = 'Registrado ✓';
+                setTimeout(() => {
+                    cerrarModal();
+                    mostrar('vista-recarga', false);
+                    mostrar('vista-cliente', true);
+                    cargarCliente();
+                    btnYaPague.disabled = false;
+                    btnYaPague.textContent = 'Ya realicé el pago';
+                }, 2200);
+                return;
+            }
+
             const cuerpo = { metodoId: recargaEnCurso.metodo.id, monto: recargaEnCurso.monto };
             // Referencia con el detalle en córdobas (clientes de Nicaragua), para que
             // el admin sepa cuánto llegó en C$ y cuánto acreditar en USD.
@@ -981,7 +1001,7 @@ function prepararRecargaCordoba() {
 // Formatea un número como "C$3,680.00".
 const cordobasFmt = (n) => 'C$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-function abrirModalPago(metodo) {
+async function abrirModalPago(metodo) {
     const montoInput = $('recarga-monto');
     const monto = (montoInput.value || '').trim().replace(',', '.');
     if (!/^\d{1,15}(\.\d{1,2})?$/.test(monto) || Number(monto) < 10) {
@@ -993,6 +1013,24 @@ function abrirModalPago(metodo) {
     recargaEnCurso = { metodo, monto };
 
     const esBanco = metodo.tipo === 'banco';
+
+    // Cripto: la recarga se registra ANTES de pagar para reservar un monto exacto
+    // y único (monto + comisión + centavos). Ese importe identifica el pago en la
+    // exchange y el sistema lo confirma solo cuando llega.
+    let recargaIniciada = null;
+    if (!esBanco) {
+        try {
+            recargaIniciada = await api('/api/pagos/recargas/iniciar', {
+                method: 'POST', auth: true,
+                body: { metodoId: metodo.id, monto },
+            });
+            recargaEnCurso.recargaId = recargaIniciada.id;
+        } catch (err) {
+            $('error-recarga').textContent = err.message;
+            return;
+        }
+    }
+
     $('modal-titulo').textContent = esBanco ? 'Transferencia bancaria' : 'Depósito en cripto';
 
     // Córdobas: solo tiene sentido en el pago por banco (LAFISE es en córdobas) y
@@ -1008,8 +1046,14 @@ function abrirModalPago(metodo) {
             `Pago en Córdobas: ${cordobasFmt(cordobas)} (tasa C$${tasaCordoba.toFixed(2)} = $1) → acreditar ${dinero(monto)}`;
     }
 
-    const comision = esBanco ? '0' : (metodo.comision ?? '0');
-    const total = sumarDolares(monto, comision);
+    // Cripto con monto reservado: el total viene del servidor (incluye los centavos
+    // identificadores); la "comisión" mostrada es la diferencia real con el monto.
+    const comision = esBanco
+        ? '0'
+        : (recargaIniciada
+            ? ((Math.round(Number(recargaIniciada.monto_esperado) * 100) - Math.round(Number(monto) * 100)) / 100).toFixed(2)
+            : (metodo.comision ?? '0'));
+    const total = recargaIniciada ? Number(recargaIniciada.monto_esperado).toFixed(2) : sumarDolares(monto, comision);
     const textoEnviar = mostrarCordoba ? cordobasFmt(cordobas) : dinero(esBanco ? monto : total);
     $('modal-sub').textContent = `Envía exactamente ${textoEnviar} a estos datos:`;
 
@@ -1028,7 +1072,10 @@ function abrirModalPago(metodo) {
            ...(metodo.notas ? [['Nota', metodo.notas, false]] : []),
            ['Monto a acreditar', dinero(monto), false],
            ['Comisión de red', dinero(comision), false],
-           ['Total a enviar', dinero(total), true]];
+           ['Total a enviar', dinero(total), true],
+           ...(recargaIniciada
+               ? [['Importante', 'Envía el monto EXACTO: así identificamos tu pago y tu saldo se acredita automáticamente en unos minutos.', false]]
+               : [])];
 
     for (const [k, v, copiable] of filas) {
         const fila = el('div', 'dato-pago');
@@ -1380,7 +1427,7 @@ async function arrancar() {
         if (sesion.esAdmin) {
             mostrar('vista-admin', true);
             // La ?v= debe subir cuando cambie admin.js, para que el navegador no use la version vieja.
-            const { inicializarAdmin } = await import('./admin.js?v=5');
+            const { inicializarAdmin } = await import('./admin.js?v=6');
             inicializarAdmin();
         } else {
             mostrar('vista-cliente', true);

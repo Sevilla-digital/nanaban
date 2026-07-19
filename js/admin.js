@@ -625,6 +625,14 @@ async function listarRecargas() {
             const quien = `${r.nombre} ${r.apellido || ''}`.trim() + (r.usuario ? ` (@${r.usuario})` : '');
             tr.appendChild(el('td', '', quien));
             const tdMetodo = el('td', '', r.metodo_desc);
+            // Cripto con confirmación automática: el admin ve el monto exacto que
+            // debe llegar a la exchange (identifica al pagador).
+            if (r.monto_esperado) {
+                tdMetodo.appendChild(document.createElement('br'));
+                const esp = el('span', '', `Debe llegar exacto: ${dinero(r.monto_esperado)}`);
+                esp.style.cssText = 'font-size:12px; color:var(--primario)';
+                tdMetodo.appendChild(esp);
+            }
             if (r.referencia) {
                 tdMetodo.appendChild(document.createElement('br'));
                 const ref = el('span', 'muted', r.referencia);

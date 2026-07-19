@@ -1,5 +1,6 @@
 import cron from 'node-cron';
 import { pool } from './db.js';
+import { kucoinConfigurado, revisarDepositosKuCoin } from './kucoin.js';
 
 const PORCENTAJES = {
   '10 Kilates': 0.012, // 1.2%
@@ -81,4 +82,16 @@ export function iniciarCron() {
   });
   
   console.log('[CRON] Tarea programada iniciada: Pagos diarios a las 8:00 PM CST (L-V)');
+
+  // Auto-confirmacion de recargas cripto: revisa los depositos de KuCoin cada
+  // 2 minutos. Si faltan las claves (Render > Environment), queda desactivada y
+  // el flujo manual del admin sigue funcionando igual.
+  if (kucoinConfigurado()) {
+    cron.schedule('*/2 * * * *', () => {
+      revisarDepositosKuCoin().catch((e) => console.error('[KUCOIN]', e.message));
+    });
+    console.log('[CRON] Auto-confirmacion de recargas cripto (KuCoin): ACTIVA, cada 2 minutos');
+  } else {
+    console.log('[CRON] Auto-confirmacion KuCoin desactivada: faltan KUCOIN_API_KEY / KUCOIN_API_SECRET / KUCOIN_API_PASSPHRASE');
+  }
 }
