@@ -620,6 +620,63 @@
         }
         .seccion-cliente .linea h2 { margin: 0; }
 
+        /* ---------- Bienvenida a cuentas nuevas (popup con confeti) ---------- */
+        .bienvenida-caja {
+            text-align: center;
+            border-color: rgba(212, 175, 55, 0.45);
+            animation: bienvenida-pop 0.5s cubic-bezier(0.2, 1.4, 0.4, 1);
+        }
+        @keyframes bienvenida-pop {
+            from { transform: scale(0.6) translateY(30px); opacity: 0; }
+            to   { transform: scale(1) translateY(0); opacity: 1; }
+        }
+        .icono-bienvenida {
+            font-size: 60px !important;
+            color: var(--primario);
+            font-variation-settings: 'FILL' 1;
+            display: inline-block;
+            animation: bienvenida-brinco 1.2s ease-in-out 0.3s 2;
+        }
+        @keyframes bienvenida-brinco {
+            0%, 100% { transform: rotate(0deg) scale(1); }
+            25% { transform: rotate(-12deg) scale(1.12); }
+            75% { transform: rotate(12deg) scale(1.12); }
+        }
+        .bienvenida-caja h2 { font-family: Montserrat, sans-serif; font-size: 24px; font-weight: 700; margin: 8px 0 4px; }
+        .bienvenida-regalo {
+            background: rgba(212, 175, 55, 0.1);
+            border: 1px dashed rgba(212, 175, 55, 0.5);
+            border-radius: 12px;
+            padding: 16px 18px;
+            margin: 18px 0 20px;
+        }
+        .bienvenida-regalo .rotulo {
+            font-family: Inter, sans-serif; font-size: 11px; font-weight: 700;
+            letter-spacing: 0.14em; text-transform: uppercase; color: var(--primario);
+            margin-bottom: 6px;
+        }
+        .bienvenida-regalo p { margin: 0; }
+        .bienvenida-regalo strong { color: var(--primario); }
+        .bienvenida-luego {
+            background: none; border: none; cursor: pointer;
+            color: var(--texto-suave); font-family: Inter, sans-serif; font-size: 13px;
+            text-decoration: underline; text-underline-offset: 4px; margin-top: 12px;
+        }
+        .bienvenida-luego:hover { color: var(--texto); }
+        .confeti-cont { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 101; }
+        .confeti-pieza {
+            position: absolute;
+            top: -16px;
+            width: 8px;
+            height: 14px;
+            border-radius: 2px;
+            animation: confeti-caer linear forwards;
+        }
+        @keyframes confeti-caer {
+            0%   { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(110vh) rotate(760deg); opacity: 0.5; }
+        }
+
         /* ---------- Programa de referidos ---------- */
         .referidos-cabecera { align-items: flex-start; gap: 16px; flex-wrap: wrap; }
         .referidos-cabecera .btn { margin-top: 0; flex-shrink: 0; }
@@ -1436,6 +1493,30 @@
         </nav>
     </div>
 
+    <!-- ================= BIENVENIDA A CUENTAS NUEVAS (popup) ================= -->
+    <div class="modal-fondo oculto" id="modal-bienvenida">
+        <div class="confeti-cont" id="confeti-cont"></div>
+        <div class="modal bienvenida-caja">
+            <span class="material-symbols-outlined icono-bienvenida">celebration</span>
+            <h2>¡Bienvenido! Tu cuenta está lista</h2>
+            <p class="modal-sub" style="margin-bottom:0">Nos alegra tenerte a bordo. Empieza con ventaja:</p>
+            <div class="bienvenida-regalo">
+                <div class="rotulo">Regalo de bienvenida</div>
+                <p>Haz tu <strong>primera recarga</strong> hoy y te abonamos
+                   <strong>$10.00 adicionales de regalo</strong>, directo a tu saldo.</p>
+            </div>
+            <button class="btn ancho" type="button" id="bienvenida-recargar">
+                <span class="material-symbols-outlined" style="font-size:18px">redeem</span>
+                Recargar ahora y llevarme los $10
+            </button>
+            <button class="bienvenida-luego" type="button" id="bienvenida-cerrar">Quizás más tarde</button>
+            <p class="aviso" style="margin-bottom:0">
+                El regalo se acredita al confirmarse tu primera recarga y aparece en tus
+                movimientos como "Regalía por recargar".
+            </p>
+        </div>
+    </div>
+
     <!-- ================= PROGRAMA DE AFILIACIÓN (modal) ================= -->
     <div class="modal-fondo oculto" id="modal-afiliacion">
         <div class="modal">
@@ -1943,6 +2024,6 @@
         </div>
     </div>
 
-    <script type="module" src="js/main.js?v=10"></script>
+    <script type="module" src="js/main.js?v=11"></script>
 </body>
 </html>

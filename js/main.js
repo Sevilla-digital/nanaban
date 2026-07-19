@@ -536,6 +536,49 @@ function inicializarAfiliacion() {
     if (modal) modal.onclick = (e) => { if (e.target === modal) mostrar('modal-afiliacion', false); };
 }
 
+// ---------- Bienvenida a cuentas nuevas ----------
+
+// Lluvia de confeti dorado (piezas CSS que caen y giran). Se limpia sola.
+function lanzarConfeti() {
+    const cont = $('confeti-cont');
+    if (!cont) return;
+    cont.innerHTML = '';
+    const colores = ['#f2ca50', '#d4af37', '#ffe088', '#e9c349', '#ffffff'];
+    for (let i = 0; i < 80; i++) {
+        const p = document.createElement('div');
+        p.className = 'confeti-pieza';
+        p.style.left = Math.random() * 100 + '%';
+        p.style.background = colores[Math.floor(Math.random() * colores.length)];
+        p.style.width = (6 + Math.random() * 5) + 'px';
+        p.style.height = (10 + Math.random() * 7) + 'px';
+        p.style.animationDuration = (2.6 + Math.random() * 2.2) + 's';
+        p.style.animationDelay = (Math.random() * 1.2) + 's';
+        cont.appendChild(p);
+    }
+    setTimeout(() => { cont.innerHTML = ''; }, 7000);
+}
+
+function mostrarBienvenida() {
+    mostrar('modal-bienvenida', true);
+    lanzarConfeti();
+}
+
+function inicializarBienvenida() {
+    const cerrar = $('bienvenida-cerrar');
+    if (cerrar) cerrar.onclick = () => mostrar('modal-bienvenida', false);
+    const recargar = $('bienvenida-recargar');
+    if (recargar) {
+        recargar.onclick = () => {
+            mostrar('modal-bienvenida', false);
+            // Lleva directo a la pantalla de recarga.
+            const abrir = $('abrir-recarga');
+            if (abrir) abrir.click();
+        };
+    }
+    const modal = $('modal-bienvenida');
+    if (modal) modal.onclick = (e) => { if (e.target === modal) mostrar('modal-bienvenida', false); };
+}
+
 // Datos del cliente en sesión (para el guardado de perfil sepamos su avatar actual).
 let clienteActual = null;
 
@@ -569,6 +612,13 @@ async function cargarCliente() {
         const yo = await api('/api/clientes/me', { auth: true });
         clienteActual = yo;
         ultimoSaldoConocido = String(yo.saldo);
+
+        // Cuenta nueva (todavía no ha recargado): popup de bienvenida con confeti
+        // y el regalo de $10 por la primera recarga. Una vez por sesión.
+        if (yo.ha_recargado === false && !sessionStorage.getItem('gc_bienvenida')) {
+            sessionStorage.setItem('gc_bienvenida', '1');
+            mostrarBienvenida();
+        }
         const ini = iniciales(yo.nombre, yo.apellido);
         if ($('cliente-nombre')) $('cliente-nombre').textContent = `${yo.nombre} ${yo.apellido || ''}`.trim();
         if ($('cliente-usuario')) $('cliente-usuario').textContent = '@' + (yo.usuario ?? '');
@@ -1355,6 +1405,7 @@ document.addEventListener('DOMContentLoaded', () => {
     inicializarMenuLateral();
     inicializarPerfil();
     inicializarAfiliacion();
+    inicializarBienvenida();
     arrancar();
     iniciarActualizacionEnVivo();
 });

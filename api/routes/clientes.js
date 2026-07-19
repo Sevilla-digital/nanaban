@@ -220,7 +220,10 @@ router.get('/me', requiereAuth, async (req, res, next) => {
   try {
     const { rows } = await query(
       `SELECT c.id, c.nombre, c.apellido, c.usuario, c.telefono, c.avatar, c.es_admin, c.premium,
-              c.activo, c.ban_razon, c.creado_en, s.saldo
+              c.activo, c.ban_razon, c.creado_en, s.saldo,
+              (EXISTS (SELECT 1 FROM recargas r WHERE r.cliente_id = c.id AND r.estado = 'confirmada')
+               OR EXISTS (SELECT 1 FROM movimientos m WHERE m.cliente_id = c.id AND m.tipo = 'deposito')
+              ) AS ha_recargado
        FROM clientes c
        JOIN saldos s ON s.cliente_id = c.id
        WHERE c.id = $1`,

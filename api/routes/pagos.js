@@ -9,6 +9,11 @@ export const router = Router();
 // Minimo para recargar, en dolares. Tambien lo garantiza el CHECK de la tabla.
 const MIN_RECARGA = 10;
 
+// Regalia de bienvenida: dolares extra que se abonan al confirmarse la PRIMERA
+// recarga de una cuenta nueva (sin dinero previo). Aparece en movimientos como
+// "Regalia por recargar".
+const REGALIA_PRIMERA_RECARGA = 10;
+
 const CAMPOS_METODO = `id, tipo, etiqueta, titular, numero_cuenta, moneda, red,
                        direccion, comision, notas, activo, orden`;
 
@@ -286,12 +291,31 @@ router.post('/recargas/:id/confirmar', requiereAuth, requiereAdmin, async (req, 
         return { error: 409, mensaje: 'Esta recarga ya fue atendida' };
       }
 
+      // Regalía de bienvenida: si es la primera vez que entra dinero a la cuenta
+      // (ni recargas confirmadas ni depósitos previos), la primera recarga regala
+      // $10 extra. Se comprueba ANTES de crear el depósito de esta recarga.
+      const esPrimeraRecarga = (await client.query(
+        `SELECT NOT (
+            EXISTS (SELECT 1 FROM recargas    WHERE cliente_id = $1 AND estado = 'confirmada')
+            OR EXISTS (SELECT 1 FROM movimientos WHERE cliente_id = $1 AND tipo = 'deposito')
+         ) AS primera`,
+        [recarga.cliente_id]
+      )).rows[0].primera;
+
       const mov = await client.query(
         `INSERT INTO movimientos (cliente_id, tipo, importe, descripcion, creado_por)
          VALUES ($1, 'deposito', $2::numeric, $3, $4)
          RETURNING id, cliente_id, tipo, importe, descripcion, creado_en`,
         [recarga.cliente_id, recarga.monto, `Recarga confirmada · ${recarga.metodo_desc}`, req.cliente.id]
       );
+
+      if (esPrimeraRecarga) {
+        await client.query(
+          `INSERT INTO movimientos (cliente_id, tipo, importe, descripcion, creado_por)
+           VALUES ($1, 'deposito', $2::numeric, 'Regalía por recargar · Bono de bienvenida', $3)`,
+          [recarga.cliente_id, REGALIA_PRIMERA_RECARGA, req.cliente.id]
+        );
+      }
 
       // Comisiones de referidos: se recorre la cadena hacia arriba desde el cliente
       // que recargo. Cuentas normales: 6% el referidor directo (nivel 1) y 3% el de
