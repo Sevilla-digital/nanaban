@@ -614,6 +614,74 @@
         }
         .seccion-cliente .linea h2 { margin: 0; }
 
+        /* ---------- Programa de referidos ---------- */
+        .referidos-cabecera { align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+        .referidos-cabecera .btn { margin-top: 0; flex-shrink: 0; }
+        .referidos-rejilla { display: grid; grid-template-columns: 1fr; gap: 24px; margin-bottom: 32px; }
+        @media (min-width: 900px) { .referidos-rejilla { grid-template-columns: 2fr 1fr; align-items: stretch; } }
+        .tarjeta-ref {
+            background: var(--tarjeta);
+            border: 1px solid var(--borde);
+            border-radius: 12px;
+            padding: 24px;
+        }
+        .titulo-ref {
+            font-family: Inter, sans-serif;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--primario);
+        }
+        .puntos-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            gap: 6px;
+            border-color: rgba(212, 175, 55, 0.3);
+        }
+        .puntos-numero {
+            font-family: Montserrat, sans-serif;
+            font-size: 46px;
+            font-weight: 700;
+            color: var(--primario);
+            line-height: 1.1;
+        }
+        .hito-fila {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 0;
+            border-bottom: 1px solid var(--borde);
+        }
+        .hito-fila:last-child { border-bottom: none; }
+        .hito-izq { display: flex; align-items: center; gap: 12px; min-width: 0; }
+        .hito-izq .medalla { font-size: 26px; color: var(--texto-suave); flex-shrink: 0; }
+        .hito-fila.logrado .medalla { color: var(--ok); }
+        .hito-titulo { font-family: Inter, sans-serif; font-weight: 600; font-size: 15px; }
+        .hito-sub { font-family: Inter, sans-serif; font-size: 12px; color: var(--texto-suave); margin-top: 2px; }
+        .hito-fila.logrado .hito-sub { color: var(--ok); }
+        .hito-premio {
+            font-family: Montserrat, sans-serif;
+            font-weight: 700;
+            font-size: 18px;
+            color: var(--primario);
+            white-space: nowrap;
+        }
+        .chip-estado {
+            display: inline-block;
+            font-family: Inter, sans-serif;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 3px 10px;
+            border-radius: 9999px;
+        }
+        .chip-estado.ok { color: #51cf66; background: rgba(81, 207, 102, 0.1); border: 1px solid rgba(81, 207, 102, 0.3); }
+        .chip-estado.pend { color: var(--primario); background: rgba(212, 175, 55, 0.08); border: 1px solid rgba(212, 175, 55, 0.25); }
+
         /* ---------- Perfil ---------- */
         .perfil-rejilla { display: grid; grid-template-columns: 1fr; gap: 24px; }
         @media (min-width: 900px) { .perfil-rejilla { grid-template-columns: 300px 1fr; align-items: start; } }
@@ -1227,19 +1295,37 @@
 
                     <!-- Referidos -->
                     <section class="seccion-cliente" id="sec-referidos">
-                        <header class="linea">
-                            <h2>Programa de Referidos</h2>
+                        <header class="linea referidos-cabecera">
+                            <div>
+                                <h2>Programa de Referidos</h2>
+                                <p class="muted" style="margin-top:6px">Gana un 6% de las recargas de tus referidos directos, y un 3% de las de segundo nivel.</p>
+                            </div>
+                            <button class="btn sec" type="button" id="abrir-programa-afiliacion">
+                                <span class="material-symbols-outlined" style="font-size:18px">military_tech</span>
+                                Ver programa de afiliación
+                            </button>
                         </header>
-                        <div class="tarjeta-resumen" style="margin-bottom:24px">
-                            <div style="width:100%">
-                                <div class="titulo">TU ENLACE DE INVITACIÓN</div>
-                                <div style="display:flex; gap:8px; align-items:center; margin-top:8px">
-                                    <input id="link-referido" readonly style="flex:1; background:var(--surface); border:1px solid #333; padding:8px 12px; color:var(--texto-principal); border-radius:4px" />
-                                    <button class="btn" id="btn-copiar-link" type="button">Copiar</button>
+
+                        <div class="referidos-rejilla">
+                            <!-- Enlace de invitación -->
+                            <div class="tarjeta-ref">
+                                <div class="titulo-ref">Tu enlace de invitación</div>
+                                <div style="display:flex; gap:8px; align-items:center; margin-top:12px; flex-wrap:wrap">
+                                    <input id="link-referido" readonly style="flex:1; min-width:200px; background:var(--campo); border:1px solid var(--borde); padding:10px 12px; color:var(--texto); border-radius:4px; font-family:Inter,sans-serif; font-size:13px" />
+                                    <button class="btn" id="btn-copiar-link" type="button" style="margin-top:0">Copiar</button>
                                 </div>
-                                <p class="muted" style="margin-top:12px; font-size:0.9rem">Gana un 6% de las recargas de tus referidos directos, y un 3% de las de segundo nivel.</p>
+                                <p class="muted" style="margin-top:12px; font-size:0.9rem">Comparte este enlace para invitar a nuevos inversores a la plataforma.</p>
+                            </div>
+
+                            <!-- Puntos por afiliación -->
+                            <div class="tarjeta-ref puntos-card">
+                                <div class="titulo-ref">Puntos por afiliación</div>
+                                <div class="puntos-numero" id="afiliacion-puntos">0</div>
+                                <p class="muted" style="margin:0">referidos acumulados</p>
+                                <p class="muted" id="afiliacion-progreso" style="margin:8px 0 0; color:var(--primario); font-size:0.9rem"></p>
                             </div>
                         </div>
+
                         <header class="linea"><h3>Tus referidos directos</h3></header>
                         <div class="tabla-panel" id="cliente-referidos"></div>
                     </section>
@@ -1342,6 +1428,27 @@
                 <span>Perfil</span>
             </a>
         </nav>
+    </div>
+
+    <!-- ================= PROGRAMA DE AFILIACIÓN (modal) ================= -->
+    <div class="modal-fondo oculto" id="modal-afiliacion">
+        <div class="modal">
+            <div class="modal-cima">
+                <h2>Programa de Afiliación</h2>
+                <button class="cerrar-modal" type="button" id="cerrar-modal-afiliacion" aria-label="Cerrar">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <p class="modal-sub">
+                Invita personas con tu enlace. Al llegar a cada meta, la recompensa se abona
+                <strong>automáticamente</strong> a tu saldo y aparece en tus movimientos como
+                "Recompensa del programa de afiliación".
+            </p>
+            <div id="lista-hitos"></div>
+            <p class="aviso">
+                Cuentan tus referidos directos registrados con tu enlace. Cada meta se paga una sola vez.
+            </p>
+        </div>
     </div>
 
     <!-- ================= RECARGAR SALDO (cliente) ================= -->
@@ -1830,6 +1937,6 @@
         </div>
     </div>
 
-    <script type="module" src="js/main.js?v=8"></script>
+    <script type="module" src="js/main.js?v=9"></script>
 </body>
 </html>

@@ -465,17 +465,73 @@ function referidosCliente(destino, referidos) {
         return;
     }
     const tabla = document.createElement('table');
-    tabla.innerHTML = '<thead><tr><th>Fecha de registro</th><th>Nombre</th><th>Usuario</th></tr></thead>';
+    tabla.innerHTML = '<thead><tr><th>Fecha de registro</th><th>Nombre</th><th>Usuario</th><th>Estado</th></tr></thead>';
     const tbody = document.createElement('tbody');
     for (const r of referidos) {
         const tr = document.createElement('tr');
         tr.appendChild(el('td', '', fecha(r.creado_en)));
         tr.appendChild(el('td', '', `${r.nombre} ${r.apellido || ''}`.trim()));
         tr.appendChild(el('td', '', '@' + (r.usuario || '')));
+        // Activo = ya hizo al menos una recarga confirmada; Pendiente = solo registrado.
+        const tdEstado = document.createElement('td');
+        tdEstado.appendChild(el('span', 'chip-estado ' + (r.activo ? 'ok' : 'pend'), r.activo ? 'Activo' : 'Pendiente'));
+        tr.appendChild(tdEstado);
         tbody.appendChild(tr);
     }
     tabla.appendChild(tbody);
     cont.appendChild(tabla);
+}
+
+// ---------- Programa de afiliación ----------
+// Debe coincidir con HITOS_AFILIACION del backend (api/routes/clientes.js):
+// al llegar a N referidos directos se regala el premio, una sola vez por meta.
+const HITOS_AFILIACION = [
+    [20, 100],
+    [50, 200],
+    [100, 1000],
+];
+
+// Pinta la tarjeta de puntos (nº de referidos), el progreso hacia la próxima meta
+// y las filas del modal del programa (con las metas ya conseguidas marcadas).
+function actualizarAfiliacion(referidos) {
+    const n = referidos?.length ?? 0;
+    if ($('afiliacion-puntos')) $('afiliacion-puntos').textContent = n.toLocaleString('en-US');
+
+    const proxima = HITOS_AFILIACION.find(([hito]) => n < hito);
+    const prog = $('afiliacion-progreso');
+    if (prog) {
+        prog.textContent = proxima
+            ? `Te faltan ${proxima[0] - n} para ganar ${dinero(proxima[1])}`
+            : '¡Has alcanzado todas las metas del programa!';
+    }
+
+    const cont = $('lista-hitos');
+    if (!cont) return;
+    cont.innerHTML = '';
+    for (const [hito, premio] of HITOS_AFILIACION) {
+        const logrado = n >= hito;
+        const fila = el('div', 'hito-fila' + (logrado ? ' logrado' : ''));
+        const izq = el('div', 'hito-izq');
+        izq.appendChild(el('span', 'material-symbols-outlined medalla', logrado ? 'task_alt' : 'military_tech'));
+        const textos = el('div');
+        textos.appendChild(el('div', 'hito-titulo', `${hito} referidos`));
+        textos.appendChild(el('div', 'hito-sub',
+            logrado ? 'Conseguido · abonado a tu saldo' : `Te faltan ${hito - n}`));
+        izq.appendChild(textos);
+        fila.appendChild(izq);
+        fila.appendChild(el('div', 'hito-premio', dinero(premio)));
+        cont.appendChild(fila);
+    }
+}
+
+function inicializarAfiliacion() {
+    const abrir = $('abrir-programa-afiliacion');
+    const modal = $('modal-afiliacion');
+    const cerrar = $('cerrar-modal-afiliacion');
+    if (abrir) abrir.onclick = () => mostrar('modal-afiliacion', true);
+    if (cerrar) cerrar.onclick = () => mostrar('modal-afiliacion', false);
+    // Clic fuera de la caja: también cierra.
+    if (modal) modal.onclick = (e) => { if (e.target === modal) mostrar('modal-afiliacion', false); };
 }
 
 // Datos del cliente en sesión (para el guardado de perfil sepamos su avatar actual).
@@ -535,6 +591,7 @@ async function cargarCliente() {
             };
         }
         referidosCliente('cliente-referidos', ref.referidos);
+        actualizarAfiliacion(ref.referidos);
     } catch (err) {
         // Cuenta baneada: pantalla completa con la razón del admin.
         if (err.baneado) { mostrarBaneado(err.razon); return; }
@@ -1295,6 +1352,7 @@ document.addEventListener('DOMContentLoaded', () => {
     inicializarRetiro();
     inicializarMenuLateral();
     inicializarPerfil();
+    inicializarAfiliacion();
     arrancar();
     iniciarActualizacionEnVivo();
 });

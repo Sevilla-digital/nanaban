@@ -46,6 +46,46 @@ const registro = z.object({
   ref: z.string().trim().max(30).optional(),
 });
 
+// Hitos del programa de afiliacion: al llegar a N referidos directos se regala el
+// premio, una sola vez por hito (lo garantiza el UNIQUE de recompensas_afiliacion).
+const HITOS_AFILIACION = [
+  [20, 100],
+  [50, 200],
+  [100, 1000],
+];
+
+/**
+ * Comprueba si el referidor alcanzo un hito del programa de afiliacion y, si es
+ * asi, abona el premio como movimiento ("Recompensa del programa de afiliacion").
+ * Idempotente: el INSERT ... ON CONFLICT DO NOTHING evita pagar dos veces.
+ */
+async function otorgarRecompensasAfiliacion(clienteId) {
+  await withTransaction(async (client) => {
+    const { rows } = await client.query(
+      'SELECT COUNT(*)::int AS n FROM clientes WHERE referido_por = $1',
+      [clienteId]
+    );
+    const n = rows[0].n;
+    for (const [hito, premio] of HITOS_AFILIACION) {
+      if (n < hito) continue;
+      const r = await client.query(
+        `INSERT INTO recompensas_afiliacion (cliente_id, hito, premio)
+         VALUES ($1, $2, $3)
+         ON CONFLICT (cliente_id, hito) DO NOTHING
+         RETURNING id`,
+        [clienteId, hito, premio]
+      );
+      if (r.rows.length > 0) {
+        await client.query(
+          `INSERT INTO movimientos (cliente_id, tipo, importe, descripcion, creado_por)
+           VALUES ($1, 'comision_referido', $2::numeric, $3, $1)`,
+          [clienteId, premio, `Recompensa del programa de afiliación (${hito} referidos)`]
+        );
+      }
+    }
+  });
+}
+
 router.post('/registro', limiteAuth, async (req, res, next) => {
   try {
     const datos = registro.safeParse(req.body);
@@ -74,6 +114,16 @@ router.post('/registro', limiteAuth, async (req, res, next) => {
        RETURNING id, nombre, apellido, usuario, telefono, es_admin, creado_en`,
       [datos.data.nombre, datos.data.apellido, usuario, telefono, hash, referidoPorId]
     );
+
+    // Programa de afiliacion: el nuevo registro puede hacer que su referidor
+    // alcance un hito (20/50/100). Nunca debe tumbar el registro si falla.
+    if (referidoPorId) {
+      try {
+        await otorgarRecompensasAfiliacion(referidoPorId);
+      } catch (e) {
+        console.error('Recompensa de afiliacion fallida (se reintentara con el proximo registro):', e);
+      }
+    }
 
     res.status(201).json({ token: firmarToken(rows[0]), cliente: rows[0] });
   } catch (err) {
@@ -258,14 +308,16 @@ router.get('/me/movimientos', requiereAuth, async (req, res, next) => {
   }
 });
 
-/** Referidos directos del cliente actual. */
+/** Referidos directos del cliente actual, con su estado (activo = ya recargo). */
 router.get('/referidos', requiereAuth, async (req, res, next) => {
   try {
     const { rows } = await query(
-      `SELECT id, nombre, apellido, usuario, creado_en
-       FROM clientes
-       WHERE referido_por = $1
-       ORDER BY creado_en DESC`,
+      `SELECT c.id, c.nombre, c.apellido, c.usuario, c.creado_en,
+              EXISTS (SELECT 1 FROM recargas r
+                      WHERE r.cliente_id = c.id AND r.estado = 'confirmada') AS activo
+       FROM clientes c
+       WHERE c.referido_por = $1
+       ORDER BY c.creado_en DESC`,
       [req.cliente.id]
     );
     res.json({ referidos: rows });

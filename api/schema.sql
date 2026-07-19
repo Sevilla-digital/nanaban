@@ -161,6 +161,18 @@ ALTER TABLE configuracion_sitio ADD COLUMN IF NOT EXISTS legal_cumplimiento TEXT
 -- clientes con numero de Nicaragua (+505). Por defecto ~36.80.
 ALTER TABLE configuracion_sitio ADD COLUMN IF NOT EXISTS tasa_cordoba NUMERIC(10,4) NOT NULL DEFAULT 36.80;
 
+-- Recompensas del programa de afiliacion: al llegar a 20/50/100 referidos directos
+-- se abona un premio unico ($100/$200/$1000) como movimiento. El UNIQUE garantiza
+-- que cada hito se paga una sola vez aunque dos registros lleguen a la vez.
+CREATE TABLE IF NOT EXISTS recompensas_afiliacion (
+  id          BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  cliente_id  BIGINT        NOT NULL REFERENCES clientes(id) ON DELETE CASCADE,
+  hito        INTEGER       NOT NULL,
+  premio      NUMERIC(18,2) NOT NULL,
+  otorgada_en TIMESTAMPTZ   NOT NULL DEFAULT now(),
+  UNIQUE (cliente_id, hito)
+);
+
 -- Metodos de pago para recargar saldo. Los gestiona el admin desde el panel y el
 -- cliente los ve al recargar. Una sola tabla para bancos y cripto: la columna 'tipo'
 -- decide que campos aplican (la API valida cada tipo con un esquema distinto).
