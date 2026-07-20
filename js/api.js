@@ -1,6 +1,6 @@
 // Cliente de la API de Gold Corp. La web es estatica (GitHub Pages) y la API vive
 // en Render, asi que todas las llamadas salen a este dominio.
-const API = 'https://goldcorp-api.onrender.com';
+export const API = 'https://goldcorp-api.onrender.com';
 
 const TOKEN_KEY = 'goldcorp_token';
 const CLIENTE_KEY = 'goldcorp_cliente';

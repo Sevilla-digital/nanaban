@@ -1,4 +1,4 @@
-import { api, dinero, fecha, sesion } from './api.js?v=5';
+import { API, api, dinero, fecha, sesion } from './api.js?v=6';
 
 // Utilidades locales para no depender de main.js
 function el(etiqueta, clase = '', texto = '') {
@@ -857,7 +857,7 @@ async function verComprobante(id) {
     btn.disabled = true;
 
     try {
-        const res = await fetch(`/api/pagos/recargas/${id}/comprobante`, {
+        const res = await fetch(`${API}/api/pagos/recargas/${id}/comprobante`, {
             headers: { 'Authorization': `Bearer ${sesion.token}` }
         });
         if (!res.ok) {
