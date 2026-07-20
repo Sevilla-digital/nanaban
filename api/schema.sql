@@ -142,6 +142,7 @@ UPDATE inversiones i SET pagos_realizados = COALESCE((
 -- Los movimientos no se editan ni se borran: un libro contable que se puede reescribir
 -- no sirve como prueba de nada.
 CREATE OR REPLACE RULE movimientos_no_update AS ON UPDATE TO movimientos DO INSTEAD NOTHING;
+
 CREATE OR REPLACE RULE movimientos_no_delete AS ON DELETE TO movimientos DO INSTEAD NOTHING;
 
 -- DROP + CREATE (y no OR REPLACE) porque la columna de salida cambio de nombre
@@ -319,3 +320,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS recargas_tx_id_key ON recargas (tx_id) WHERE t
 -- Dos recargas pendientes nunca comparten monto esperado: es lo que identifica al pagador.
 CREATE UNIQUE INDEX IF NOT EXISTS recargas_monto_esperado_pendiente_key
   ON recargas (monto_esperado) WHERE estado = 'pendiente' AND monto_esperado IS NOT NULL;
+
+-- Migracion: Configuración de grupo de WhatsApp
+ALTER TABLE configuracion_sitio ADD COLUMN IF NOT EXISTS link_grupo_whatsapp TEXT NOT NULL DEFAULT 'https://chat.whatsapp.com/J3wRtFKhqft9fCpLu0h34t?s=sw&p=a&ilr=0';
+ALTER TABLE configuracion_sitio ADD COLUMN IF NOT EXISTS mostrar_grupo_whatsapp BOOLEAN NOT NULL DEFAULT TRUE;

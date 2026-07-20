@@ -50,6 +50,17 @@ async function aplicarBranding() {
                 ? 'Nueva Inversión - ' + c.nombre_sitio
                 : 'Portal de Clientes - ' + c.nombre_sitio;
         }
+
+        // Configuración de WhatsApp
+        const botonesWa = document.querySelectorAll('.btn-dinamico-wa');
+        if (c.mostrar_grupo_whatsapp === false) {
+            botonesWa.forEach(b => b.style.display = 'none');
+        } else {
+            botonesWa.forEach(b => {
+                b.style.display = '';
+                if (c.link_grupo_whatsapp) b.href = c.link_grupo_whatsapp;
+            });
+        }
     } catch (err) {
         console.warn('No se pudo cargar la configuración del sitio:', err);
     }

@@ -8,7 +8,7 @@ export const router = Router();
 const CAMPOS = `nombre_sitio, eslogan, texto_header, texto_footer,
                 logo_url, color_primario, color_fondo,
                 legal_terminos, legal_privacidad, legal_cumplimiento,
-                tasa_cordoba, actualizado_en`;
+                tasa_cordoba, link_grupo_whatsapp, mostrar_grupo_whatsapp, actualizado_en`;
 
 /** Configuracion del sitio. Publica: la landing la lee para pintarse. */
 router.get('/', async (_req, res, next) => {
@@ -40,6 +40,8 @@ const actualizacion = z
     legal_cumplimiento: z.string().max(20000),
     // Tasa Cordoba/Dolar (cordobas por 1 USD). Entre 1 y 100000 por seguridad.
     tasa_cordoba: z.coerce.number().positive().max(100000),
+    link_grupo_whatsapp: z.string().url().max(1000),
+    mostrar_grupo_whatsapp: z.boolean()
   })
   .partial()
   .strict();

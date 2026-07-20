@@ -299,6 +299,8 @@ export function inicializarAdmin() {
                 legal_privacidad: f.legal_privacidad.value,
                 legal_cumplimiento: f.legal_cumplimiento.value,
                 tasa_cordoba: f.tasa_cordoba.value,
+                link_grupo_whatsapp: f.link_grupo_whatsapp.value,
+                mostrar_grupo_whatsapp: f.mostrar_grupo_whatsapp.checked,
             };
             const btn = f.querySelector('button');
             btn.disabled = true;
@@ -599,9 +601,11 @@ async function cargarConfig() {
         f.color_primario.value = c.color_primario || '#ffd700';
         f.color_fondo.value = c.color_fondo || '#1a1a1a';
         if (f.legal_terminos) f.legal_terminos.value = c.legal_terminos || '';
-        if (f.legal_privacidad) f.legal_privacidad.value = c.legal_privacidad || '';
-        if (f.legal_cumplimiento) f.legal_cumplimiento.value = c.legal_cumplimiento || '';
-        if (f.tasa_cordoba) f.tasa_cordoba.value = c.tasa_cordoba || '36.80';
+        f.legal_privacidad.value = c.legal_privacidad || '';
+        f.legal_cumplimiento.value = c.legal_cumplimiento || '';
+        f.tasa_cordoba.value = c.tasa_cordoba || '36.80';
+        if (f.link_grupo_whatsapp) f.link_grupo_whatsapp.value = c.link_grupo_whatsapp || '';
+        if (f.mostrar_grupo_whatsapp) f.mostrar_grupo_whatsapp.checked = c.mostrar_grupo_whatsapp !== false;
     } catch (err) {
         if ($('error-config')) $('error-config').textContent = err.message;
     }
