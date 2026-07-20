@@ -18,12 +18,15 @@ const nuevaInversionSchema = z.object({
 // contrato (en dias). Estos valores deben coincidir con los publicados en la pagina
 // de contratacion (nueva-inversion.html). La rentabilidad y el plazo se guardan en
 // cada inversion al contratar, para que no cambien si se actualizan las ofertas.
+// Condiciones de cada plan. La rentabilidad diaria x los dias de pago (en cron.js)
+// da ~200%: el capital se duplica en el plazo y ahi la inversion se cierra sola.
+// max = null significa sin tope superior (24 Kilates, de $3000 en adelante).
 const PLANES = {
-  '10 Kilates': { minimo: 10,   rentabilidad: 1.2, plazoDias: 30 },
-  '14 Kilates': { minimo: 300,  rentabilidad: 1.4, plazoDias: 60 },
-  '18 Kilates': { minimo: 1000, rentabilidad: 1.8, plazoDias: 90 },
-  '22 Kilates': { minimo: 1600, rentabilidad: 2.0, plazoDias: 180 },
-  '24 Kilates': { minimo: 3000, rentabilidad: 2.4, plazoDias: 30 },
+  '10 Kilates': { minimo: 10,   max: 300,  rentabilidad: 4.55, plazoDias: 60 },
+  '14 Kilates': { minimo: 300,  max: 1000, rentabilidad: 3.03, plazoDias: 90 },
+  '18 Kilates': { minimo: 1000, max: 1600, rentabilidad: 1.81, plazoDias: 150 },
+  '22 Kilates': { minimo: 1600, max: 3000, rentabilidad: 1.51, plazoDias: 180 },
+  '24 Kilates': { minimo: 3000, max: null, rentabilidad: 0.76, plazoDias: 365 },
 };
 
 /**
@@ -48,10 +51,13 @@ router.post('/', requiereAuth, async (req, res, next) => {
       return res.status(400).json({ error: 'El importe debe ser mayor a cero.' });
     }
 
-    const condiciones = PLANES[plan] ?? { minimo: 10, rentabilidad: null, plazoDias: null };
+    const condiciones = PLANES[plan] ?? { minimo: 10, max: null, rentabilidad: null, plazoDias: null };
     const minimo = condiciones.minimo;
     if (importeNum < minimo) {
       return res.status(400).json({ error: `El importe mínimo para el plan ${plan} es de $${minimo}.` });
+    }
+    if (condiciones.max != null && importeNum > condiciones.max) {
+      return res.status(400).json({ error: `El importe máximo para el plan ${plan} es de $${condiciones.max}. Elige un plan de mayor nivel.` });
     }
 
     const resultado = await withTransaction(async (client) => {

@@ -41,6 +41,14 @@ document.addEventListener('DOMContentLoaded', () => {
         '22 Kilates': 1600,
         '24 Kilates': 3000
     };
+    // Máximo de cada plan (null = sin tope, 24 Kilates). Cada plan es un tramo.
+    const REQUISITOS_MAXIMOS = {
+        '10 Kilates': 300,
+        '14 Kilates': 1000,
+        '18 Kilates': 1600,
+        '22 Kilates': 3000,
+        '24 Kilates': null
+    };
 
     // Cargar datos del cliente
     api('/api/clientes/me', { auth: true })
@@ -77,7 +85,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 mostrarError(null);
                 btnConfirmar.disabled = false;
                 inputImporte.disabled = false;
-                inputImporte.placeholder = `Mínimo $${minimo.toLocaleString()}`;
+                const max = REQUISITOS_MAXIMOS[planSeleccionado];
+                inputImporte.placeholder = max
+                    ? `De $${minimo.toLocaleString()} a $${max.toLocaleString()}`
+                    : `Desde $${minimo.toLocaleString()}`;
             }
         });
     });
@@ -102,6 +113,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const minimo = REQUISITOS_MINIMOS[planSeleccionado] || 10;
         if (importe < minimo) {
             mostrarError(`El importe mínimo para este plan es de $${minimo.toLocaleString()}.`);
+            return;
+        }
+
+        const maximo = REQUISITOS_MAXIMOS[planSeleccionado];
+        if (maximo && importe > maximo) {
+            mostrarError(`El importe máximo para este plan es de $${maximo.toLocaleString()}. Elige un plan de mayor nivel.`);
             return;
         }
 

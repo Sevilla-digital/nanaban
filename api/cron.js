@@ -2,12 +2,23 @@ import cron from 'node-cron';
 import { pool } from './db.js';
 import { kucoinConfigurado, revisarDepositosKuCoin } from './kucoin.js';
 
+// Rentabilidad diaria de cada plan (se paga solo en dias habiles L-V).
 const PORCENTAJES = {
-  '10 Kilates': 0.012, // 1.2%
-  '14 Kilates': 0.014, // 1.4%
-  '18 Kilates': 0.018, // 1.8%
-  '22 Kilates': 0.020, // 2.0%
-  '24 Kilates': 0.024, // 2.4%
+  '10 Kilates': 0.0455, // 4.55%
+  '14 Kilates': 0.0303, // 3.03%
+  '18 Kilates': 0.0181, // 1.81%
+  '22 Kilates': 0.0151, // 1.51%
+  '24 Kilates': 0.0076, // 0.76%
+};
+
+// Numero de pagos (dias habiles) de cada plan. Al llegar a este tope la inversion
+// se cierra: %diario x diasPago da ~200%, o sea el capital duplicado.
+const DIAS_PAGO = {
+  '10 Kilates': 44,  // 2 meses
+  '14 Kilates': 66,  // 3 meses
+  '18 Kilates': 110, // 5 meses
+  '22 Kilates': 132, // 6 meses
+  '24 Kilates': 264, // 12 meses
 };
 
 /**
@@ -21,9 +32,9 @@ export async function procesarPagosDiarios() {
   try {
     await client.query('BEGIN');
 
-    // Obtener todas las inversiones abiertas
+    // Inversiones abiertas con cuantos pagos llevan (para no pasarse del tope).
     const { rows: inversionesAbiertas } = await client.query(
-      "SELECT id, cliente_id, importe, plan FROM inversiones WHERE estado = 'abierta'"
+      "SELECT id, cliente_id, importe, plan, pagos_realizados FROM inversiones WHERE estado = 'abierta'"
     );
 
     if (inversionesAbiertas.length === 0) {
@@ -33,32 +44,51 @@ export async function procesarPagosDiarios() {
     }
 
     let pagosRealizados = 0;
+    let cerradas = 0;
 
     for (const inv of inversionesAbiertas) {
       const porcentaje = PORCENTAJES[inv.plan];
-      if (!porcentaje) {
+      const tope = DIAS_PAGO[inv.plan];
+      if (!porcentaje || !tope) {
         console.warn(`[CRON] Plan desconocido: ${inv.plan} en inversión ID: ${inv.id}`);
         continue;
       }
 
-      // Calcular ganancia del dia
-      const importeInversion = parseFloat(inv.importe);
-      const ganancia = (importeInversion * porcentaje).toFixed(2);
-      
-      const descripcion = `Ganancia diaria - ${inv.plan} (${(porcentaje * 100).toFixed(1)}%)`;
+      // Ya alcanzó su tope: se cierra sin pagar mas (ya duplico el capital).
+      if (inv.pagos_realizados >= tope) {
+        await client.query(
+          "UPDATE inversiones SET estado = 'cerrada', cerrada_en = now() WHERE id = $1 AND estado = 'abierta'",
+          [inv.id]
+        );
+        cerradas++;
+        continue;
+      }
 
-      // Registrar la ganancia en la tabla movimientos
+      // Pago del dia
+      const ganancia = (parseFloat(inv.importe) * porcentaje).toFixed(2);
+      const descripcion = `Ganancia diaria - ${inv.plan} (${(porcentaje * 100).toFixed(2)}%)`;
       await client.query(
         `INSERT INTO movimientos (cliente_id, tipo, importe, descripcion, inversion_id)
          VALUES ($1, 'deposito', $2, $3, $4)`,
         [inv.cliente_id, ganancia, descripcion, inv.id]
       );
-      
       pagosRealizados++;
+
+      // Suma el pago y, si con este alcanza el tope, cierra la inversion.
+      const nuevoTotal = inv.pagos_realizados + 1;
+      if (nuevoTotal >= tope) {
+        await client.query(
+          "UPDATE inversiones SET pagos_realizados = $1, estado = 'cerrada', cerrada_en = now() WHERE id = $2",
+          [nuevoTotal, inv.id]
+        );
+        cerradas++;
+      } else {
+        await client.query('UPDATE inversiones SET pagos_realizados = $1 WHERE id = $2', [nuevoTotal, inv.id]);
+      }
     }
 
     await client.query('COMMIT');
-    console.log(`[CRON] Proceso completado exitosamente. Se realizaron ${pagosRealizados} pagos.`);
+    console.log(`[CRON] Proceso completado. Pagos: ${pagosRealizados}. Inversiones cerradas (duplicadas): ${cerradas}.`);
   } catch (error) {
     await client.query('ROLLBACK');
     console.error('[CRON] Error al procesar los pagos diarios:', error);

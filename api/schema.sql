@@ -118,6 +118,27 @@ ALTER TABLE inversiones ADD COLUMN IF NOT EXISTS plan TEXT;
 ALTER TABLE inversiones ADD COLUMN IF NOT EXISTS rentabilidad_diaria NUMERIC(6,4);
 ALTER TABLE inversiones ADD COLUMN IF NOT EXISTS plazo_dias INTEGER;
 
+-- Cuantos pagos de ganancia diaria (dias habiles L-V) ha recibido cada inversion.
+-- El cron paga hasta el tope del plan (44/66/110/132/264) y ahi cierra la inversion:
+-- cada plan esta calibrado para duplicar el capital en esos dias y luego parar.
+ALTER TABLE inversiones ADD COLUMN IF NOT EXISTS pagos_realizados INTEGER NOT NULL DEFAULT 0;
+
+-- Actualiza TODOS los paquetes (incluidos los ya abiertos) a las nuevas condiciones.
+-- Idempotente: cada plan se re-fija a su valor canonico en cada arranque.
+UPDATE inversiones SET rentabilidad_diaria = 4.55, plazo_dias = 60  WHERE plan = '10 Kilates';
+UPDATE inversiones SET rentabilidad_diaria = 3.03, plazo_dias = 90  WHERE plan = '14 Kilates';
+UPDATE inversiones SET rentabilidad_diaria = 1.81, plazo_dias = 150 WHERE plan = '18 Kilates';
+UPDATE inversiones SET rentabilidad_diaria = 1.51, plazo_dias = 180 WHERE plan = '22 Kilates';
+UPDATE inversiones SET rentabilidad_diaria = 0.76, plazo_dias = 365 WHERE plan = '24 Kilates';
+
+-- Invariante: pagos_realizados = numero de movimientos de "Ganancia diaria" de esa
+-- inversion. Recalcularlo en cada arranque es idempotente y deja a los paquetes
+-- existentes contando desde los pagos que YA recibieron (no se sobrepaga).
+UPDATE inversiones i SET pagos_realizados = COALESCE((
+    SELECT COUNT(*) FROM movimientos m
+    WHERE m.inversion_id = i.id AND m.tipo = 'deposito' AND m.descripcion LIKE 'Ganancia diaria%'
+  ), 0);
+
 -- Los movimientos no se editan ni se borran: un libro contable que se puede reescribir
 -- no sirve como prueba de nada.
 CREATE OR REPLACE RULE movimientos_no_update AS ON UPDATE TO movimientos DO INSTEAD NOTHING;

@@ -316,11 +316,11 @@ const ESTADO_INVERSION = { abierta: 'Abierta', cerrada: 'Cerrada', cancelada: 'C
 // página de contratación (nueva-inversion.html). Solo se usa como respaldo para
 // inversiones antiguas que no guardaron estos datos; las nuevas los traen del servidor.
 const PLANES = {
-    '10 Kilates': { rentabilidad: 1.2, plazoDias: 30 },
-    '14 Kilates': { rentabilidad: 1.4, plazoDias: 60 },
-    '18 Kilates': { rentabilidad: 1.8, plazoDias: 90 },
-    '22 Kilates': { rentabilidad: 2.0, plazoDias: 180 },
-    '24 Kilates': { rentabilidad: 2.4, plazoDias: 30 },
+    '10 Kilates': { rentabilidad: 4.55, plazoDias: 60 },
+    '14 Kilates': { rentabilidad: 3.03, plazoDias: 90 },
+    '18 Kilates': { rentabilidad: 1.81, plazoDias: 150 },
+    '22 Kilates': { rentabilidad: 1.51, plazoDias: 180 },
+    '24 Kilates': { rentabilidad: 0.76, plazoDias: 365 },
 };
 
 // Formatea una fecha (ISO) mostrando solo el día, sin la hora.
