@@ -643,6 +643,17 @@ async function listarRecargas() {
                 ref.style.fontSize = '12px';
                 tdMetodo.appendChild(ref);
             }
+            if (r.tiene_comprobante) {
+                tdMetodo.appendChild(document.createElement('br'));
+                const btnVer = document.createElement('button');
+                btnVer.className = 'btn sec';
+                btnVer.style.padding = '2px 8px';
+                btnVer.style.marginTop = '6px';
+                btnVer.style.fontSize = '12px';
+                btnVer.innerHTML = '<span class="material-symbols-outlined" style="font-size:14px; vertical-align:middle; margin-right:4px;">search</span>Ver Comprobante';
+                btnVer.onclick = () => verComprobante(r.id);
+                tdMetodo.appendChild(btnVer);
+            }
             tr.appendChild(tdMetodo);
             tr.appendChild(el('td', 'monto-pos', dinero(r.monto)));
             tr.appendChild(el('td', '', ESTADO_RECARGA[r.estado] ?? r.estado));
@@ -835,3 +846,59 @@ async function procesarRetiro(id, accion, btn) {
         if (btn) btn.disabled = false;
     }
 }
+
+// Global scope attachment since the button uses onclick="..." inside a constructed element?
+// Wait, in my previous edit, I assigned btnVer.onclick = () => verComprobante(r.id); directly.
+// So verComprobante can just be a function in this module scope.
+async function verComprobante(id) {
+    const btn = event.currentTarget;
+    const txtOriginal = btn.innerHTML;
+    btn.innerHTML = '<span class="spinner" style="width:14px;height:14px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:4px;"></span>Cargando...';
+    btn.disabled = true;
+
+    try {
+        const res = await fetch(`/api/pagos/recargas/${id}/comprobante`, {
+            headers: { 'Authorization': `Bearer ${sesion.token}` }
+        });
+        if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            throw new Error(data.error || 'No se pudo cargar el comprobante');
+        }
+        
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        
+        const modal = document.createElement('div');
+        modal.className = 'modal-fondo';
+        modal.style.zIndex = '9999';
+        modal.innerHTML = `
+            <div class="modal" style="max-width: 90%; max-height: 90%; text-align: center; display: flex; flex-direction: column;">
+                <h3 style="margin-top:0;">Comprobante #${id}</h3>
+                <div style="flex: 1; overflow: auto; margin: 16px 0; background: #000; border-radius: 8px;">
+                    ${blob.type === 'application/pdf' 
+                        ? \`<iframe src="\${url}" style="width: 100%; height: 60vh; border: none;"></iframe>\`
+                        : \`<img src="\${url}" style="max-width: 100%; object-fit: contain; max-height: 60vh;">\`
+                    }
+                </div>
+                <div style="display: flex; justify-content: center; gap: 12px; margin-top: auto;">
+                    <a href="\${url}" download="comprobante_\${id}" class="btn">
+                        <span class="material-symbols-outlined" style="font-size:18px;vertical-align:middle;">download</span> Descargar
+                    </a>
+                    <button class="btn sec btn-cerrar-comp">Cerrar</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+
+        modal.querySelector('.btn-cerrar-comp').onclick = () => {
+            modal.remove();
+            URL.revokeObjectURL(url);
+        };
+    } catch (err) {
+        alert(err.message);
+    } finally {
+        btn.innerHTML = txtOriginal;
+        btn.disabled = false;
+    }
+}
+
