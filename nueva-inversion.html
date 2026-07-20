@@ -4,6 +4,50 @@
     <meta charset="utf-8"/>
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
     <title>Gold Corp Financial - Nueva Inversión</title>
+    <!-- transicion-pagina: entrada y salida suaves al navegar entre paginas -->
+    <style>
+        @keyframes pagina-entrando {
+            from { opacity: 0; transform: translateY(16px); }
+            to   { opacity: 1; transform: none; }
+        }
+        body { animation: pagina-entrando 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+        body.pagina-saliendo {
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: opacity 0.22s ease-in, transform 0.22s ease-in;
+        }
+        @media (prefers-reduced-motion: reduce) {
+            body { animation: none; }
+            body.pagina-saliendo { opacity: 1; transform: none; transition: none; }
+        }
+    </style>
+    <script>
+        // Al pulsar un enlace interno, la pagina se desvanece antes de ir a la otra
+        // (y la nueva entra con su animacion). No toca enlaces externos, anclas de la
+        // misma pagina, target=_blank ni clics con teclas modificadoras.
+        document.addEventListener('DOMContentLoaded', function () {
+            var limpia = function (p) { return (p.replace(/index\.html$/, '').replace(/\.html$/, '')) || '/'; };
+            document.addEventListener('click', function (e) {
+                var a = e.target && e.target.closest ? e.target.closest('a[href]') : null;
+                if (!a || e.defaultPrevented) return;
+                if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+                if (a.target && a.target !== '_self') return;
+                if (a.hasAttribute('download')) return;
+                var url;
+                try { url = new URL(a.getAttribute('href'), location.href); } catch (_) { return; }
+                if (url.origin !== location.origin) return;
+                if (limpia(url.pathname) === limpia(location.pathname)) return;
+                e.preventDefault();
+                document.body.classList.add('pagina-saliendo');
+                setTimeout(function () { location.href = url.href; }, 210);
+                // Red de seguridad: si la navegacion no llega a ocurrir, la pagina reaparece.
+                setTimeout(function () { document.body.classList.remove('pagina-saliendo'); }, 1800);
+            });
+            // Volver con "atras" puede restaurar la pagina desvanecida (bfcache): se limpia.
+            window.addEventListener('pageshow', function () { document.body.classList.remove('pagina-saliendo'); });
+        });
+    </script>
+
     <script>
         // URL limpia: quita el ".html" de la barra de direcciones (/cuenta.html -> /cuenta).
         if (location.protocol.startsWith("http") && /.html$/.test(location.pathname)) {
