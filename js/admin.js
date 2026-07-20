@@ -876,12 +876,12 @@ async function verComprobante(id) {
                 <h3 style="margin-top:0;">Comprobante #${id}</h3>
                 <div style="flex: 1; overflow: auto; margin: 16px 0; background: #000; border-radius: 8px;">
                     ${blob.type === 'application/pdf' 
-                        ? \`<iframe src="\${url}" style="width: 100%; height: 60vh; border: none;"></iframe>\`
-                        : \`<img src="\${url}" style="max-width: 100%; object-fit: contain; max-height: 60vh;">\`
+                        ? '<iframe src="' + url + '" style="width: 100%; height: 60vh; border: none;"></iframe>'
+                        : '<img src="' + url + '" style="max-width: 100%; object-fit: contain; max-height: 60vh;">'
                     }
                 </div>
                 <div style="display: flex; justify-content: center; gap: 12px; margin-top: auto;">
-                    <a href="\${url}" download="comprobante_\${id}" class="btn">
+                    <a href="${url}" download="comprobante_${id}" class="btn">
                         <span class="material-symbols-outlined" style="font-size:18px;vertical-align:middle;">download</span> Descargar
                     </a>
                     <button class="btn sec btn-cerrar-comp">Cerrar</button>
