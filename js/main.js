@@ -1426,12 +1426,14 @@ async function arrancar() {
     mostrar('vista-recarga', false);
     mostrar('modal-pago', false);
     mostrar('vista-admin', false);
+    mostrar('dock-movil', autenticado && !sesion.esAdmin);
 
     if (!autenticado) {
         // Si no está autenticado, solo mostramos el formulario de login/registro
         mostrar('vista-auth', true);
         return;
     }
+
 
     // Si está autenticado, mostramos el panel del cliente y cargamos sus datos
     try {
@@ -1466,4 +1468,10 @@ document.addEventListener('DOMContentLoaded', () => {
     inicializarBienvenida();
     arrancar();
     iniciarActualizacionEnVivo();
+
+    // Eliminar animacion de entrada del body para evitar bugs de position: fixed en iOS/Safari
+    setTimeout(() => {
+        document.body.style.animation = 'none';
+        document.body.style.transform = 'none';
+    }, 600);
 });

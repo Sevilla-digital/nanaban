@@ -174,4 +174,10 @@ document.addEventListener('DOMContentLoaded', () => {
             spinner.classList.add('hidden');
         }
     }
+
+    // Eliminar animacion de entrada del body para evitar bugs de position: fixed en iOS/Safari
+    setTimeout(() => {
+        document.body.style.animation = 'none';
+        document.body.style.transform = 'none';
+    }, 600);
 });
