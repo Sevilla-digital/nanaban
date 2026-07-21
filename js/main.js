@@ -400,6 +400,29 @@ function tarjetasInversiones(destino, inversiones) {
             fila.appendChild(el('span', '', valor));
             tarjeta.appendChild(fila);
         }
+
+        // --- Barra de progreso ---
+        if (i.tope_ganancias > 0) {
+            const pct = Math.min(100, Math.max(0, (Number(i.ganancias_acumuladas) / Number(i.tope_ganancias)) * 100));
+            const barraContenedor = el('div', 'progreso-inversion-cont');
+            
+            const etiquetasProgreso = el('div', 'progreso-etiquetas');
+            etiquetasProgreso.innerHTML = `<span>Progreso del contrato</span><span>${dinero(i.ganancias_acumuladas)} / ${dinero(i.tope_ganancias)}</span>`;
+            
+            const barraFondo = el('div', 'progreso-fondo');
+            const barraLlenado = el('div', 'progreso-lleno');
+            barraLlenado.style.width = pct + '%';
+            
+            if (i.estado === 'cerrada') {
+                barraLlenado.classList.add('completado');
+                etiquetasProgreso.innerHTML = `<span>Contrato finalizado</span><span style="color:var(--exito)">${dinero(i.tope_ganancias)}</span>`;
+            }
+
+            barraFondo.appendChild(barraLlenado);
+            barraContenedor.append(etiquetasProgreso, barraFondo);
+            tarjeta.appendChild(barraContenedor);
+        }
+        
         cont.appendChild(tarjeta);
     }
 }

@@ -76,11 +76,11 @@ router.post('/', requiereAuth, async (req, res, next) => {
       // 2. Calcular gramos y crear la inversión
       const gramosOro = (importeNum / PRECIO_ORO_GRAMO).toFixed(4);
       const inv = await client.query(
-        `INSERT INTO inversiones (cliente_id, gramos_oro, importe, plan, rentabilidad_diaria, plazo_dias)
-         VALUES ($1, $2, $3, $4, $5, $6)
+        `INSERT INTO inversiones (cliente_id, gramos_oro, importe, plan, rentabilidad_diaria, plazo_dias, tope_ganancias)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
          RETURNING id, gramos_oro, importe, plan, rentabilidad_diaria, plazo_dias, abierta_en,
                    (abierta_en + (plazo_dias || ' days')::interval) AS vencimiento`,
-        [clienteId, gramosOro, importe, plan, condiciones.rentabilidad, condiciones.plazoDias]
+        [clienteId, gramosOro, importe, plan, condiciones.rentabilidad, condiciones.plazoDias, importeNum * 2]
       );
       const inversionCreada = inv.rows[0];
 

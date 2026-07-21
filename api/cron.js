@@ -32,9 +32,9 @@ export async function procesarPagosDiarios() {
   try {
     await client.query('BEGIN');
 
-    // Inversiones abiertas con cuantos pagos llevan (para no pasarse del tope).
+    // Inversiones abiertas con sus ganancias acumuladas
     const { rows: inversionesAbiertas } = await client.query(
-      "SELECT id, cliente_id, importe, plan, pagos_realizados FROM inversiones WHERE estado = 'abierta'"
+      "SELECT id, cliente_id, importe, plan, pagos_realizados, ganancias_acumuladas, tope_ganancias FROM inversiones WHERE estado = 'abierta'"
     );
 
     if (inversionesAbiertas.length === 0) {
@@ -48,14 +48,13 @@ export async function procesarPagosDiarios() {
 
     for (const inv of inversionesAbiertas) {
       const porcentaje = PORCENTAJES[inv.plan];
-      const tope = DIAS_PAGO[inv.plan];
-      if (!porcentaje || !tope) {
-        console.warn(`[CRON] Plan desconocido: ${inv.plan} en inversión ID: ${inv.id}`);
+      if (!porcentaje || inv.tope_ganancias <= 0) {
+        console.warn(`[CRON] Plan desconocido o tope inválido: ${inv.plan} en inversión ID: ${inv.id}`);
         continue;
       }
 
       // Ya alcanzó su tope: se cierra sin pagar mas (ya duplico el capital).
-      if (inv.pagos_realizados >= tope) {
+      if (Number(inv.ganancias_acumuladas) >= Number(inv.tope_ganancias)) {
         await client.query(
           "UPDATE inversiones SET estado = 'cerrada', cerrada_en = now() WHERE id = $1 AND estado = 'abierta'",
           [inv.id]
@@ -74,16 +73,17 @@ export async function procesarPagosDiarios() {
       );
       pagosRealizados++;
 
-      // Suma el pago y, si con este alcanza el tope, cierra la inversion.
-      const nuevoTotal = inv.pagos_realizados + 1;
-      if (nuevoTotal >= tope) {
+      // Sumar al acumulado y chequear si con este pago se termina el contrato
+      const nuevoTotal = Number(inv.ganancias_acumuladas) + Number(ganancia);
+      const nuevosPagos = inv.pagos_realizados + 1;
+      if (nuevoTotal >= Number(inv.tope_ganancias)) {
         await client.query(
-          "UPDATE inversiones SET pagos_realizados = $1, estado = 'cerrada', cerrada_en = now() WHERE id = $2",
-          [nuevoTotal, inv.id]
+          "UPDATE inversiones SET pagos_realizados = $1, ganancias_acumuladas = $2, estado = 'cerrada', cerrada_en = now() WHERE id = $3",
+          [nuevosPagos, nuevoTotal, inv.id]
         );
         cerradas++;
       } else {
-        await client.query('UPDATE inversiones SET pagos_realizados = $1 WHERE id = $2', [nuevoTotal, inv.id]);
+        await client.query('UPDATE inversiones SET pagos_realizados = $1, ganancias_acumuladas = $2 WHERE id = $3', [nuevosPagos, nuevoTotal, inv.id]);
       }
     }
 

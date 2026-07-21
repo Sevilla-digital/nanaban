@@ -238,7 +238,7 @@ router.get('/me', requiereAuth, async (req, res, next) => {
 
     const inversiones = await query(
       `SELECT id, gramos_oro, importe, plan, estado, abierta_en, cerrada_en,
-              rentabilidad_diaria, plazo_dias,
+              rentabilidad_diaria, plazo_dias, ganancias_acumuladas, tope_ganancias,
               (abierta_en + (plazo_dias || ' days')::interval) AS vencimiento
        FROM inversiones WHERE cliente_id = $1 ORDER BY abierta_en DESC`,
       [req.cliente.id]
@@ -442,7 +442,7 @@ router.get('/:id', requiereAuth, requiereAdmin, async (req, res, next) => {
     // haya varias conexiones libres en el pool.
     const inversiones = await query(
       `SELECT id, gramos_oro, importe, plan, estado, abierta_en, cerrada_en,
-              rentabilidad_diaria, plazo_dias,
+              rentabilidad_diaria, plazo_dias, ganancias_acumuladas, tope_ganancias,
               (abierta_en + (plazo_dias || ' days')::interval) AS vencimiento
        FROM inversiones WHERE cliente_id = $1 ORDER BY abierta_en DESC`,
       [id]

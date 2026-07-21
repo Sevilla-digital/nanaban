@@ -52,6 +52,9 @@ CREATE TABLE IF NOT EXISTS inversiones (
                               CHECK (estado IN ('abierta', 'cerrada', 'cancelada')),
   abierta_en    TIMESTAMPTZ   NOT NULL DEFAULT now(),
   cerrada_en    TIMESTAMPTZ,
+  pagos_realizados INT        NOT NULL DEFAULT 0,
+  ganancias_acumuladas NUMERIC(18,2) NOT NULL DEFAULT 0,
+  tope_ganancias NUMERIC(18,2) NOT NULL DEFAULT 0,
   CHECK (cerrada_en IS NULL OR cerrada_en >= abierta_en),
   CHECK (plan IN ('10 Kilates', '14 Kilates', '18 Kilates', '22 Kilates', '24 Kilates'))
 );
@@ -122,6 +125,11 @@ ALTER TABLE inversiones ADD COLUMN IF NOT EXISTS plazo_dias INTEGER;
 -- El cron paga hasta el tope del plan (44/66/110/132/264) y ahi cierra la inversion:
 -- cada plan esta calibrado para duplicar el capital en esos dias y luego parar.
 ALTER TABLE inversiones ADD COLUMN IF NOT EXISTS pagos_realizados INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE inversiones ADD COLUMN IF NOT EXISTS ganancias_acumuladas NUMERIC(18,2) NOT NULL DEFAULT 0;
+ALTER TABLE inversiones ADD COLUMN IF NOT EXISTS tope_ganancias NUMERIC(18,2) NOT NULL DEFAULT 0;
+
+-- Migrar datos antiguos: configurar tope_ganancias al 200% del importe si esta en 0
+UPDATE inversiones SET tope_ganancias = importe * 2 WHERE tope_ganancias = 0;
 
 -- Actualiza TODOS los paquetes (incluidos los ya abiertos) a las nuevas condiciones.
 -- Idempotente: cada plan se re-fija a su valor canonico en cada arranque.
@@ -132,12 +140,33 @@ UPDATE inversiones SET rentabilidad_diaria = 1.51, plazo_dias = 180 WHERE plan =
 UPDATE inversiones SET rentabilidad_diaria = 0.76, plazo_dias = 365 WHERE plan = '24 Kilates';
 
 -- Invariante: pagos_realizados = numero de movimientos de "Ganancia diaria" de esa
--- inversion. Recalcularlo en cada arranque es idempotente y deja a los paquetes
--- existentes contando desde los pagos que YA recibieron (no se sobrepaga).
+-- inversion. Esto lo recalcula por si el cron se colgo a medias (nunca deberia).
 UPDATE inversiones i SET pagos_realizados = COALESCE((
-    SELECT COUNT(*) FROM movimientos m
+    SELECT count(*) FROM movimientos m 
     WHERE m.inversion_id = i.id AND m.tipo = 'deposito' AND m.descripcion LIKE 'Ganancia diaria%'
-  ), 0);
+), 0) WHERE estado = 'abierta';
+
+-- Calcular las ganancias acumuladas historicas basandonos en los pagos_realizados y el porcentaje del plan
+-- Esto asegura que los contratos activos tengan la base de progreso correcta.
+DO $$
+DECLARE
+  rec RECORD;
+  porcentaje NUMERIC(14,4);
+BEGIN
+  FOR rec IN SELECT id, plan, pagos_realizados, importe FROM inversiones WHERE estado = 'abierta' AND ganancias_acumuladas = 0 LOOP
+    IF rec.plan = '10 Kilates' THEN porcentaje := 0.0455;
+    ELSIF rec.plan = '14 Kilates' THEN porcentaje := 0.0303;
+    ELSIF rec.plan = '18 Kilates' THEN porcentaje := 0.0181;
+    ELSIF rec.plan = '22 Kilates' THEN porcentaje := 0.0151;
+    ELSIF rec.plan = '24 Kilates' THEN porcentaje := 0.0076;
+    ELSE porcentaje := 0;
+    END IF;
+    
+    UPDATE inversiones 
+    SET ganancias_acumuladas = ROUND((rec.importe * porcentaje * rec.pagos_realizados)::numeric, 2)
+    WHERE id = rec.id;
+  END LOOP;
+END $$;
 
 -- Los movimientos no se editan ni se borran: un libro contable que se puede reescribir
 -- no sirve como prueba de nada.

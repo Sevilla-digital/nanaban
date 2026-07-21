@@ -396,13 +396,46 @@ export async function confirmarRecargaEnTx(client, id, atendidaPor, extra = {}) 
       else if (nivel === 2) pct = 0.03;
 
       if (pct > 0) {
-        const comision = Number(recarga.monto) * pct;
+        let comision = Number(recarga.monto) * pct;
         const etiquetaNivel = nivel === 1 ? 'directo' : `nivel ${nivel}`;
         await client.query(
           `INSERT INTO movimientos (cliente_id, tipo, importe, descripcion, creado_por)
            VALUES ($1, 'comision_referido', $2::numeric, $3, $4)`,
           [padreId, comision, `Comision (${pct * 100}%) por referido ${etiquetaNivel} (@${nombreRef})`, atendidaPor]
         );
+
+        // Aceleración de contratos activos
+        // Buscar contratos activos del padre, del más antiguo al más nuevo
+        const { rows: invs } = await client.query(
+          `SELECT id, ganancias_acumuladas, tope_ganancias 
+           FROM inversiones 
+           WHERE cliente_id = $1 AND estado = 'abierta' AND tope_ganancias > 0
+           ORDER BY abierta_en ASC`,
+          [padreId]
+        );
+
+        let restante = comision;
+        for (const inv of invs) {
+          if (restante <= 0) break;
+          const capacidad = Number(inv.tope_ganancias) - Number(inv.ganancias_acumuladas);
+          if (capacidad <= 0) {
+            await client.query("UPDATE inversiones SET estado = 'cerrada', cerrada_en = now() WHERE id = $1", [inv.id]);
+            continue;
+          }
+
+          const inyectado = Math.min(capacidad, restante);
+          const nuevoTotal = Number(inv.ganancias_acumuladas) + inyectado;
+          restante -= inyectado;
+
+          if (nuevoTotal >= Number(inv.tope_ganancias)) {
+            await client.query(
+              "UPDATE inversiones SET ganancias_acumuladas = $1, estado = 'cerrada', cerrada_en = now() WHERE id = $2",
+              [nuevoTotal, inv.id]
+            );
+          } else {
+            await client.query("UPDATE inversiones SET ganancias_acumuladas = $1 WHERE id = $2", [nuevoTotal, inv.id]);
+          }
+        }
       }
       padreId = p.rows[0].referido_por;
     }
