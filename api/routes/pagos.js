@@ -391,9 +391,9 @@ export async function confirmarRecargaEnTx(client, id, atendidaPor, extra = {}) 
       if (p.rows.length === 0) break;
 
       let pct = 0;
-      if (p.rows[0].premium === true) pct = 0.06; // premium: 6% siempre, a cualquier nivel
-      else if (nivel === 1) pct = 0.06;
-      else if (nivel === 2) pct = 0.03;
+      if (p.rows[0].premium === true) pct = 0.10; // premium: 10% siempre, a cualquier nivel
+      else if (nivel === 1) pct = 0.10;
+      else if (nivel === 2) pct = 0.06;
 
       if (pct > 0) {
         let comision = Number(recarga.monto) * pct;
