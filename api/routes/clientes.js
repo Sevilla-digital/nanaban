@@ -12,6 +12,7 @@ import {
   requiereAuth,
   verificarPassword,
 } from '../auth.js';
+import { enviarEmail, mailerConfigurado } from '../mailer.js';
 
 export const router = Router();
 
@@ -178,6 +179,191 @@ router.post('/login', limiteAuth, async (req, res, next) => {
   }
 });
 
+// ---------- Olvide mi contrasena ----------
+
+const olvideVerificarSchema = z.object({
+  usuario: z.string().trim().min(1).max(60),
+  telefono: z.string().min(6).max(25),
+});
+
+const olvideSchema = olvideVerificarSchema.extend({
+  password: z.string().min(8, 'La contrasena debe tener al menos 8 caracteres').max(200),
+  email: z.string().trim().toLowerCase().email('Correo no valido').max(160).optional(),
+});
+
+/** Busca al cliente por usuario y exige que el telefono guardado coincida. */
+async function buscarClienteOlvide(usuarioRaw, telefonoRaw) {
+  const telefono = normalizarTelefono(telefonoRaw);
+  if (!telefono) return null;
+  const { rows } = await query(
+    'SELECT id, nombre, usuario, telefono, email, activo FROM clientes WHERE usuario = $1',
+    [usuarioRaw.toLowerCase()]
+  );
+  const c = rows[0];
+  if (!c || c.telefono !== telefono) return null;
+  return c;
+}
+
+/**
+ * Paso 1 del "olvide mi contrasena": valida usuario + telefono y dice si la
+ * cuenta tiene correo (el paso 2 se lo pedira como verificacion extra).
+ */
+router.post('/password/olvide/verificar', limiteAuth, async (req, res, next) => {
+  try {
+    const datos = olvideVerificarSchema.safeParse(req.body);
+    if (!datos.success) return res.status(400).json({ error: 'Datos invalidos' });
+    const c = await buscarClienteOlvide(datos.data.usuario, datos.data.telefono);
+    if (!c) return res.status(400).json({ error: 'Los datos no coinciden con ninguna cuenta.' });
+    if (!c.activo) return res.status(403).json({ error: 'Esta cuenta está suspendida. Contacta con soporte.' });
+    res.json({ ok: true, requiere_email: !!c.email });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * Paso 2: registra la solicitud con la nueva contrasena elegida.
+ * - Cuenta CON correo: el correo escrito debe coincidir con el guardado. Con SMTP
+ *   configurado se aplica al momento y la confirmacion (con la nueva contrasena)
+ *   llega a su bandeja. Sin SMTP, cae al camino del supervisor.
+ * - Cuenta SIN correo: queda 'pendiente' hasta que un supervisor la apruebe en el
+ *   panel de admin. Solo se guarda el HASH de la nueva contrasena, nunca en claro.
+ */
+router.post('/password/olvide', limiteAuth, async (req, res, next) => {
+  try {
+    const datos = olvideSchema.safeParse(req.body);
+    if (!datos.success) {
+      return res.status(400).json({ error: datos.error.issues?.[0]?.message ?? 'Datos invalidos' });
+    }
+    const c = await buscarClienteOlvide(datos.data.usuario, datos.data.telefono);
+    if (!c) return res.status(400).json({ error: 'Los datos no coinciden con ninguna cuenta.' });
+    if (!c.activo) return res.status(403).json({ error: 'Esta cuenta está suspendida. Contacta con soporte.' });
+
+    if (c.email && (!datos.data.email || datos.data.email !== String(c.email).toLowerCase())) {
+      return res.status(400).json({ error: 'El correo no coincide con el registrado en la cuenta.' });
+    }
+
+    const hash = await hashPassword(datos.data.password);
+
+    if (c.email && mailerConfigurado()) {
+      // Identidad verificada por correo: se aplica al momento y se le notifica.
+      await withTransaction(async (client) => {
+        await client.query('UPDATE clientes SET password_hash = $1 WHERE id = $2', [hash, c.id]);
+        await client.query(
+          `UPDATE solicitudes_password SET estado = 'rechazada', atendida_en = now()
+           WHERE cliente_id = $1 AND estado = 'pendiente'`,
+          [c.id]
+        );
+        await client.query(
+          `INSERT INTO solicitudes_password (cliente_id, password_hash, via, estado, atendida_en)
+           VALUES ($1, $2, 'email', 'aprobada', now())`,
+          [c.id, hash]
+        );
+      });
+      try {
+        await enviarEmail({
+          para: c.email,
+          asunto: 'Tu contraseña ha sido restablecida · Gold Corp Financial',
+          texto:
+            `Hola ${c.nombre},\n\n` +
+            `Tu contraseña se restableció correctamente tras verificar tu correo.\n\n` +
+            `Tu nueva contraseña es: ${datos.data.password}\n\n` +
+            `Guárdala en un lugar seguro. Si no fuiste tú, escríbenos de inmediato a support@goldcorp.online.\n\n` +
+            `— Gold Corp Financial`,
+        });
+      } catch (e) {
+        // El cambio ya se aplico; el correo es informativo. Se registra y seguimos.
+        console.error('Fallo el correo de restablecimiento:', e.message);
+      }
+      return res.json({
+        via: 'email',
+        mensaje: 'Listo: tu contraseña fue restablecida. Revisa tu bandeja de entrada, te enviamos la confirmación con tu nueva contraseña.',
+      });
+    }
+
+    // Sin correo (o sin SMTP): pendiente de aprobacion del supervisor.
+    await withTransaction(async (client) => {
+      await client.query(
+        `UPDATE solicitudes_password SET estado = 'rechazada', atendida_en = now()
+         WHERE cliente_id = $1 AND estado = 'pendiente'`,
+        [c.id]
+      );
+      await client.query(
+        'INSERT INTO solicitudes_password (cliente_id, password_hash) VALUES ($1, $2)',
+        [c.id, hash]
+      );
+    });
+    res.json({
+      via: 'supervisor',
+      mensaje: 'Solicitud recibida. Un supervisor la aprobará en unos minutos y podrás entrar con tu nueva contraseña.',
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/** Admin: solicitudes de restablecimiento, pendientes primero. */
+router.get('/password/solicitudes', requiereAuth, requiereAdmin, async (req, res, next) => {
+  try {
+    const { rows } = await query(
+      `SELECT s.id, s.via, s.estado, s.creada_en, s.atendida_en,
+              c.id AS cliente_id, c.nombre, c.apellido, c.usuario, c.telefono, c.email
+       FROM solicitudes_password s
+       JOIN clientes c ON c.id = s.cliente_id
+       ORDER BY (s.estado = 'pendiente') DESC, s.creada_en DESC
+       LIMIT 100`
+    );
+    res.json({ solicitudes: rows });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/** Admin: aprueba una solicitud pendiente (aplica la nueva contrasena). */
+router.post('/password/solicitudes/:id/aprobar', requiereAuth, requiereAdmin, async (req, res, next) => {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: 'Id invalido' });
+
+    const resultado = await withTransaction(async (client) => {
+      const r = await client.query('SELECT * FROM solicitudes_password WHERE id = $1 FOR UPDATE', [id]);
+      if (r.rows.length === 0) return { error: 404, mensaje: 'Solicitud no encontrada' };
+      const s = r.rows[0];
+      if (s.estado !== 'pendiente') return { error: 409, mensaje: 'Esta solicitud ya fue atendida' };
+
+      await client.query('UPDATE clientes SET password_hash = $1 WHERE id = $2', [s.password_hash, s.cliente_id]);
+      await client.query(
+        `UPDATE solicitudes_password SET estado = 'aprobada', atendida_por = $1, atendida_en = now() WHERE id = $2`,
+        [req.cliente.id, id]
+      );
+      return { ok: true };
+    });
+
+    if (resultado.error) return res.status(resultado.error).json({ error: resultado.mensaje });
+    res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/** Admin: rechaza una solicitud pendiente (la contrasena no cambia). */
+router.post('/password/solicitudes/:id/rechazar', requiereAuth, requiereAdmin, async (req, res, next) => {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: 'Id invalido' });
+    const { rows } = await query(
+      `UPDATE solicitudes_password SET estado = 'rechazada', atendida_por = $1, atendida_en = now()
+       WHERE id = $2 AND estado = 'pendiente'
+       RETURNING id, estado`,
+      [req.cliente.id, id]
+    );
+    if (rows.length === 0) return res.status(409).json({ error: 'La solicitud no está pendiente' });
+    res.json(rows[0]);
+  } catch (err) {
+    next(err);
+  }
+});
+
 /**
  * Convierte a un cliente ya registrado en administrador, una sola vez, para crear
  * el primer admin (no se puede desde el panel porque aun no hay ningun admin).
@@ -219,7 +405,7 @@ router.post('/bootstrap-admin', limiteAuth, async (req, res, next) => {
 router.get('/me', requiereAuth, async (req, res, next) => {
   try {
     const { rows } = await query(
-      `SELECT c.id, c.nombre, c.apellido, c.usuario, c.telefono, c.avatar, c.es_admin, c.premium,
+      `SELECT c.id, c.nombre, c.apellido, c.usuario, c.telefono, c.avatar, c.email, c.es_admin, c.premium,
               c.activo, c.ban_razon, c.creado_en, s.saldo,
               (EXISTS (SELECT 1 FROM recargas r WHERE r.cliente_id = c.id AND r.estado = 'confirmada')
                OR EXISTS (SELECT 1 FROM movimientos m WHERE m.cliente_id = c.id AND m.tipo = 'deposito')
@@ -263,6 +449,9 @@ const actualizarPerfilSchema = z.object({
     .max(1_500_000, 'La imagen es demasiado grande')
     .nullable()
     .optional(),
+  // Correo del cliente ('' = quitarlo). Se usa para verificar su identidad al
+  // restablecer la contrasena.
+  email: z.union([z.string().trim().toLowerCase().email('Correo no valido').max(160), z.literal('')]).optional(),
 });
 
 router.patch('/me', requiereAuth, async (req, res, next) => {
@@ -273,19 +462,22 @@ router.patch('/me', requiereAuth, async (req, res, next) => {
     }
     const { nombre, apellido } = datos.data;
 
-    // Solo tocamos el avatar si el cliente lo mando en la peticion (string o null):
-    // asi un guardado de nombre/apellido no borra la foto por accidente.
+    // Solo tocamos el avatar/email si vinieron en la peticion: asi un guardado
+    // parcial no borra la foto o el correo por accidente.
     const tocarAvatar = Object.prototype.hasOwnProperty.call(req.body, 'avatar');
-    const sql = tocarAvatar
-      ? `UPDATE clientes SET nombre = $1, apellido = $2, avatar = $3 WHERE id = $4
-         RETURNING id, nombre, apellido, usuario, telefono, avatar`
-      : `UPDATE clientes SET nombre = $1, apellido = $2 WHERE id = $3
-         RETURNING id, nombre, apellido, usuario, telefono, avatar`;
-    const params = tocarAvatar
-      ? [nombre, apellido, datos.data.avatar ?? null, req.cliente.id]
-      : [nombre, apellido, req.cliente.id];
+    const tocarEmail = Object.prototype.hasOwnProperty.call(req.body, 'email');
 
-    const { rows } = await query(sql, params);
+    const sets = ['nombre = $1', 'apellido = $2'];
+    const params = [nombre, apellido];
+    if (tocarAvatar) { params.push(datos.data.avatar ?? null); sets.push(`avatar = $${params.length}`); }
+    if (tocarEmail) { params.push(datos.data.email || null); sets.push(`email = $${params.length}`); }
+    params.push(req.cliente.id);
+
+    const { rows } = await query(
+      `UPDATE clientes SET ${sets.join(', ')} WHERE id = $${params.length}
+       RETURNING id, nombre, apellido, usuario, telefono, avatar, email`,
+      params
+    );
     if (rows.length === 0) return res.status(404).json({ error: 'Cliente no encontrado' });
     res.json(rows[0]);
   } catch (err) {

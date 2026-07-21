@@ -21,13 +21,16 @@ const PAISES = [
 ];
 
 function popularPaises() {
-    const selPais = $('sel-pais');
-    if (!selPais) return;
-    for (const [nombre, prefijo] of PAISES) {
-        const op = document.createElement('option');
-        op.value = prefijo;
-        op.textContent = `${nombre} (${prefijo})`;
-        selPais.appendChild(op);
+    // El mismo listado sirve para el registro y para "olvidé mi contraseña".
+    for (const idSel of ['sel-pais', 'sel-pais-olvide']) {
+        const selPais = $(idSel);
+        if (!selPais) continue;
+        for (const [nombre, prefijo] of PAISES) {
+            const op = document.createElement('option');
+            op.value = prefijo;
+            op.textContent = `${nombre} (${prefijo})`;
+            selPais.appendChild(op);
+        }
     }
 }
 
@@ -127,22 +130,122 @@ function tablaInversiones(destino, inversiones) {
     cont.appendChild(tabla);
 }
 
-// ---------- Alternar login / registro ----------
+// ---------- Alternar login / registro / olvidé mi contraseña ----------
 function inicializarAuthForms() {
     const irRegistro = $('ir-registro');
     const irLogin = $('ir-login');
+    const irOlvide = $('ir-olvide');
+    const olvideVolver = $('olvide-volver');
     if (irRegistro) {
         irRegistro.onclick = (e) => {
             e.preventDefault();
-            mostrar('panel-registro', true); mostrar('panel-login', false);
+            mostrar('panel-registro', true); mostrar('panel-login', false); mostrar('panel-olvide', false);
         };
     }
     if (irLogin) {
         irLogin.onclick = (e) => {
             e.preventDefault();
-            mostrar('panel-login', true); mostrar('panel-registro', false);
+            mostrar('panel-login', true); mostrar('panel-registro', false); mostrar('panel-olvide', false);
         };
     }
+    if (irOlvide) {
+        irOlvide.onclick = (e) => {
+            e.preventDefault();
+            mostrar('panel-olvide', true); mostrar('panel-login', false); mostrar('panel-registro', false);
+            const f = $('form-olvide');
+            if (f && f._resetOlvide) f._resetOlvide();
+        };
+    }
+    if (olvideVolver) {
+        olvideVolver.onclick = (e) => {
+            e.preventDefault();
+            mostrar('panel-login', true); mostrar('panel-olvide', false);
+        };
+    }
+}
+
+// ---------- Olvidé mi contraseña (2 pasos) ----------
+// Paso 1: usuario + teléfono guardado. Paso 2: nueva contraseña (y el correo,
+// si la cuenta lo tiene registrado, como verificación extra). El resultado:
+// con correo verificado se aplica al momento y llega a su bandeja; sin correo,
+// queda pendiente de que un supervisor la apruebe en el panel de admin.
+function inicializarOlvide() {
+    const form = $('form-olvide');
+    if (!form) return;
+    let fase = 1;
+
+    const reset = () => {
+        fase = 1;
+        form.reset();
+        mostrar('olvide-paso2', false);
+        mostrar('olvide-email-wrap', false);
+        $('olv-usuario').readOnly = false;
+        $('olv-telefono').readOnly = false;
+        $('sel-pais-olvide').disabled = false;
+        $('error-olvide').textContent = '';
+        $('ok-olvide').textContent = '';
+        const btn = $('btn-olvide');
+        btn.classList.remove('oculto');
+        btn.disabled = false;
+        btn.textContent = 'Continuar';
+    };
+    form._resetOlvide = reset;
+
+    form.onsubmit = async (e) => {
+        e.preventDefault();
+        $('error-olvide').textContent = '';
+        const btn = $('btn-olvide');
+        const usuario = $('olv-usuario').value.trim();
+        const telefono = $('sel-pais-olvide').value + $('olv-telefono').value.replace(/\D/g, '');
+
+        if (fase === 1) {
+            btn.disabled = true; btn.textContent = 'Verificando…';
+            try {
+                const r = await api('/api/clientes/password/olvide/verificar', {
+                    method: 'POST', body: { usuario, telefono },
+                });
+                fase = 2;
+                mostrar('olvide-paso2', true);
+                mostrar('olvide-email-wrap', r.requiere_email === true);
+                $('olv-usuario').readOnly = true;
+                $('olv-telefono').readOnly = true;
+                $('sel-pais-olvide').disabled = true;
+                btn.textContent = 'Restablecer contraseña';
+                (r.requiere_email ? $('olv-email') : $('olv-password')).focus();
+            } catch (err) {
+                $('error-olvide').textContent = err.message;
+                btn.textContent = 'Continuar';
+            } finally {
+                btn.disabled = false;
+            }
+            return;
+        }
+
+        // Fase 2: nueva contraseña (+ correo si la cuenta lo tiene)
+        const password = $('olv-password').value;
+        if (password.length < 8) {
+            $('error-olvide').textContent = 'La nueva contraseña debe tener al menos 8 caracteres.';
+            return;
+        }
+        const body = { usuario, telefono, password };
+        if (!$('olvide-email-wrap').classList.contains('oculto')) {
+            const em = $('olv-email').value.trim();
+            if (!em) { $('error-olvide').textContent = 'Escribe tu correo para verificar tu identidad.'; return; }
+            body.email = em;
+        }
+        btn.disabled = true; btn.textContent = 'Enviando…';
+        try {
+            const r = await api('/api/clientes/password/olvide', { method: 'POST', body });
+            $('ok-olvide').textContent = r.mensaje;
+            mostrar('olvide-paso2', false);
+            btn.classList.add('oculto');
+        } catch (err) {
+            $('error-olvide').textContent = err.message;
+            btn.textContent = 'Restablecer contraseña';
+        } finally {
+            btn.disabled = false;
+        }
+    };
 }
 
 // ---------- Registro ----------
@@ -724,6 +827,7 @@ let avatarPendiente = undefined;
 function rellenarPerfil(yo) {
     if ($('perfil-nombre')) $('perfil-nombre').value = yo.nombre ?? '';
     if ($('perfil-apellido')) $('perfil-apellido').value = yo.apellido ?? '';
+    if ($('perfil-email')) $('perfil-email').value = yo.email ?? '';
     if ($('perfil-usuario')) $('perfil-usuario').value = yo.usuario ? '@' + yo.usuario : '—';
     if ($('perfil-telefono')) $('perfil-telefono').value = yo.telefono ?? '—';
     avatarPendiente = undefined;
@@ -809,7 +913,13 @@ function inicializarPerfil() {
         const apellido = $('perfil-apellido').value.trim();
         if (nombre.length < 2) { mostrarMsgPerfil('El nombre debe tener al menos 2 caracteres.', false); return; }
 
-        const body = { nombre, apellido };
+        // Correo: opcional, pero si lo escriben debe tener pinta de correo.
+        const email = ($('perfil-email')?.value || '').trim().toLowerCase();
+        if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            mostrarMsgPerfil('El correo electrónico no es válido.', false);
+            return;
+        }
+        const body = { nombre, apellido, email };
         if (avatarPendiente !== undefined) body.avatar = avatarPendiente; // string (nueva) o null (quitar)
 
         btnGuardar.disabled = true;
@@ -1463,7 +1573,7 @@ async function arrancar() {
         if (sesion.esAdmin) {
             mostrar('vista-admin', true);
             // La ?v= debe subir cuando cambie admin.js, para que el navegador no use la version vieja.
-            const { inicializarAdmin } = await import('./admin.js?v=10');
+            const { inicializarAdmin } = await import('./admin.js?v=11');
             inicializarAdmin();
         } else {
             mostrar('vista-cliente', true);
@@ -1488,6 +1598,7 @@ document.addEventListener('DOMContentLoaded', () => {
     inicializarMenuLateral();
     inicializarPerfil();
     inicializarAfiliacion();
+    inicializarOlvide();
     inicializarBienvenida();
     arrancar();
     iniciarActualizacionEnVivo();

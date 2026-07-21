@@ -1282,7 +1282,7 @@
                             <div class="error" id="error-login"></div>
                             <button class="btn ancho" type="submit">Entrar</button>
                             <div class="auth-pie">
-                                <a href="mailto:support@sevilladigitall.com?subject=Olvidé mi contraseña">¿Olvidé mi contraseña?</a>
+                                <a href="#" id="ir-olvide">¿Olvidé mi contraseña?</a>
                                 <a href="#" id="ir-registro">Crear una cuenta</a>
                             </div>
                         </form>
@@ -1336,6 +1336,59 @@
                             <div class="auth-pie">
                                 <span></span>
                                 <a href="#" id="ir-login">Ya tengo cuenta</a>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Olvidé mi contraseña -->
+                    <div id="panel-olvide" class="oculto">
+                        <div class="auth-cabecera">
+                            <h1>Recuperar Contraseña</h1>
+                            <p>Verifica tu identidad para restablecer tu contraseña.</p>
+                        </div>
+                        <form id="form-olvide">
+                            <label for="olv-usuario">Usuario</label>
+                            <div class="campo">
+                                <span class="material-symbols-outlined">person</span>
+                                <input id="olv-usuario" autocomplete="username" placeholder="Tu usuario" required>
+                            </div>
+                            <label for="olv-telefono">Teléfono guardado en tu cuenta</label>
+                            <div class="fila">
+                                <select id="sel-pais-olvide" style="flex:0 0 200px;min-width:150px"></select>
+                                <div class="campo" style="flex:1">
+                                    <span class="material-symbols-outlined">call</span>
+                                    <input id="olv-telefono" type="tel" placeholder="8888 8888" required>
+                                </div>
+                            </div>
+
+                            <!-- Paso 2: aparece tras verificar usuario + teléfono -->
+                            <div id="olvide-paso2" class="oculto">
+                                <div id="olvide-email-wrap" class="oculto">
+                                    <label for="olv-email">Confirma tu correo electrónico</label>
+                                    <div class="campo">
+                                        <span class="material-symbols-outlined">mail</span>
+                                        <input id="olv-email" type="email" autocomplete="email" placeholder="tucorreo@ejemplo.com">
+                                    </div>
+                                    <p class="muted" style="margin-top:6px; font-size:0.85em">
+                                        Tu cuenta tiene un correo registrado: escríbelo para verificar que eres tú.
+                                    </p>
+                                </div>
+                                <label for="olv-password">Nueva contraseña (mínimo 8 caracteres)</label>
+                                <div class="campo">
+                                    <span class="material-symbols-outlined">lock</span>
+                                    <input id="olv-password" type="password" autocomplete="new-password" placeholder="••••••••">
+                                    <button class="ver-pass" type="button" aria-label="Mostrar contraseña">
+                                        <span class="material-symbols-outlined">visibility_off</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="error" id="error-olvide"></div>
+                            <div class="ok" id="ok-olvide"></div>
+                            <button class="btn ancho" type="submit" id="btn-olvide">Continuar</button>
+                            <div class="auth-pie">
+                                <span></span>
+                                <a href="#" id="olvide-volver">Volver a iniciar sesión</a>
                             </div>
                         </form>
                     </div>
@@ -1515,6 +1568,14 @@
                                         <div>
                                             <label for="perfil-apellido">Apellido</label>
                                             <input id="perfil-apellido" type="text" maxlength="120" autocomplete="family-name" />
+                                        </div>
+                                        <div style="grid-column: 1 / -1">
+                                            <label for="perfil-email">Correo electrónico</label>
+                                            <input id="perfil-email" type="email" maxlength="160" autocomplete="email"
+                                                   placeholder="tucorreo@ejemplo.com" />
+                                            <p class="muted" style="margin-top:6px; font-size:0.85em">
+                                                Con tu correo registrado podrás recuperar tu contraseña al instante si la olvidas.
+                                            </p>
                                         </div>
                                     </div>
                                 </div>
@@ -1909,6 +1970,7 @@
                 <div class="tab" id="tab-retiros">Retiros</div>
                 <div class="tab" id="tab-premium">Premium</div>
                 <div class="tab" id="tab-baneos">Baneos</div>
+                <div class="tab" id="tab-passwords">Contraseñas</div>
                 <div class="tab" id="tab-metodos">Métodos de pago</div>
                 <div class="tab" id="tab-config">Configuración del sitio</div>
             </div>
@@ -2038,6 +2100,21 @@
                 </div>
             </div>
 
+            <!-- Solicitudes de contraseña -->
+            <div id="panel-passwords" class="oculto">
+                <div class="tarjeta">
+                    <h2 style="margin-top:0">Solicitudes de contraseña</h2>
+                    <p class="muted">
+                        Cuando un cliente <strong>sin correo</strong> pide restablecer su contraseña, la solicitud
+                        queda aquí pendiente: al <strong>aprobarla</strong>, su nueva contraseña queda activa y ya
+                        puede entrar. Las verificadas <strong>por correo</strong> se aplican solas y aparecen en la
+                        lista como informativas.
+                    </p>
+                    <div class="error" id="error-passwords"></div>
+                    <div id="lista-passwords"><p class="muted">Cargando…</p></div>
+                </div>
+            </div>
+
             <!-- Métodos de pago -->
             <div id="panel-metodos" class="oculto">
                 <div class="tarjeta">
@@ -2138,6 +2215,6 @@
         </div>
     </div>
 
-    <script type="module" src="js/main.js?v=20"></script>
+    <script type="module" src="js/main.js?v=21"></script>
 </body>
 </html>

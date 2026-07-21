@@ -35,6 +35,26 @@ ALTER TABLE clientes ADD COLUMN IF NOT EXISTS premium BOOLEAN NOT NULL DEFAULT F
 ALTER TABLE clientes ADD COLUMN IF NOT EXISTS ban_razon TEXT;
 ALTER TABLE clientes ADD COLUMN IF NOT EXISTS baneado_en TIMESTAMPTZ;
 
+-- Correo electronico opcional del cliente (lo agrega el mismo desde su perfil).
+-- Sirve para verificar su identidad al restablecer la contrasena.
+ALTER TABLE clientes ADD COLUMN IF NOT EXISTS email TEXT;
+
+-- Solicitudes de restablecimiento de contrasena ("olvide mi contrasena").
+-- Se guarda el HASH de la nueva contrasena elegida (nunca en claro). Si el cliente
+-- verifico su correo, la solicitud se aplica al momento (via 'email'); si no tiene
+-- correo, queda 'pendiente' hasta que un supervisor la apruebe en el panel.
+CREATE TABLE IF NOT EXISTS solicitudes_password (
+  id            BIGINT      GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  cliente_id    BIGINT      NOT NULL REFERENCES clientes(id) ON DELETE CASCADE,
+  password_hash TEXT        NOT NULL,
+  via           TEXT        NOT NULL DEFAULT 'supervisor' CHECK (via IN ('supervisor', 'email')),
+  estado        TEXT        NOT NULL DEFAULT 'pendiente' CHECK (estado IN ('pendiente', 'aprobada', 'rechazada')),
+  creada_en     TIMESTAMPTZ NOT NULL DEFAULT now(),
+  atendida_por  BIGINT      REFERENCES clientes(id) ON DELETE SET NULL,
+  atendida_en   TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS idx_solicitudes_password_estado ON solicitudes_password (estado, creada_en DESC);
+
 -- La unicidad del usuario vive SOLO en este indice (no en la columna) para que
 -- el nombre del constraint sea el mismo en instalaciones nuevas y migradas:
 -- la API distingue por ese nombre que UNIQUE fallo al registrar.

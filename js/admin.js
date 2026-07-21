@@ -115,8 +115,8 @@ export function inicializarAdmin() {
     };
     
     // Manejo de pestañas
-    const tabs = ['tab-clientes', 'tab-config', 'tab-metodos', 'tab-recargas', 'tab-retiros', 'tab-premium', 'tab-baneos'];
-    const paneles = ['panel-clientes', 'panel-config', 'panel-metodos', 'panel-recargas', 'panel-retiros', 'panel-premium', 'panel-baneos'];
+    const tabs = ['tab-clientes', 'tab-config', 'tab-metodos', 'tab-recargas', 'tab-retiros', 'tab-premium', 'tab-baneos', 'tab-passwords'];
+    const paneles = ['panel-clientes', 'panel-config', 'panel-metodos', 'panel-recargas', 'panel-retiros', 'panel-premium', 'panel-baneos', 'panel-passwords'];
 
     if ($('tab-clientes')) {
         $('tab-clientes').onclick = () => {
@@ -193,6 +193,16 @@ export function inicializarAdmin() {
             paneles.forEach(p => mostrar(p, false));
             mostrar('panel-baneos', true);
             listarBaneos($('buscar-baneo')?.value || '');
+        };
+    }
+
+    if ($('tab-passwords')) {
+        $('tab-passwords').onclick = () => {
+            tabs.forEach(t => $(t)?.classList.remove('activa'));
+            $('tab-passwords').classList.add('activa');
+            paneles.forEach(p => mostrar(p, false));
+            mostrar('panel-passwords', true);
+            listarSolicitudesPassword();
         };
     }
 
@@ -596,6 +606,72 @@ async function quitarBaneo(id, buscar) {
         listarBaneos(buscar);
     } catch (err) {
         if ($('error-baneos-lista')) $('error-baneos-lista').textContent = err.message;
+    }
+}
+
+// ---------- Solicitudes de contraseña ----------
+
+const ESTADO_SOLICITUD = { pendiente: 'Pendiente', aprobada: 'Aprobada', rechazada: 'Rechazada' };
+
+async function listarSolicitudesPassword() {
+    const cont = $('lista-passwords');
+    if (!cont) return;
+    if ($('error-passwords')) $('error-passwords').textContent = '';
+    cont.innerHTML = '<p class="muted">Cargando…</p>';
+    try {
+        const { solicitudes } = await api('/api/clientes/password/solicitudes', { auth: true });
+        cont.innerHTML = '';
+        if (!solicitudes.length) {
+            cont.innerHTML = '<p class="muted">No hay solicitudes de contraseña.</p>';
+            return;
+        }
+        const tabla = document.createElement('table');
+        tabla.innerHTML = '<thead><tr><th>Fecha</th><th>Cliente</th><th>Contacto</th><th>Vía</th><th>Estado</th><th>Acción</th></tr></thead>';
+        const tbody = document.createElement('tbody');
+        for (const s of solicitudes) {
+            const tr = document.createElement('tr');
+            tr.appendChild(el('td', '', fecha(s.creada_en)));
+            const quien = `${s.nombre} ${s.apellido || ''}`.trim() + (s.usuario ? ` (@${s.usuario})` : '');
+            tr.appendChild(el('td', '', quien));
+            const tdContacto = el('td', '', s.telefono || '');
+            if (s.email) {
+                tdContacto.appendChild(document.createElement('br'));
+                const em = el('span', 'muted', s.email);
+                em.style.fontSize = '12px';
+                tdContacto.appendChild(em);
+            }
+            tr.appendChild(tdContacto);
+            tr.appendChild(el('td', '', s.via === 'email' ? 'Por correo' : 'Supervisor'));
+            const tdEstado = el('td', '', ESTADO_SOLICITUD[s.estado] ?? s.estado);
+            if (s.estado === 'pendiente') tdEstado.style.color = 'var(--primario)';
+            tr.appendChild(tdEstado);
+            const acc = document.createElement('td');
+            acc.style.whiteSpace = 'nowrap';
+            if (s.estado === 'pendiente') {
+                acc.appendChild(botonAccion('Aprobar', '', (e) => accionSolicitudPassword(s.id, 'aprobar', e.target)));
+                acc.appendChild(botonAccion('Rechazar', 'sec', (e) => accionSolicitudPassword(s.id, 'rechazar', e.target)));
+            }
+            tr.appendChild(acc);
+            tbody.appendChild(tr);
+        }
+        tabla.appendChild(tbody);
+        cont.appendChild(tabla);
+    } catch (err) {
+        cont.innerHTML = '';
+        cont.appendChild(el('p', 'error', err.message));
+    }
+}
+
+async function accionSolicitudPassword(id, accion, btn) {
+    if (accion === 'aprobar' && !confirm('¿Aprobar esta solicitud? La nueva contraseña del cliente quedará activa.')) return;
+    if ($('error-passwords')) $('error-passwords').textContent = '';
+    if (btn) btn.disabled = true;
+    try {
+        await api(`/api/clientes/password/solicitudes/${id}/${accion}`, { method: 'POST', auth: true });
+        listarSolicitudesPassword();
+    } catch (err) {
+        if ($('error-passwords')) $('error-passwords').textContent = err.message;
+        if (btn) btn.disabled = false;
     }
 }
 
