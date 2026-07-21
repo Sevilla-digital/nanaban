@@ -1424,8 +1424,8 @@ function actualizarResumenRetiro() {
 }
 
 // Ajusta los textos de la vista de retiro según el tipo de cuenta. Las cuentas
-// normales pagan 5% y cobran el día 25 de cada mes; las premium están exentas
-// de la comisión y cobran en un máximo de 24 horas, cualquier día.
+// normales pagan 5% y cobran los viernes; las premium están exentas de la
+// comisión y cobran en un máximo de 24 horas, cualquier día.
 function pintarCondicionesRetiro() {
     const esPremium = clienteActual?.premium === true;
     const info = $('retiro-info-comision');
@@ -1436,7 +1436,7 @@ function pintarCondicionesRetiro() {
     if (nota) {
         nota.textContent = esPremium
             ? 'Cuenta premium: tus retiros se procesan en un máximo de 24 horas, cualquier día, sujetos a verificación AML/KYC.'
-            : 'Los retiros se pagan el día 25 de cada mes. Puedes dejar tu solicitud registrada y quedará programada; una vez llegada la fecha, el pago puede tardar hasta 24 horas en llegar.';
+            : 'Los retiros se pagan los viernes. Puedes dejar tu solicitud registrada y quedará programada para el próximo viernes; una vez llegada la fecha, el pago puede tardar hasta 24 horas en llegar.';
     }
 }
 

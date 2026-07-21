@@ -69,25 +69,21 @@ const solicitarRetiroEsquema = z.object({
   metodo_retiro_id: z.coerce.number().int().positive()
 });
 
-// Dia del mes en que se pagan los retiros de las cuentas normales.
-const DIA_PAGO_RETIROS = 25;
-
 /**
- * Proximo dia 25: si hoy es antes del 25, el 25 de este mes; si no, el del mes
- * que viene. Devuelve un YYYY-MM-DD (tipo DATE, sin hora ni zona horaria).
+ * Proximo viernes: los retiros de las cuentas normales se pagan los viernes.
+ * Si hoy es viernes, es hoy. Devuelve YYYY-MM-DD (tipo DATE, sin hora ni zona).
  */
 function proximoDiaPago(hoy = new Date()) {
-  const anio = hoy.getFullYear();
-  const mes = hoy.getMonth();
-  const fecha = hoy.getDate() < DIA_PAGO_RETIROS
-    ? new Date(Date.UTC(anio, mes, DIA_PAGO_RETIROS))
-    : new Date(Date.UTC(anio, mes + 1, DIA_PAGO_RETIROS));
-  return fecha.toISOString().slice(0, 10);
+  // Fecha de calendario de hoy como UTC-medianoche, para calcular el dia de semana.
+  const d = new Date(Date.UTC(hoy.getFullYear(), hoy.getMonth(), hoy.getDate()));
+  const diasHastaViernes = (5 - d.getUTCDay() + 7) % 7; // viernes = 5
+  d.setUTCDate(d.getUTCDate() + diasHastaViernes);
+  return d.toISOString().slice(0, 10);
 }
 
 /**
  * Solicitar un retiro.
- * - Cuentas normales: comision del 5% y pago programado para el dia 25 del mes
+ * - Cuentas normales: comision del 5% y pago programado para el proximo viernes
  *   (una vez llegada la fecha, puede tardar hasta 24h en llegar).
  * - Cuentas premium: sin comision y pago en un maximo de 24h, cualquier dia.
  */
@@ -141,8 +137,8 @@ router.post('/', requiereAuth, async (req, res, next) => {
       } else {
         const [a, m, dia] = programadoPara.split('-');
         respuesta = {
-          mensaje: `Retiro programado. Los pagos se realizan el día ${DIA_PAGO_RETIROS} de cada mes: `
-            + `el tuyo queda programado para el ${dia}/${m}/${a} y, una vez llegada la fecha, `
+          mensaje: `Retiro programado. Los pagos se realizan los viernes: `
+            + `el tuyo queda programado para el viernes ${dia}/${m}/${a} y, una vez llegada la fecha, `
             + `puede tardar hasta 24 horas en llegar.`,
           premium: false,
           programado_para: programadoPara,
