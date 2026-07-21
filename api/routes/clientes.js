@@ -462,6 +462,24 @@ router.get('/:id', requiereAuth, requiereAdmin, async (req, res, next) => {
   }
 });
 
+/** Admin: forzar el cambio de clave de un cliente */
+router.patch('/:id/password', requiereAuth, requiereAdmin, async (req, res, next) => {
+  try {
+    const id = Number(req.params.id);
+    const { password } = req.body;
+    if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: 'Id invalido' });
+    if (!password || password.length < 6) return res.status(400).json({ error: 'La nueva contraseña debe tener al menos 6 caracteres' });
+
+    const hash = await hashPassword(password);
+    const { rowCount } = await query('UPDATE clientes SET password_hash = $1 WHERE id = $2', [hash, id]);
+    if (rowCount === 0) return res.status(404).json({ error: 'Cliente no encontrado' });
+
+    res.json({ mensaje: 'Contraseña actualizada' });
+  } catch (err) {
+    next(err);
+  }
+});
+
 /** Eliminar un cliente por completo y todo su historial. Solo admin. */
 router.delete('/:id', requiereAuth, requiereAdmin, async (req, res, next) => {
   try {

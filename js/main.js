@@ -1463,7 +1463,7 @@ async function arrancar() {
         if (sesion.esAdmin) {
             mostrar('vista-admin', true);
             // La ?v= debe subir cuando cambie admin.js, para que el navegador no use la version vieja.
-            const { inicializarAdmin } = await import('./admin.js?v=9');
+            const { inicializarAdmin } = await import('./admin.js?v=10');
             inicializarAdmin();
         } else {
             mostrar('vista-cliente', true);

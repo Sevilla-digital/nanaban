@@ -250,7 +250,33 @@ export function inicializarAdmin() {
             listarClientes($('buscar').value);
         };
     }
-
+    if ($('form-reset-password')) {
+        $('form-reset-password').onsubmit = async (e) => {
+            e.preventDefault();
+            const btn = e.target.querySelector('button');
+            const pass = $('nueva-clave').value.trim();
+            $('error-reset-password').textContent = '';
+            $('ok-reset-password').textContent = '';
+            if (pass.length < 6) {
+                $('error-reset-password').textContent = 'Mínimo 6 caracteres';
+                return;
+            }
+            btn.disabled = true;
+            try {
+                await api(`/api/clientes/${clienteAbierto}/password`, {
+                    method: 'PATCH',
+                    auth: true,
+                    body: { password: pass }
+                });
+                $('ok-reset-password').textContent = '¡Contraseña actualizada!';
+                $('form-reset-password').reset();
+            } catch (err) {
+                $('error-reset-password').textContent = err.message;
+            } finally {
+                btn.disabled = false;
+            }
+        };
+    }
     if ($('form-movimiento')) {
         $('form-movimiento').onsubmit = async (e) => {
             e.preventDefault();
@@ -578,11 +604,14 @@ async function abrirCliente(id) {
     const c = await api('/api/clientes/' + id, { auth: true });
     $('detalle-nombre').textContent = `${c.nombre} ${c.apellido || ''}`.trim();
     $('detalle-tel').textContent = c.telefono;
+    $('detalle-usuario').textContent = c.usuario ? `@${c.usuario}` : 'Sin nombre de usuario';
     const saldoUsar = c.saldo !== undefined ? c.saldo : c.saldo_eur;
     $('detalle-saldo').textContent = dinero(saldoUsar);
     tablaInversiones('detalle-inversiones', c.inversiones);
     tablaMovimientos('detalle-movimientos', c.movimientos);
     $('error-movimiento').textContent = ''; $('ok-movimiento').textContent = '';
+    $('error-reset-password').textContent = ''; $('ok-reset-password').textContent = '';
+    $('form-reset-password').reset();
     mostrar('detalle-cliente', true);
     mostrar('lista-clientes', false);
     $('buscar').classList.add('oculto');

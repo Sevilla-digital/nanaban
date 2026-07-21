@@ -1926,8 +1926,20 @@
                         <button class="btn" style="background:#dc3545; color:white; border-color:#dc3545" id="btn-eliminar-cuenta" type="button">Eliminar cuenta</button>
                     </div>
                     <h2 id="detalle-nombre"></h2>
-                    <div class="muted" id="detalle-tel"></div>
+                    <div class="muted" id="detalle-tel" style="margin-bottom:4px"></div>
+                    <div class="muted" id="detalle-usuario"></div>
                     <div class="saldo" id="detalle-saldo">—</div>
+
+                    <div style="margin: 20px 0; padding: 15px; border: 1px dashed var(--borde); border-radius: 8px;">
+                        <h3 style="font-size: 16px; margin: 0 0 10px 0;">Cambiar contraseña</h3>
+                        <p class="muted" style="font-size: 13px; margin-bottom: 12px;">Las contraseñas están encriptadas, no se pueden ver. Si el cliente la olvidó, genera una nueva aquí.</p>
+                        <form id="form-reset-password" style="display:flex; gap:10px; align-items:center">
+                            <input type="text" id="nueva-clave" placeholder="Nueva contraseña" minlength="6" required style="max-width: 200px;">
+                            <button type="submit" class="btn">Guardar</button>
+                            <span id="ok-reset-password" style="color:var(--exito); font-size:13px; margin-left: 10px;"></span>
+                            <span id="error-reset-password" style="color:var(--error); font-size:13px; margin-left: 10px;"></span>
+                        </form>
+                    </div>
 
                     <h2>Registrar movimiento</h2>
                     <form id="form-movimiento">
@@ -2126,6 +2138,6 @@
         </div>
     </div>
 
-    <script type="module" src="js/main.js?v=18"></script>
+    <script type="module" src="js/main.js?v=19"></script>
 </body>
 </html>
