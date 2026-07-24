@@ -521,6 +521,25 @@ router.get('/referidos', requiereAuth, async (req, res, next) => {
   }
 });
 
+/** Resumen para las tarjetas del panel de admin. Solo admin. */
+router.get('/admin/estadisticas', requiereAuth, requiereAdmin, async (req, res, next) => {
+  try {
+    const { rows } = await query(
+      `SELECT
+         (SELECT COALESCE(SUM(importe), 0) FROM movimientos WHERE tipo = 'deposito')      AS depositos_total,
+         (SELECT COUNT(*) FROM clientes WHERE activo = TRUE AND es_admin = FALSE)::int    AS clientes_activos,
+         (SELECT COUNT(*) FROM clientes WHERE es_admin = FALSE)::int                      AS clientes_total,
+         (SELECT COUNT(*) FROM retiros WHERE estado = 'pendiente')::int                   AS retiros_pendientes,
+         (SELECT COALESCE(SUM(monto), 0) FROM retiros WHERE estado = 'pendiente')         AS retiros_pendientes_monto,
+         (SELECT COUNT(*) FROM recargas WHERE estado = 'pendiente')::int                  AS recargas_pendientes,
+         (SELECT COUNT(*) FROM solicitudes_password WHERE estado = 'pendiente')::int      AS passwords_pendientes`
+    );
+    res.json(rows[0]);
+  } catch (err) {
+    next(err);
+  }
+});
+
 /** Listado de clientes con su saldo. Solo admin. Para el panel de gestion. */
 router.get('/', requiereAuth, requiereAdmin, async (req, res, next) => {
   try {

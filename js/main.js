@@ -1554,7 +1554,9 @@ function pintarCondicionesRetiro() {
 async function arrancar() {
     const autenticado = !!sesion.token;
     mostrar('vista-auth', !autenticado);
-    mostrar('barra-top', autenticado && sesion.esAdmin);
+    // El panel de admin trae su propia barra superior y su botón de salir,
+    // así que la barra global sobra ahí.
+    mostrar('barra-top', false);
     mostrar('vista-cliente', false);
     mostrar('vista-recarga', false);
     mostrar('modal-pago', false);
@@ -1573,7 +1575,7 @@ async function arrancar() {
         if (sesion.esAdmin) {
             mostrar('vista-admin', true);
             // La ?v= debe subir cuando cambie admin.js, para que el navegador no use la version vieja.
-            const { inicializarAdmin } = await import('./admin.js?v=11');
+            const { inicializarAdmin } = await import('./admin.js?v=12');
             inicializarAdmin();
         } else {
             mostrar('vista-cliente', true);

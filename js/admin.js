@@ -428,8 +428,37 @@ export function inicializarAdmin() {
         };
     }
 
-    // Arrancar la primera pestaña (Clientes)
+    // Arrancar la primera pestaña (Clientes) y el resumen de arriba
     listarClientes();
+    cargarEstadisticas();
+}
+
+// Pinta las tarjetas de resumen del panel. Se refresca al entrar y despues de
+// cada accion que mueva dinero o cuentas (confirmar, procesar, banear...).
+async function cargarEstadisticas() {
+    if (!$('stat-depositos')) return;
+    try {
+        const e = await api('/api/clientes/admin/estadisticas', { auth: true });
+        $('stat-depositos').textContent = dinero(e.depositos_total);
+        $('stat-depositos-sub').textContent =
+            `${e.recargas_pendientes} recarga${e.recargas_pendientes === 1 ? '' : 's'} por confirmar`;
+
+        $('stat-clientes').textContent = Number(e.clientes_activos).toLocaleString('en-US');
+        const sub = $('stat-clientes-sub');
+        sub.innerHTML = '';
+        sub.appendChild(el('span', 'stat-punto'));
+        sub.append(`${e.clientes_total} en total registrados`);
+
+        $('stat-retiros').textContent = Number(e.retiros_pendientes).toLocaleString('en-US');
+        const subR = $('stat-retiros-sub');
+        const partes = [];
+        if (e.retiros_pendientes > 0) partes.push(`${dinero(e.retiros_pendientes_monto)} por pagar`);
+        if (e.passwords_pendientes > 0) partes.push(`${e.passwords_pendientes} contraseña(s) por aprobar`);
+        subR.textContent = partes.length ? partes.join(' · ') : 'Todo al día';
+        subR.classList.toggle('alerta', partes.length > 0);
+    } catch (err) {
+        console.warn('No se pudieron cargar las estadísticas:', err.message);
+    }
 }
 
 async function listarClientes(buscar = '') {
@@ -604,6 +633,7 @@ async function quitarBaneo(id, buscar) {
     try {
         await api(`/api/clientes/${id}/ban`, { method: 'PATCH', auth: true, body: { baneado: false } });
         listarBaneos(buscar);
+        cargarEstadisticas();
     } catch (err) {
         if ($('error-baneos-lista')) $('error-baneos-lista').textContent = err.message;
     }
@@ -669,6 +699,7 @@ async function accionSolicitudPassword(id, accion, btn) {
     try {
         await api(`/api/clientes/password/solicitudes/${id}/${accion}`, { method: 'POST', auth: true });
         listarSolicitudesPassword();
+        cargarEstadisticas();
     } catch (err) {
         if ($('error-passwords')) $('error-passwords').textContent = err.message;
         if (btn) btn.disabled = false;
@@ -785,6 +816,7 @@ async function accionRecarga(id, accion, btn) {
     try {
         await api(`/api/pagos/recargas/${id}/${accion}`, { method: 'POST', auth: true });
         listarRecargas();
+        cargarEstadisticas();
         if (accion === 'confirmar' && clienteAbierto) abrirCliente(clienteAbierto);
     } catch (err) {
         alert(err.message);
@@ -946,6 +978,7 @@ async function procesarRetiro(id, accion, btn) {
             body: { accion }
         });
         listarRetiros();
+        cargarEstadisticas();
     } catch (err) {
         alert(err.message);
         if (btn) btn.disabled = false;

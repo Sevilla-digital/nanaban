@@ -360,6 +360,108 @@
             letter-spacing: 0.05em;
             text-transform: uppercase;
         }
+        /* ---------- Panel de administración ---------- */
+        .admin-layout { display: flex; min-height: 100vh; }
+        .admin-lateral {
+            width: 250px; flex-shrink: 0;
+            background: #1e2020;
+            border-right: 1px solid rgba(77, 70, 53, 0.3);
+            padding: 28px 14px;
+            position: sticky; top: 0; height: 100vh;
+            display: flex; flex-direction: column;
+        }
+        .admin-marca { padding: 0 10px; margin-bottom: 26px; }
+        .admin-marca h1 { font-size: 22px; color: var(--primario); letter-spacing: -0.02em; }
+        .admin-marca p {
+            font-family: Inter, sans-serif; font-size: 11px; font-weight: 600;
+            letter-spacing: 0.1em; text-transform: uppercase; color: var(--texto-suave); margin-top: 4px;
+        }
+        .admin-nav { display: flex; flex-direction: column; gap: 6px; flex: 1; }
+        .admin-enlace {
+            display: flex; align-items: center; gap: 12px;
+            padding: 11px 14px; border-radius: 8px;
+            background: none; border: none; border-left: 2px solid transparent;
+            color: var(--texto-suave); cursor: pointer; text-align: left; width: 100%;
+            font-family: Inter, sans-serif; font-size: 14px; font-weight: 500; letter-spacing: 0.03em;
+            transition: color 0.2s, background 0.2s;
+        }
+        .admin-enlace .material-symbols-outlined { font-size: 20px; }
+        .admin-enlace:hover { color: var(--primario); background: #282a2b; }
+        .admin-enlace.activa {
+            color: var(--primario);
+            background: rgba(212, 175, 55, 0.1);
+            border-left-color: var(--primario);
+        }
+        .admin-enlace.activa .material-symbols-outlined { font-variation-settings: 'FILL' 1; }
+        .admin-lateral-pie { margin-top: auto; padding-top: 20px; }
+        .admin-lateral-pie .btn { margin-top: 0; width: 100%; }
+
+        .admin-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+        .admin-topbar {
+            display: flex; align-items: center; justify-content: space-between; gap: 16px;
+            flex-wrap: wrap;
+            padding: 16px 20px;
+            border-bottom: 1px solid rgba(77, 70, 53, 0.3);
+            background: rgba(18, 20, 20, 0.85);
+            backdrop-filter: blur(8px);
+            position: sticky; top: 0; z-index: 30;
+        }
+        .admin-topbar h2 { font-family: Montserrat, sans-serif; font-size: 20px; font-weight: 700; margin: 0; }
+        @media (min-width: 768px) { .admin-topbar { padding: 18px 28px; } .admin-topbar h2 { font-size: 26px; } }
+        .admin-topbar-der { display: flex; align-items: center; gap: 12px; flex: 1; justify-content: flex-end; }
+        .admin-buscador { position: relative; flex: 1; min-width: 180px; max-width: 420px; }
+        .admin-buscador .material-symbols-outlined {
+            position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+            font-size: 20px; color: var(--texto-suave); pointer-events: none;
+        }
+        .admin-buscador input { padding-left: 40px; margin: 0; }
+        .admin-salir-movil {
+            background: none; border: 1px solid var(--borde); border-radius: 8px;
+            color: var(--texto-suave); cursor: pointer; padding: 8px; display: flex;
+        }
+        .admin-salir-movil:hover { color: var(--error); border-color: var(--error); }
+        @media (min-width: 900px) { .admin-salir-movil { display: none; } }
+
+        .admin-contenido { padding: 20px; }
+        @media (min-width: 768px) { .admin-contenido { padding: 28px; } }
+
+        /* Móvil: la lateral se convierte en una barra horizontal deslizable */
+        @media (max-width: 899px) {
+            .admin-layout { flex-direction: column; }
+            .admin-lateral {
+                width: 100%; height: auto; position: static;
+                padding: 10px 12px;
+                border-right: none; border-bottom: 1px solid rgba(77, 70, 53, 0.3);
+            }
+            .admin-marca, .admin-lateral-pie { display: none; }
+            .admin-nav { flex-direction: row; overflow-x: auto; gap: 8px; padding-bottom: 2px; }
+            .admin-enlace {
+                width: auto; white-space: nowrap; padding: 8px 14px;
+                border-left: none; border-bottom: 2px solid transparent; border-radius: 8px 8px 0 0;
+            }
+            .admin-enlace.activa { border-left-color: transparent; border-bottom-color: var(--primario); }
+        }
+
+        /* Tarjetas de resumen */
+        .admin-stats { display: grid; grid-template-columns: 1fr; gap: 16px; margin-bottom: 28px; }
+        @media (min-width: 700px) { .admin-stats { grid-template-columns: repeat(3, 1fr); } }
+        .stat-card {
+            background: var(--tarjeta); border: 1px solid var(--borde);
+            border-radius: 12px; padding: 20px;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+        .stat-card:hover { border-color: rgba(212, 175, 55, 0.35); box-shadow: 0 14px 34px rgba(0, 0, 0, 0.45); }
+        .stat-cima { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; gap: 12px; }
+        .stat-rotulo {
+            font-family: Inter, sans-serif; font-size: 12px; font-weight: 600;
+            letter-spacing: 0.1em; text-transform: uppercase; color: var(--texto-suave);
+        }
+        .stat-cima .material-symbols-outlined { color: var(--primario); font-size: 22px; }
+        .stat-valor { font-family: Montserrat, sans-serif; font-size: 28px; font-weight: 700; line-height: 1.1; }
+        .stat-sub { font-family: Inter, sans-serif; font-size: 12px; color: var(--texto-suave); margin-top: 6px; }
+        .stat-sub.alerta { color: var(--primario); }
+        .stat-punto { display: inline-block; width: 8px; height: 8px; border-radius: 9999px; background: #51cf66; margin-right: 6px; }
+
         .tabs { display: flex; gap: 8px; margin-bottom: 20px; }
         .tab {
             font-family: Inter, sans-serif;
@@ -1960,25 +2062,96 @@
         </div>
     </div>
 
-    <div class="contenedor">
-        <!-- ================= ADMIN ================= -->
-        <div id="vista-admin" class="oculto">
-            <h1 style="margin-bottom:20px">Panel de administración</h1>
-            <div class="tabs">
-                <div class="tab activa" id="tab-clientes">Clientes</div>
-                <div class="tab" id="tab-recargas">Recargas</div>
-                <div class="tab" id="tab-retiros">Retiros</div>
-                <div class="tab" id="tab-premium">Premium</div>
-                <div class="tab" id="tab-baneos">Baneos</div>
-                <div class="tab" id="tab-passwords">Contraseñas</div>
-                <div class="tab" id="tab-metodos">Métodos de pago</div>
-                <div class="tab" id="tab-config">Configuración del sitio</div>
+    <!-- ================= ADMIN ================= -->
+    <div id="vista-admin" class="oculto">
+      <div class="admin-layout">
+        <!-- Navegación lateral (en móvil se vuelve una barra horizontal) -->
+        <aside class="admin-lateral">
+            <div class="admin-marca">
+                <h1 id="marca-panel">Gold Corp</h1>
+                <p>Panel administrativo</p>
             </div>
+            <nav class="admin-nav">
+                <button class="admin-enlace activa" type="button" id="tab-clientes">
+                    <span class="material-symbols-outlined">group</span> Clientes
+                </button>
+                <button class="admin-enlace" type="button" id="tab-recargas">
+                    <span class="material-symbols-outlined">payments</span> Recargas
+                </button>
+                <button class="admin-enlace" type="button" id="tab-retiros">
+                    <span class="material-symbols-outlined">account_balance</span> Retiros
+                </button>
+                <button class="admin-enlace" type="button" id="tab-premium">
+                    <span class="material-symbols-outlined">workspace_premium</span> Premium
+                </button>
+                <button class="admin-enlace" type="button" id="tab-baneos">
+                    <span class="material-symbols-outlined">block</span> Baneos
+                </button>
+                <button class="admin-enlace" type="button" id="tab-passwords">
+                    <span class="material-symbols-outlined">password</span> Contraseñas
+                </button>
+                <button class="admin-enlace" type="button" id="tab-metodos">
+                    <span class="material-symbols-outlined">credit_card</span> Métodos de pago
+                </button>
+                <button class="admin-enlace" type="button" id="tab-config">
+                    <span class="material-symbols-outlined">settings</span> Configuración del sitio
+                </button>
+            </nav>
+            <div class="admin-lateral-pie">
+                <button class="btn sec cerrar-sesion" type="button">
+                    <span class="material-symbols-outlined" style="font-size:18px">logout</span>
+                    Cerrar sesión
+                </button>
+            </div>
+        </aside>
+
+        <div class="admin-main">
+            <!-- Barra superior: título, buscador y salida -->
+            <header class="admin-topbar">
+                <h2>Panel de administración</h2>
+                <div class="admin-topbar-der">
+                    <div class="admin-buscador">
+                        <span class="material-symbols-outlined">search</span>
+                        <input id="buscar" placeholder="Buscar por nombre, usuario o teléfono…">
+                    </div>
+                    <button class="admin-salir-movil cerrar-sesion" type="button" aria-label="Cerrar sesión">
+                        <span class="material-symbols-outlined">logout</span>
+                    </button>
+                </div>
+            </header>
+
+            <div class="admin-contenido">
+                <!-- Resumen general -->
+                <section class="admin-stats">
+                    <div class="stat-card">
+                        <div class="stat-cima">
+                            <span class="stat-rotulo">Depósitos totales</span>
+                            <span class="material-symbols-outlined">trending_up</span>
+                        </div>
+                        <div class="stat-valor" id="stat-depositos">—</div>
+                        <div class="stat-sub" id="stat-depositos-sub">Suma de todo lo abonado</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-cima">
+                            <span class="stat-rotulo">Clientes activos</span>
+                            <span class="material-symbols-outlined">groups</span>
+                        </div>
+                        <div class="stat-valor" id="stat-clientes">—</div>
+                        <div class="stat-sub" id="stat-clientes-sub"><span class="stat-punto"></span>Cuentas habilitadas</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-cima">
+                            <span class="stat-rotulo">Pendientes</span>
+                            <span class="material-symbols-outlined">hourglass_empty</span>
+                        </div>
+                        <div class="stat-valor" id="stat-retiros">—</div>
+                        <div class="stat-sub" id="stat-retiros-sub">Retiros por atender</div>
+                    </div>
+                </section>
 
             <!-- Clientes -->
             <div id="panel-clientes">
                 <div class="tarjeta">
-                    <input id="buscar" placeholder="Buscar por nombre, usuario o teléfono…">
                     <div id="lista-clientes"><p class="muted">Cargando…</p></div>
                 </div>
 
@@ -2212,9 +2385,11 @@
                     </form>
                 </div>
             </div>
-        </div>
-    </div>
+            </div><!-- /admin-contenido -->
+        </div><!-- /admin-main -->
+      </div><!-- /admin-layout -->
+    </div><!-- /vista-admin -->
 
-    <script type="module" src="js/main.js?v=21"></script>
+    <script type="module" src="js/main.js?v=22"></script>
 </body>
 </html>
