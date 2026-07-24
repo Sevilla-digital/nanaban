@@ -2068,7 +2068,7 @@
         <!-- Navegación lateral (en móvil se vuelve una barra horizontal) -->
         <aside class="admin-lateral">
             <div class="admin-marca">
-                <h1 id="marca-panel">Gold Corp</h1>
+                <h1 id="marca-admin">Gold Corp</h1>
                 <p>Panel administrativo</p>
             </div>
             <nav class="admin-nav">
@@ -2291,11 +2291,15 @@
             <!-- Métodos de pago -->
             <div id="panel-metodos" class="oculto">
                 <div class="tarjeta">
-                    <h2 style="margin-top:0">Añadir método de pago</h2>
-                    <p class="muted">Los métodos activos son los que ven los clientes al recargar. Desactiva uno para dejar de recibir por ahí sin borrarlo.</p>
+                    <h2 style="margin-top:0" id="titulo-form-metodo">Añadir método de pago</h2>
+                    <p class="muted">Los métodos activos son los que ven los clientes al recargar. Pulsa <strong>Editar</strong> en la lista de abajo para modificar uno que ya exista, o desactívalo para dejar de recibir por ahí sin borrarlo.</p>
                     <form id="form-metodo">
                         <label>Tipo</label>
-                        <select name="tipo" id="metodo-tipo">
+                        <!-- Ojo: el id NO puede ser "metodo-tipo": ese ya lo usa el
+                             formulario de metodos de retiro del cliente en esta misma
+                             pagina, y getElementById devolvia aquel, asi que los campos
+                             de banco/cripto de aqui no cambiaban al elegir el tipo. -->
+                        <select name="tipo" id="admin-metodo-tipo">
                             <option value="banco">Cuenta bancaria</option>
                             <option value="cripto">Criptomoneda</option>
                         </select>
@@ -2390,6 +2394,6 @@
       </div><!-- /admin-layout -->
     </div><!-- /vista-admin -->
 
-    <script type="module" src="js/main.js?v=22"></script>
+    <script type="module" src="js/main.js?v=23"></script>
 </body>
 </html>

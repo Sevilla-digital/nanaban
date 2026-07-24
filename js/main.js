@@ -46,7 +46,7 @@ async function aplicarBranding() {
         if (c.color_primario) document.documentElement.style.setProperty('--primario', c.color_primario);
         if (c.color_fondo) document.documentElement.style.setProperty('--fondo', c.color_fondo);
         if (c.nombre_sitio) {
-            for (const id of ['marca', 'marca-panel', 'marca-movil', 'marca-lateral', 'marca-movil-cliente']) {
+            for (const id of ['marca', 'marca-panel', 'marca-admin', 'marca-movil', 'marca-lateral', 'marca-movil-cliente']) {
                 if ($(id)) $(id).textContent = c.nombre_sitio;
             }
             document.title = document.title.includes('Nueva Inversión')
@@ -161,6 +161,15 @@ function inicializarAuthForms() {
             e.preventDefault();
             mostrar('panel-login', true); mostrar('panel-olvide', false);
         };
+    }
+
+    // Quien llega desde "Crear cuenta" del lobby (/cuenta?registro=1) o desde un
+    // enlace de referido (?ref=usuario) ve directamente el alta, no el login.
+    const params = new URLSearchParams(window.location.search);
+    if (params.has('registro') || params.has('ref') || window.location.hash === '#registro') {
+        mostrar('panel-registro', true);
+        mostrar('panel-login', false);
+        mostrar('panel-olvide', false);
     }
 }
 
@@ -1575,7 +1584,7 @@ async function arrancar() {
         if (sesion.esAdmin) {
             mostrar('vista-admin', true);
             // La ?v= debe subir cuando cambie admin.js, para que el navegador no use la version vieja.
-            const { inicializarAdmin } = await import('./admin.js?v=12');
+            const { inicializarAdmin } = await import('./admin.js?v=13');
             inicializarAdmin();
         } else {
             mostrar('vista-cliente', true);

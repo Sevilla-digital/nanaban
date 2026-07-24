@@ -98,6 +98,7 @@ function tablaMovimientos(destino, movimientos) {
 let clienteAbierto = null;
 let adminInicializado = false;
 let baneoSeleccionado = null; // cliente elegido en la pestaña Baneos
+let metodoEditando = null;    // metodo de pago que se esta editando (null = alta nueva)
 
 export function inicializarAdmin() {
     if (adminInicializado) {
@@ -144,6 +145,7 @@ export function inicializarAdmin() {
             $('tab-metodos').classList.add('activa');
             paneles.forEach(p => mostrar(p, false));
             mostrar('panel-metodos', true);
+            sincronizarCamposMetodo();
             listarMetodos();
         };
     }
@@ -353,12 +355,16 @@ export function inicializarAdmin() {
         };
     }
 
-    if ($('metodo-tipo')) {
-        $('metodo-tipo').onchange = () => {
-            const esBanco = $('metodo-tipo').value === 'banco';
-            mostrar('campos-banco', esBanco);
-            mostrar('campos-cripto', !esBanco);
-        };
+    if ($('admin-metodo-tipo')) {
+        // Ademas del onchange, hay que sincronizar al cargar: el navegador restaura
+        // el valor del select al recargar la pagina SIN disparar 'change', y se
+        // quedaban a la vista los campos de banco con "Criptomoneda" seleccionado.
+        $('admin-metodo-tipo').onchange = sincronizarCamposMetodo;
+        sincronizarCamposMetodo();
+    }
+
+    if ($('cancelar-edicion')) {
+        $('cancelar-edicion').onclick = () => salirEdicionMetodo();
     }
 
     if ($('form-metodo')) {
@@ -391,13 +397,27 @@ export function inicializarAdmin() {
                 };
             }
 
+            // Al editar conservamos activo/orden del metodo: no se tocan desde este
+            // formulario y el PUT exige el objeto completo.
+            const editando = metodoEditando;
+            if (editando) {
+                cuerpo.activo = editando.activo;
+                cuerpo.orden = editando.orden || 0;
+            }
+
             const btn = f.querySelector('button[type=submit]');
             btn.disabled = true;
             try {
-                await api('/api/pagos/metodos', { method: 'POST', auth: true, body: cuerpo });
-                $('ok-metodo').textContent = 'Método añadido.';
-                f.reset();
-                $('metodo-tipo').dispatchEvent(new Event('change'));
+                if (editando) {
+                    await api(`/api/pagos/metodos/${editando.id}`, { method: 'PUT', auth: true, body: cuerpo });
+                    salirEdicionMetodo();
+                    $('ok-metodo').textContent = 'Método actualizado.';
+                } else {
+                    await api('/api/pagos/metodos', { method: 'POST', auth: true, body: cuerpo });
+                    f.reset();
+                    sincronizarCamposMetodo();
+                    $('ok-metodo').textContent = 'Método añadido.';
+                }
                 listarMetodos();
             } catch (err) {
                 $('error-metodo').textContent = err.message;
@@ -824,6 +844,62 @@ async function accionRecarga(id, accion, btn) {
     }
 }
 
+/** Deja a la vista solo los campos del tipo elegido en el selector. */
+function sincronizarCamposMetodo() {
+    const sel = $('admin-metodo-tipo');
+    if (!sel) return;
+    const esBanco = sel.value === 'banco';
+    mostrar('campos-banco', esBanco);
+    mostrar('campos-cripto', !esBanco);
+}
+
+/** Carga un metodo existente en el formulario para modificarlo en vez de crear otro. */
+function editarMetodo(m) {
+    const f = $('form-metodo');
+    if (!f) return;
+    metodoEditando = m;
+    $('error-metodo').textContent = ''; $('ok-metodo').textContent = '';
+
+    f.tipo.value = m.tipo;
+    sincronizarCamposMetodo();
+    if (m.tipo === 'banco') {
+        f.etiqueta_banco.value = m.etiqueta || '';
+        f.titular.value = m.titular || '';
+        f.numero_cuenta.value = m.numero_cuenta || '';
+        f.moneda.value = m.moneda || '';
+    } else {
+        f.etiqueta_cripto.value = m.etiqueta || '';
+        f.red.value = m.red || '';
+        f.direccion.value = m.direccion || '';
+        if (f.comision) f.comision.value = m.comision ?? '0.50';
+    }
+    f.notas.value = m.notas || '';
+
+    const titulo = $('titulo-form-metodo');
+    if (titulo) titulo.textContent = 'Modificar método de pago';
+    const btn = f.querySelector('button[type=submit]');
+    if (btn) btn.textContent = 'Guardar cambios';
+    mostrar('cancelar-edicion', true);
+    f.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+/** Vuelve el formulario al modo "alta nueva". */
+function salirEdicionMetodo() {
+    const f = $('form-metodo');
+    metodoEditando = null;
+    if (f) {
+        f.reset();
+        const btn = f.querySelector('button[type=submit]');
+        if (btn) btn.textContent = 'Añadir método';
+    }
+    sincronizarCamposMetodo();
+    const titulo = $('titulo-form-metodo');
+    if (titulo) titulo.textContent = 'Añadir método de pago';
+    mostrar('cancelar-edicion', false);
+    if ($('error-metodo')) $('error-metodo').textContent = '';
+    if ($('ok-metodo')) $('ok-metodo').textContent = '';
+}
+
 function cuerpoMetodo(m, cambios = {}) {
     const base = m.tipo === 'banco'
         ? { tipo: 'banco', etiqueta: m.etiqueta, titular: m.titular,
@@ -854,6 +930,7 @@ async function listarMetodos() {
             tr.appendChild(el('td', m.activo ? 'pos' : 'muted', m.activo ? 'Activo' : 'Inactivo'));
             const acc = document.createElement('td');
             acc.style.whiteSpace = 'nowrap';
+            acc.appendChild(botonAccion('Editar', 'sec', () => editarMetodo(m)));
             acc.appendChild(botonAccion(m.activo ? 'Desactivar' : 'Activar', 'sec',
                 (e) => cambiarActivo(m, e.target)));
             acc.appendChild(botonAccion('Borrar', 'sec', (e) => borrarMetodo(m.id, e.target)));
@@ -874,6 +951,8 @@ async function cambiarActivo(m, btn) {
         await api(`/api/pagos/metodos/${m.id}`, {
             method: 'PUT', auth: true, body: cuerpoMetodo(m, { activo: !m.activo }),
         });
+        // Si es el que se esta editando, que el formulario no guarde el estado viejo.
+        if (metodoEditando && metodoEditando.id === m.id) metodoEditando.activo = !m.activo;
         listarMetodos();
     } catch (err) { alert(err.message); btn.disabled = false; }
 }
@@ -883,6 +962,7 @@ async function borrarMetodo(id, btn) {
     btn.disabled = true;
     try {
         await api(`/api/pagos/metodos/${id}`, { method: 'DELETE', auth: true });
+        if (metodoEditando && metodoEditando.id === id) salirEdicionMetodo();
         listarMetodos();
     } catch (err) { alert(err.message); btn.disabled = false; }
 }

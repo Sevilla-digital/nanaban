@@ -554,7 +554,7 @@
                 <a class="activo" href="/nosotros">Nosotros</a>
             </div>
             <a class="btn btn-oro" id="btn-acceso" href="/cuenta">
-                <span id="btn-acceso-texto">Acceso clientes</span>
+                <span id="btn-acceso-texto">Iniciar sesión</span>
                 <span class="material-symbols-outlined" id="btn-acceso-icono" style="font-size:18px">login</span>
             </a>
         </div>
@@ -707,7 +707,7 @@
         // La ?v= debe subir a la vez que en cuenta.html cuando cambie js/api.js.
         import { api, sesion } from './js/api.js?v=3';
 
-        // Si el cliente ya tiene sesion iniciada, el boton pasa de "Acceso clientes"
+        // Si el cliente ya tiene sesion iniciada, el boton pasa de "Iniciar sesion"
         // a "Mi perfil" con un icono de usuario, para que sepa que esta dentro. El
         // enlace sigue apuntando a cuenta.html, que le mostrara su panel.
         if (sesion.token) {
